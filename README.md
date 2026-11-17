@@ -91,3 +91,6 @@ Memes tab → 🌐 Online: search free Creative-Commons sound effects (Openverse
 - **Record** (Tools tab): screen, webcam, or screen + webcam bubble, with mic and tab/system sound; lands on the timeline.
 - **Hindi fonts** bundled (Baloo 2, Mukta, Hind, Noto Sans Devanagari, Rozha One, Yatra One, Kalam), Devanagari fallback for every font, three Hindi text presets.
 - **WhatsApp status splitter** (Tools tab): 30 / 60 / 90-second parts, "1/3" badges, 720p compression, download or share each part.
+
+## v12 – Modern "Aurora" UI
+Glassy panels with soft colour glows, Inter typeface, gradient primary buttons, pill chips, custom sliders, card hover effects, two-row tool tabs, card-style inspector sections, glossy timeline clips with a glowing playhead, animated dialogs and toasts, compact phone header. Respects "reduce motion".
