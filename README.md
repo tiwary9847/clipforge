@@ -1,6 +1,58 @@
-# ClipForge – browser video editor for Shorts, Reels & YouTube
+<div align="center">
 
-Runs 100% in the browser (no server, no upload, no cost).
+# ▶ ClipForge
+
+**A free, in-browser video editor for YouTube Shorts, Instagram Reels, Facebook and YouTube.**
+Memes with sound, auto-edit, Hinglish captions, multicam, colour grading and more – everything runs on your device. Nothing is uploaded.
+
+**Live app:** https://tiwary9847.github.io/clipforge/
+
+</div>
+
+## Highlights
+
+| | |
+|---|---|
+| ✨ **Auto-edit** | Drop clips, set the order, pick a style – cuts, transitions, memes with sound, titles and music are added for you |
+| 🤣 **Memes with sound** | ~37 one-tap meme moments, 30 synthesized sound effects, plus free online sound / GIF search |
+| 📝 **Edit by text** | Transcribe, then delete words to cut the video; remove “um / uh” and long pauses |
+| 💬 **Captions** | On-device Whisper captions, Hindi in English letters (Hinglish), karaoke word highlight, emoji words |
+| 🎨 **Pro look** | Colour grading with .cube LUTs, chroma key, AI background removal, animated masks, motion tracking |
+| 🎥 **Multicam & recording** | Sync 2–4 cameras by sound and cut live; record screen, webcam or both |
+| 🔊 **Audio** | EQ, compressor, noise reduction, vocal remover, auto-ducking, loudness to −14 LUFS, AI voices |
+| 📦 **Export** | Fast H.264 MP4 up to 4K, all platform formats at once, WhatsApp status splitter, thumbnail maker |
+| 🇮🇳 **Hindi ready** | Seven bundled Devanagari fonts and Hindi text styles |
+
+## Run it locally
+
+```bash
+npm install
+npm run dev      # development server
+npm run build    # builds a single self-contained dist/index.html
+```
+
+Requires Node 18+. Best in Chrome or Edge (desktop or Android); Safari and Firefox work with a few features disabled (the app tells you which).
+
+## Deploy
+
+- **GitHub Pages (Actions):** push to `main` – `.github/workflows/deploy.yml` builds and publishes. Set *Settings → Pages → Source* to **GitHub Actions**.
+- **GitHub Pages (branch):** the ready-built site is on the `gh-pages` branch – set *Source* to **Deploy from a branch → gh-pages / root**.
+- **Anywhere else:** upload the contents of `dist/` to any static host (Netlify, Cloudflare Pages, Vercel…).
+
+The app is an installable PWA (add to home screen) and works offline after the first visit.
+
+## Tech
+
+React 18 + TypeScript + Vite (single-file build) · Canvas 2D compositor · Web Audio · [mediabunny](https://github.com/Vanilagy/mediabunny) for decoding/encoding (WebCodecs) · transformers.js (Whisper, MODNet, TTS) loaded on demand · IndexedDB autosave.
+
+## Licences of optional AI models
+
+Downloaded only when you use the feature: Whisper (MIT), MODNet (Apache-2.0), Kokoro voices (Apache-2.0), MMS Hindi/English voices (**CC BY-NC 4.0 – not for monetised videos**).
+
+---
+
+## Changelog
+
 
 ## Use it
 - Easiest: open `clipforge.html` in Chrome or Edge (double-click).
