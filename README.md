@@ -94,3 +94,6 @@ Memes tab → 🌐 Online: search free Creative-Commons sound effects (Openverse
 
 ## v12 – Modern "Aurora" UI
 Glassy panels with soft colour glows, Inter typeface, gradient primary buttons, pill chips, custom sliders, card hover effects, two-row tool tabs, card-style inspector sections, glossy timeline clips with a glowing playhead, animated dialogs and toasts, compact phone header. Respects "reduce motion".
+
+## v13 – UI polish
+Line-icon set replacing emoji controls (tabs, header, transport, timeline toolbar, phone nav), welcome screen for new projects (drop zone that imports straight to the timeline, format cards, quick starts for Auto-edit / Record / Templates / Memes), colour-coded track headers, gradient wordmark, compact phone layout. Fixed: frosted panels no longer trap pop-up windows.

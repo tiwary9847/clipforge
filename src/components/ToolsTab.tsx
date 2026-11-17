@@ -23,7 +23,20 @@ const download = (blob: Blob, name: string) => {
 const safeName = () => getState().projectName.replace(/[^\w\- ]+/g, '').trim() || 'clipforge'
 
 export function ToolsTab() {
-  const [dlg, setDlg] = useState<'' | 'thumb' | 'prompter' | 'text' | 'rec'>('')
+  const [dlg, setDlg] = useState<'' | 'thumb' | 'prompter' | 'text' | 'rec'>(() => {
+    const w = window as any
+    const p = w.__cfPending
+    w.__cfPending = undefined
+    return p === 'rec' || p === 'text' ? p : ''
+  })
+  useEffect(() => {
+    const on = (e: Event) => {
+      ;(window as any).__cfPending = undefined
+      setDlg((e as CustomEvent).detail)
+    }
+    window.addEventListener('cf:tools', on)
+    return () => window.removeEventListener('cf:tools', on)
+  }, [])
   return (
     <>
       <div className="tmpls two" style={{ marginTop: 0 }}>

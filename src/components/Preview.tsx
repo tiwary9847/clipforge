@@ -3,6 +3,8 @@ import { engine, FPS, Box } from '../engine'
 import { checkpoint, getClip, getPreset, getState, localTime, patchClip, select, setClipProp, setUi, useStore } from '../store'
 import { evalProp } from '../anim'
 import { fmtTime } from './Fields'
+import { Icon } from './Icon'
+import { Welcome } from './Welcome'
 
 export function Preview() {
   const wrap = useRef<HTMLDivElement>(null)
@@ -177,7 +179,6 @@ export function Preview() {
       <div className="stage-wrap" ref={wrap}>
         <div className="stage" ref={stage} style={{ width: size.w, height: size.h, cursor: picking ? 'crosshair' : undefined }} onPointerDown={stagePointerDown}>
           <canvas ref={cv} width={preset.w} height={preset.h} />
-          {!total && <div className="stage-empty">Import a video and press ＋ to start editing</div>}
           {showSafe && preset.safe && (
             <div className="safe" title="Approximate area free of platform buttons and captions">
               <span>safe zone</span>
@@ -203,14 +204,15 @@ export function Preview() {
           )}
         </div>
       </div>
+      {!total && <Welcome />}
       <div className="transport">
-        <button className="ico" title="Back to start (Home)" onClick={() => engine.seek(0)}>⏮</button>
-        <button className="ico" title="Previous frame (←)" onClick={() => step(-1)}>◂</button>
+        <button className="ico" title="Back to start (Home)" onClick={() => engine.seek(0)}><Icon name="skipBack" size={16} /></button>
+        <button className="ico" title="Previous frame (←)" onClick={() => step(-1)}><Icon name="left" size={18} /></button>
         <button className="ico big play" title="Play / pause (Space)" onClick={() => engine.toggle()}>
-          {playing ? '❚❚' : '▶'}
+          {playing ? <Icon name="pause" size={20} /> : <Icon name="play" size={20} />}
         </button>
-        <button className="ico" title="Next frame (→)" onClick={() => step(1)}>▸</button>
-        <button className="ico" title="Jump to end (End)" onClick={() => engine.seek(engine.duration())}>⏭</button>
+        <button className="ico" title="Next frame (→)" onClick={() => step(1)}><Icon name="right" size={18} /></button>
+        <button className="ico" title="Jump to end (End)" onClick={() => engine.seek(engine.duration())}><Icon name="skipFwd" size={16} /></button>
         <div className="time">
           <span ref={timeRef}>0:00.00</span>
           <span className="muted"> / {fmtTime(total)}</span>

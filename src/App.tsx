@@ -5,6 +5,7 @@ import { Timeline } from './components/Timeline'
 import { Inspector } from './components/Inspector'
 import { ExportDialog } from './components/ExportDialog'
 import { AutoEditDialog } from './components/AutoEditDialog'
+import { Icon } from './components/Icon'
 import { engine, FPS } from './engine'
 import {
   addMarker,
@@ -31,6 +32,11 @@ import { restoreProject, startAutosave } from './db'
 export default function App() {
   const [exporting, setExporting] = useState(false)
   const [autoOpen, setAutoOpen] = useState(false)
+  useEffect(() => {
+    const on = (e: Event) => (e as CustomEvent).detail === 'auto' && setAutoOpen(true)
+    window.addEventListener('cf:open', on)
+    return () => window.removeEventListener('cf:open', on)
+  }, [])
   const [dropping, setDropping] = useState(false)
   const [confirmNew, setConfirmNew] = useState(false)
   const [compat, setCompat] = useState<string[]>([])
@@ -154,15 +160,15 @@ export default function App() {
       )}
       <header className="top">
         <div className="logo">
-          <span className="logo-mark">▶</span> ClipForge
+          <span className="logo-mark"><Icon name="play" size={14} /></span><span className="logo-txt">Clip<b>Forge</b></span>
         </div>
         <input className="proj-name" value={name} onChange={(e) => setUi({ projectName: e.target.value })} />
         <span className="save-st" title="Your project and media are saved in this browser automatically">
           {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? '✓ Saved' : saveStatus === 'error' ? '⚠ Not saved' : ''}
         </span>
         <div className="spacer" />
-        <button className="btn sm ae-btn" onClick={() => setAutoOpen(true)} title="Upload clips, set the order – we edit it for you">✨ Auto-edit</button>
-        <button className="btn sm" onClick={() => setConfirmNew(true)} title="Start a new project">＋ New</button>
+        <button className="btn sm ae-btn" onClick={() => setAutoOpen(true)} title="Upload clips, set the order – we edit it for you"><Icon name="sparkles" size={15} /> Auto-edit</button>
+        <button className="btn sm" onClick={() => setConfirmNew(true)} title="Start a new project"><Icon name="plus" size={15} /> New</button>
         <select
           className="preset-sel"
           value={presetId}
@@ -178,9 +184,9 @@ export default function App() {
             </option>
           ))}
         </select>
-        <button className="ico" disabled={!canUndo} onClick={undo} title="Undo (Ctrl+Z)">↶</button>
-        <button className="ico" disabled={!canRedo} onClick={redo} title="Redo (Ctrl+Shift+Z)">↷</button>
-        <button className="btn primary" onClick={() => setExporting(true)}>⬆ Export</button>
+        <button className="ico" disabled={!canUndo} onClick={undo} title="Undo (Ctrl+Z)"><Icon name="undo" size={16} /></button>
+        <button className="ico" disabled={!canRedo} onClick={redo} title="Redo (Ctrl+Shift+Z)"><Icon name="redo" size={16} /></button>
+        <button className="btn primary" onClick={() => setExporting(true)}><Icon name="upload" size={15} /> Export</button>
       </header>
       <div className="mid">
         <MediaPanel />
@@ -191,10 +197,10 @@ export default function App() {
       </div>
       <Timeline />
       <nav className="mnav">
-        <button className={sheet === 'add' ? 'on' : ''} onClick={() => setSheet(sheet === 'add' ? null : 'add')}>＋<span>Add</span></button>
-        <button className={sheet === 'edit' ? 'on' : ''} onClick={() => setSheet(sheet === 'edit' ? null : 'edit')}>✎<span>{hasSel ? 'Edit' : 'Project'}</span></button>
-        <button onClick={() => engine.toggle()}>{playing ? '❚❚' : '▶'}<span>{playing ? 'Pause' : 'Play'}</span></button>
-        <button onClick={() => setExporting(true)}>⬆<span>Export</span></button>
+        <button className={sheet === 'add' ? 'on' : ''} onClick={() => setSheet(sheet === 'add' ? null : 'add')}><Icon name="plus" size={21} /><span>Add</span></button>
+        <button className={sheet === 'edit' ? 'on' : ''} onClick={() => setSheet(sheet === 'edit' ? null : 'edit')}><Icon name="edit" size={20} /><span>{hasSel ? 'Edit' : 'Project'}</span></button>
+        <button onClick={() => engine.toggle()}>{playing ? <Icon name="pause" size={20} /> : <Icon name="play" size={20} />}<span>{playing ? 'Pause' : 'Play'}</span></button>
+        <button onClick={() => setExporting(true)}><Icon name="upload" size={20} /><span>Export</span></button>
       </nav>
       {sheet && <div className="sheet-x" onClick={() => setSheet(null)}>⌄ close</div>}
       {exporting && <ExportDialog onClose={() => setExporting(false)} />}

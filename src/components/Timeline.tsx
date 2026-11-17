@@ -30,6 +30,10 @@ import { Clip, TRACKS } from '../types'
 import { kfTimes, shiftKeyframes } from '../anim'
 import { fmtTime } from './Fields'
 import { AudioOverlay } from './AudioOverlay'
+import { Icon } from './Icon'
+
+const TRACK_SHORT: Record<string, string> = { v4: 'Layer 3', v3: 'Layer 2', v2: 'Layer 1' }
+const TRACK_ICON: Record<string, string> = { v4: 'layers', v3: 'layers', v2: 'layers', v1: 'film', a1: 'volume', a2: 'music' }
 
 const LABEL_W = 78
 const ROW_H = typeof matchMedia !== 'undefined' && matchMedia('(max-width: 820px)').matches ? 30 : 40
@@ -326,13 +330,13 @@ export function Timeline() {
   return (
     <div className="timeline">
       <div className="tl-bar">
-        <button className="btn sm" disabled={!hasSel} onClick={() => { checkpoint(); splitMany(ids, engine.time) }} title="Split at playhead (S)">✂ Split</button>
-        <button className="btn sm" disabled={!hasSel} onClick={() => duplicateMany(ids)} title="Duplicate (Ctrl+D)">⧉ Duplicate</button>
-        <button className="btn sm danger" disabled={!hasSel} onClick={() => deleteMany(ids)} title="Delete (Del)">🗑 Delete</button>
-        <button className="btn sm" disabled={!hasSel} onClick={() => rippleDelete(ids)} title="Delete and close the gap (Shift+Del)">⇤ Ripple</button>
-        <button className="btn sm" disabled={ids.length < 2} onClick={() => groupClips(ids)} title="Group selected clips (Ctrl+G)">🔗 Group</button>
-        {getState().project.clips.some((x) => ids.includes(x.id) && x.group) && <button className="btn sm" onClick={() => ungroupClips(ids)} title="Ungroup (Ctrl+Shift+G)">⛓️‍💥 Ungroup</button>}
-        <button className="btn sm" onClick={() => addMarker(engine.time)} title="Add a marker at the playhead (M)">⚑ Marker</button>
+        <button className="btn sm" disabled={!hasSel} onClick={() => { checkpoint(); splitMany(ids, engine.time) }} title="Split at playhead (S)"><Icon name="scissors" size={14} /> Split</button>
+        <button className="btn sm" disabled={!hasSel} onClick={() => duplicateMany(ids)} title="Duplicate (Ctrl+D)"><Icon name="copy" size={14} /> Duplicate</button>
+        <button className="btn sm danger" disabled={!hasSel} onClick={() => deleteMany(ids)} title="Delete (Del)"><Icon name="trash" size={14} /> Delete</button>
+        <button className="btn sm" disabled={!hasSel} onClick={() => rippleDelete(ids)} title="Delete and close the gap (Shift+Del)"><Icon name="ripple" size={14} /> Ripple</button>
+        <button className="btn sm" disabled={ids.length < 2} onClick={() => groupClips(ids)} title="Group selected clips (Ctrl+G)"><Icon name="link" size={14} /> Group</button>
+        {getState().project.clips.some((x) => ids.includes(x.id) && x.group) && <button className="btn sm" onClick={() => ungroupClips(ids)} title="Ungroup (Ctrl+Shift+G)"><Icon name="unlink" size={14} /> Ungroup</button>}
+        <button className="btn sm" onClick={() => addMarker(engine.time)} title="Add a marker at the playhead (M)"><Icon name="flag" size={14} /> Marker</button>
         {markers.length > 0 && <button className="btn sm" onClick={() => clearMarkers()} title="Remove all markers">Clear {markers.length}</button>}
         <label className="check inline">
           <input type="checkbox" checked={snap} onChange={(e) => setUi({ snap: e.target.checked })} />
@@ -393,7 +397,7 @@ export function Timeline() {
               onDragOver={(e) => e.dataTransfer.types.includes('text/clipforge-asset') && e.preventDefault()}
               onDrop={(e) => onDrop(e, tr.id)}
             >
-              <div className="tl-label">{tr.name}</div>
+              <div className={`tl-label t-${tr.id}`}><Icon name={TRACK_ICON[tr.id] ?? 'layers'} size={13} /><span title={tr.name}>{TRACK_SHORT[tr.id] ?? tr.name}</span></div>
               <div className="tl-lane" style={{ width: totalW }}>
                 {clips
                   .filter((c) => c.track === tr.id)

@@ -26,6 +26,7 @@ import { extractMono16k } from '../media'
 import { startVoiceover } from '../processing'
 import { TEMPLATES, applyTemplate } from '../templates'
 import { ToolsTab } from './ToolsTab'
+import { Icon } from './Icon'
 import { devanagariToRoman, emojiFor } from '../tools2'
 import { OnlineMemes } from './OnlineMemes'
 import { MEMES, MEME_CATS, MemeCat, applyMeme, previewSound } from '../memes'
@@ -33,14 +34,14 @@ import { CapMode, buildLines, transcribe } from '../captions'
 
 type Tab = 'media' | 'tools' | 'memes' | 'templates' | 'text' | 'stickers' | 'audio' | 'captions'
 const TABS: { id: Tab; icon: string; name: string }[] = [
-  { id: 'media', icon: '📁', name: 'Media' },
-  { id: 'memes', icon: '🤣', name: 'Memes' },
-  { id: 'templates', icon: '🧩', name: 'Templates' },
-  { id: 'text', icon: '🔤', name: 'Text' },
-  { id: 'stickers', icon: '😎', name: 'Stickers' },
-  { id: 'audio', icon: '🔊', name: 'Audio' },
-  { id: 'captions', icon: '💬', name: 'Captions' },
-  { id: 'tools', icon: '🧰', name: 'Tools' },
+  { id: 'media', icon: 'folder', name: 'Media' },
+  { id: 'memes', icon: 'smile', name: 'Memes' },
+  { id: 'templates', icon: 'layout', name: 'Templates' },
+  { id: 'text', icon: 'type', name: 'Text' },
+  { id: 'stickers', icon: 'star', name: 'Stickers' },
+  { id: 'audio', icon: 'music', name: 'Audio' },
+  { id: 'captions', icon: 'captions', name: 'Captions' },
+  { id: 'tools', icon: 'wrench', name: 'Tools' },
 ]
 
 export async function importFiles(files: FileList | File[], setMsg?: (m: string) => void) {
@@ -57,12 +58,25 @@ export async function importFiles(files: FileList | File[], setMsg?: (m: string)
 
 export function MediaPanel() {
   const [tab, setTab] = useState<Tab>('media')
+  useEffect(() => {
+    const on = (e: Event) => {
+      const d = (e as CustomEvent).detail
+      if (d === 'templates' || d === 'memes') setTab(d)
+      else if (d === 'record' || d === 'text') {
+        ;(window as any).__cfPending = d === 'record' ? 'rec' : 'text'
+        setTab('tools')
+        window.dispatchEvent(new CustomEvent('cf:tools', { detail: d === 'record' ? 'rec' : 'text' }))
+      }
+    }
+    window.addEventListener('cf:open', on)
+    return () => window.removeEventListener('cf:open', on)
+  }, [])
   return (
     <div className="left">
       <div className="tabs">
         {TABS.map((t) => (
           <button key={t.id} className={'tab' + (tab === t.id ? ' on' : '')} onClick={() => setTab(t.id)}>
-            <span>{t.icon}</span>
+            <Icon name={t.icon} size={19} />
             <small>{t.name}</small>
           </button>
         ))}
