@@ -1,6 +1,7 @@
 import {
   AudioBufferSource,
   BufferTarget,
+  StreamTarget,
   CanvasSink,
   CanvasSource,
   Mp4OutputFormat,
@@ -11,11 +12,11 @@ import {
 } from 'mediabunny'
 import { engine, FPS } from './engine'
 import { getAsset, getPreset, getState, projectDuration } from './store'
-import { disposeInputs, getInput, mixProjectAudio } from './media'
+import { disposeInputs, getInput, mixRange, projectHasSound } from './media'
 import { Clip } from './types'
 
 async function pickAudioCodec(): Promise<'aac' | 'opus' | null> {
-  const hasAudio = getState().project.clips.some((c) => c.kind === 'video' || c.kind === 'audio' || c.kind === 'sfx')
+  const hasAudio = projectHasSound(getState().project.clips)
   if (!hasAudio) return null
   const o = { numberOfChannels: 2, sampleRate: 48000 }
   if (await canEncodeAudio('aac', o)) return 'aac'
@@ -72,28 +73,20 @@ export async function fastExport(onProgress: (p: number, label: string) => void,
   await loadFonts()
 
   onProgress(0, 'Mixing audio…')
-  let audio = await mixProjectAudio(clips, getAsset, to)
-  if (audio && from > 0) {
-    const sr = audio.sampleRate
-    const s0 = Math.floor(from * sr)
-    const n = Math.max(1, audio.length - s0)
-    const cut = new AudioBuffer({ numberOfChannels: audio.numberOfChannels, length: n, sampleRate: sr })
-    for (let ch = 0; ch < audio.numberOfChannels; ch++) cut.copyToChannel(audio.getChannelData(ch).subarray(s0), ch)
-    audio = cut
-  }
   if (ctl.cancelled) return null
+  const withAudio = projectHasSound(clips)
 
   const canvas = document.createElement('canvas')
   canvas.width = W
   canvas.height = H
   const ctx = canvas.getContext('2d', { alpha: false })!
-  const target = new BufferTarget()
-  const output = new Output({ format: new Mp4OutputFormat({ fastStart: 'in-memory' }), target })
+  const sink = await openTarget()
+  const output = new Output({ format: new Mp4OutputFormat({ fastStart: sink.stream ? false : 'in-memory' }), target: sink.target })
   const vsrc = new CanvasSource(canvas, { codec: 'avc', bitrate: opts.bitrate ?? QUALITY_HIGH })
   output.addVideoTrack(vsrc, { frameRate: FPS })
   let asrc: AudioBufferSource | null = null
   let audioCodec: 'aac' | 'opus' = 'aac'
-  if (audio) {
+  if (withAudio) {
     audioCodec = (await pickAudioCodec()) ?? 'aac'
     asrc = new AudioBufferSource({ codec: audioCodec, bitrate: opts.audioBitrate ?? 192_000 })
     output.addAudioTrack(asrc)
@@ -102,26 +95,39 @@ export async function fastExport(onProgress: (p: number, label: string) => void,
 
   const sinks = new Map<string, CanvasSink>()
   const frames = new Map<string, CanvasImageSource>()
+  // one decoder per source file (not per clip) – heavily cut long videos stay light
   const sinkFor = async (c: Clip) => {
-    let s = sinks.get(c.id)
+    const key = c.assetId ?? c.id
+    let s = sinks.get(key)
     if (!s) {
       const a = getAsset(c.assetId)
       const track = a ? await getInput(a).getPrimaryVideoTrack() : null
       if (!track) return null
-      s = new CanvasSink(track, { poolSize: 3 })
-      sinks.set(c.id, s)
+      s = new CanvasSink(track, { poolSize: 4 })
+      sinks.set(key, s)
     }
     return s
   }
 
   try {
     const total = Math.max(1, Math.ceil(dur * FPS))
+    const WIN = 10 // seconds of audio mixed at a time
+    let audioUpTo = from
+    const sr = 48000
     for (let i = 0; i < total; i++) {
       if (ctl.cancelled) {
         await output.cancel()
+        await sink.discard()
         return null
       }
       const t = from + i / FPS
+      if (asrc && t >= audioUpTo - 1e-6 && audioUpTo < to - 1e-6) {
+        const w1 = Math.min(to, audioUpTo + WIN)
+        const n = Math.max(1, Math.round((w1 - audioUpTo) * sr))
+        const buf = (await mixRange(clips, getAsset, audioUpTo, w1)) ?? new AudioBuffer({ numberOfChannels: 2, length: n, sampleRate: sr })
+        await asrc.add(buf)
+        audioUpTo = w1
+      }
       for (const c of clips) {
         if (c.kind !== 'video' || t < c.start || t >= c.start + c.dur) continue
         const a = getAsset(c.assetId)
@@ -140,24 +146,78 @@ export async function fastExport(onProgress: (p: number, label: string) => void,
       }
     }
     vsrc.close()
-    if (asrc && audio) {
-      onProgress(0.96, 'Encoding audio…')
-      await asrc.add(audio)
-      asrc.close()
-    }
+    asrc?.close()
     onProgress(0.98, 'Finishing file…')
     await output.finalize()
-    const buf = target.buffer
-    if (!buf) throw new Error('Encoder produced no data')
+    const blob = await sink.result()
     onProgress(1, 'Done')
-    return { blob: new Blob([buf], { type: 'video/mp4' }), ext: 'mp4', codec: audio ? (audioCodec === 'aac' ? 'H.264 + AAC' : 'H.264 + Opus') : 'H.264 (no audio)' }
+    return { blob, ext: 'mp4', codec: asrc ? (audioCodec === 'aac' ? 'H.264 + AAC' : 'H.264 + Opus') : 'H.264 (no audio)' }
   } catch (e) {
     try {
       await output.cancel()
     } catch {}
+    await sink.discard()
     throw e
   } finally {
     disposeInputs()
     engine.requestRender()
   }
+}
+
+/* ---------- output target: stream to the browser's private disk when possible ---------- */
+
+interface Sink {
+  target: BufferTarget | StreamTarget
+  stream: boolean
+  result(): Promise<Blob>
+  discard(): Promise<void>
+}
+
+const PREFIX = 'cf-export-'
+
+/** Long exports are written to the Origin Private File System as they are encoded, so a 20-minute
+ *  1080p video never has to fit in memory. Falls back to an in-memory buffer where unsupported. */
+async function openTarget(): Promise<Sink> {
+  try {
+    const root = await navigator.storage.getDirectory()
+    const name = `${PREFIX}${Date.now()}-${Math.random().toString(36).slice(2, 7)}.mp4`
+    const fh = await root.getFileHandle(name, { create: true })
+    const writable = await (fh as any).createWritable()
+    return {
+      target: new StreamTarget(writable, { chunked: true, chunkSize: 8 * 1024 * 1024 }),
+      stream: true,
+      async result() {
+        const f = await fh.getFile()
+        if (!f.size) throw new Error('The export file is empty.')
+        return f
+      },
+      async discard() {
+        try {
+          await writable.abort?.()
+        } catch {}
+        try {
+          await root.removeEntry(name)
+        } catch {}
+      },
+    }
+  } catch {
+    const target = new BufferTarget()
+    return {
+      target,
+      stream: false,
+      async result() {
+        if (!target.buffer) throw new Error('Encoder produced no data')
+        return new Blob([target.buffer], { type: 'video/mp4' })
+      },
+      async discard() {},
+    }
+  }
+}
+
+/** Removes exports left over from earlier visits (call once at start-up). */
+export async function cleanOldExports() {
+  try {
+    const root: any = await navigator.storage.getDirectory()
+    for await (const [name] of root.entries()) if (String(name).startsWith(PREFIX)) await root.removeEntry(name).catch(() => {})
+  } catch {}
 }

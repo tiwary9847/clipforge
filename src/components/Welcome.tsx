@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { Icon } from './Icon'
+import { startTour } from './Tour'
 import { importFiles } from './MediaPanel'
 import { addAssetClip, getPreset, getState, setProject, setUi, useStore } from '../store'
 import { engine } from '../engine'
@@ -61,7 +62,7 @@ export function Welcome() {
           ))}
         </div>
 
-        <div className="wl-label">Or start with</div>
+        <div className="wl-label">Or start with <button className="lnk wl-tour" onClick={startTour}>· New here? Take the 30-second tour</button></div>
         <div className="wl-actions">
           <button onClick={() => openPanel('auto')}><span className="wa-ic a"><Icon name="sparkles" size={18} /></span><b>Auto-edit</b><small>Clips in → edited video out</small></button>
           <button onClick={() => openPanel('record')}><span className="wa-ic b"><Icon name="record" size={18} /></span><b>Record</b><small>Screen, webcam or both</small></button>

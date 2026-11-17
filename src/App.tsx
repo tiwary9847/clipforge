@@ -6,6 +6,7 @@ import { Inspector } from './components/Inspector'
 import { ExportDialog } from './components/ExportDialog'
 import { AutoEditDialog } from './components/AutoEditDialog'
 import { Icon } from './components/Icon'
+import { Tour, startTour } from './components/Tour'
 import { engine, FPS } from './engine'
 import {
   addMarker,
@@ -184,6 +185,7 @@ export default function App() {
             </option>
           ))}
         </select>
+        <button className="ico tour-btn" onClick={startTour} title="Quick tour"><Icon name="help" size={16} /></button>
         <button className="ico" disabled={!canUndo} onClick={undo} title="Undo (Ctrl+Z)"><Icon name="undo" size={16} /></button>
         <button className="ico" disabled={!canRedo} onClick={redo} title="Redo (Ctrl+Shift+Z)"><Icon name="redo" size={16} /></button>
         <button className="btn primary" onClick={() => setExporting(true)}><Icon name="upload" size={15} /> Export</button>
@@ -205,6 +207,7 @@ export default function App() {
       {sheet && <button className="sheet-x" onClick={() => setSheet(null)} aria-label="Close panel"><i />Close</button>}
       {exporting && <ExportDialog onClose={() => setExporting(false)} />}
       {autoOpen && <AutoEditDialog onClose={() => setAutoOpen(false)} />}
+      <Tour />
       {confirmNew && (
         <div className="modal-bg" onPointerDown={(e) => e.target === e.currentTarget && setConfirmNew(false)}>
           <div className="modal">

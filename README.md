@@ -149,3 +149,7 @@ Glassy panels with soft colour glows, Inter typeface, gradient primary buttons, 
 
 ## v13 – UI polish
 Line-icon set replacing emoji controls (tabs, header, transport, timeline toolbar, phone nav), welcome screen for new projects (drop zone that imports straight to the timeline, format cards, quick starts for Auto-edit / Record / Templates / Memes), colour-coded track headers, gradient wordmark, compact phone layout. Fixed: frosted panels no longer trap pop-up windows.
+
+## v14 – First-time tour + long-video performance
+- **Quick tour**: 5-step spotlight walkthrough (import → edit → memes → captions → export) shown on the first visit; replay any time from the **?** button or "Take the 30-second tour" on the welcome screen. Phone-specific wording.
+- **Long videos**: exports stream straight to the browser's private disk (no whole-file-in-memory), audio is mixed in 10-second chunks with pre-roll (identical output, no clicks), one decoder per source file during export, and only clips near the playhead keep a live video player.

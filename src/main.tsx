@@ -13,9 +13,10 @@ import * as tools2 from './tools2'
 import * as pro from './pro'
 import * as grade from './grade'
 import * as multicam from './multicam'
+import * as media from './media'
 
 // Small handle for automated tests and for power users poking around in the console.
-;(window as any).__cf = { store, processing, dsp, engine, fastExport, library, tools2, pro, grade, multicam }
+;(window as any).__cf = { store, processing, dsp, engine, fastExport, library, tools2, pro, grade, multicam, media }
 
 createRoot(document.getElementById('root')!).render(<App />)
 
@@ -27,3 +28,6 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
 // Redraw once the bundled Hindi fonts are ready (the first frame may use a fallback)
 void preloadFonts().then(() => engine.requestRender())
 document.fonts?.addEventListener?.('loadingdone', () => engine.requestRender())
+
+// free disk space used by exports from previous visits
+void fastExport.cleanOldExports()

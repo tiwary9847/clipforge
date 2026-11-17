@@ -260,6 +260,14 @@ class Engine {
     }
   }
 
+  /** Only clips near the playhead get a live <video>/<audio> element – long, heavily cut
+   *  projects would otherwise create hundreds of decoders. */
+  private nearPlayhead(c: Clip) {
+    const t = this.time
+    return c.start < t + 12 && c.start + c.dur > t - 4
+  }
+  private lastNearSync = 0
+
   private sync() {
     const { project, assets } = getState()
     const keep = new Set<string>()
@@ -267,6 +275,7 @@ class Engine {
       if (c.kind === 'video' || c.kind === 'audio') {
         const a = assets.find((x) => x.id === c.assetId)
         if (!a) continue
+        if (!this.nearPlayhead(c)) continue
         keep.add(c.id)
         const m = this.media.get(c.id)
         if (!m || m.url !== (a.proxyUrl ?? a.url)) {
@@ -377,6 +386,7 @@ class Engine {
     const was = this.playing
     if (was) this.pause()
     this.time = nt
+    this.sync()
     this.positionMedia(nt)
     this.render()
     this.emit()
@@ -387,6 +397,10 @@ class Engine {
     if (!this.playing) return
     const dur = this.duration()
     let t = this.startT + (performance.now() - this.startWall) / 1000
+    if (performance.now() - this.lastNearSync > 500) {
+      this.lastNearSync = performance.now()
+      this.sync()
+    }
     if (t >= dur) {
       this.time = dur
       this.render()

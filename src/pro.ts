@@ -2,7 +2,7 @@
 // (frame blending), vocal remover, loudness normalisation, AI background removal and AI voices.
 import { AudioBufferSink, AudioBufferSource, BufferTarget, CanvasSink, CanvasSource, Mp4OutputFormat, Output, QUALITY_HIGH, canEncodeAudio } from 'mediabunny'
 import { engine } from './engine'
-import { getInput, mixProjectAudio } from './media'
+import { getInput, mixRange } from './media'
 import { evalProp } from './anim'
 import { encodeWav } from './dsp'
 import { addAsset, addAssetClip, checkpoint, clipEnd, getAsset, getClip, getPreset, getState, patchClip, projectDuration, setProject } from './store'
@@ -348,41 +348,58 @@ export async function measureLoudness(): Promise<number | null> {
   const keep = st.project.loudDb
   setProject({ loudDb: 0 })
   try {
-    const buf = await mixProjectAudio(st.project.clips, getAsset, projectDuration())
-    if (!buf) return null
-    const sr = buf.sampleRate
-    const ch = [buf.getChannelData(0), buf.getChannelData(1)]
-    // K-weighting: high-shelf (+4 dB above ~1.5 kHz) and high-pass (~38 Hz), biquads per BS.1770 at 48 kHz
-    const kw = (x: Float32Array) => {
-      const y = new Float32Array(x.length)
-      const f = (b: number[], a2: number[], inp: Float32Array, out: Float32Array) => {
-        let x1 = 0, x2 = 0, y1 = 0, y2 = 0
-        for (let i = 0; i < inp.length; i++) {
-          const v = b[0] * inp[i] + b[1] * x1 + b[2] * x2 - a2[0] * y1 - a2[1] * y2
-          x2 = x1; x1 = inp[i]; y2 = y1; y1 = v
-          out[i] = v
-        }
+    const dur = projectDuration()
+    // K-weighting biquads (BS.1770 at 48 kHz); filter state carries across chunks
+    const K1 = { b: [1.53512485958697, -2.69169618940638, 1.19839281085285], a: [-1.69065929318241, 0.73248077421585] }
+    const K2 = { b: [1, -2, 1], a: [-1.99004745483398, 0.99007225036621] }
+    const state = [0, 1].map(() => [{ x1: 0, x2: 0, y1: 0, y2: 0 }, { x1: 0, x2: 0, y1: 0, y2: 0 }])
+    const run = (f: typeof K1, s0: { x1: number; x2: number; y1: number; y2: number }, inp: Float32Array) => {
+      const out = new Float32Array(inp.length)
+      for (let i = 0; i < inp.length; i++) {
+        const v = f.b[0] * inp[i] + f.b[1] * s0.x1 + f.b[2] * s0.x2 - f.a[0] * s0.y1 - f.a[1] * s0.y2
+        s0.x2 = s0.x1; s0.x1 = inp[i]; s0.y2 = s0.y1; s0.y1 = v
+        out[i] = v
       }
-      const tmp = new Float32Array(x.length)
-      f([1.53512485958697, -2.69169618940638, 1.19839281085285], [-1.69065929318241, 0.73248077421585], x, tmp)
-      f([1, -2, 1], [-1.99004745483398, 0.99007225036621], tmp, y)
-      return y
+      return out
     }
-    const k = ch.map(kw)
+    const sr = 48000
     const blk = Math.round(0.4 * sr)
     const hop = Math.round(0.1 * sr)
     const ms: number[] = []
-    for (let s = 0; s + blk <= k[0].length; s += hop) {
-      let e = 0
-      for (let c = 0; c < 2; c++) for (let i = s; i < s + blk; i++) e += k[c][i] * k[c][i]
-      ms.push(e / blk)
+    let tail: Float32Array[] = [new Float32Array(0), new Float32Array(0)]
+    let heard = false
+    for (let t0 = 0; t0 < dur; t0 += 30) {
+      const t1 = Math.min(dur, t0 + 30)
+      const buf = await mixRange(st.project.clips, getAsset, t0, t1)
+      const n = Math.max(1, Math.round((t1 - t0) * sr))
+      const k = [0, 1].map((c) => {
+        const d = buf ? buf.getChannelData(Math.min(c, buf.numberOfChannels - 1)) : new Float32Array(n)
+        if (buf) heard = true
+        return run(K2, state[c][1], run(K1, state[c][0], d))
+      })
+      // join with the unprocessed tail of the previous chunk so blocks span chunk edges
+      const joined = k.map((x, c) => {
+        const j = new Float32Array(tail[c].length + x.length)
+        j.set(tail[c])
+        j.set(x, tail[c].length)
+        return j
+      })
+      let s = 0
+      for (; s + blk <= joined[0].length; s += hop) {
+        let e = 0
+        for (let c = 0; c < 2; c++) for (let i = s; i < s + blk; i++) e += joined[c][i] * joined[c][i]
+        ms.push(e / blk)
+      }
+      tail = joined.map((j) => j.slice(s))
+      await new Promise((r) => setTimeout(r, 0))
     }
+    if (!heard) return null
     const lufs = (m: number) => -0.691 + 10 * Math.log10(m || 1e-12)
     let g = ms.filter((m) => lufs(m) > -70)
     if (!g.length) return null
-    const rel = lufs(g.reduce((s, v) => s + v, 0) / g.length) - 10
+    const rel = lufs(g.reduce((s2, v) => s2 + v, 0) / g.length) - 10
     g = g.filter((m) => lufs(m) > rel)
-    return lufs(g.reduce((s, v) => s + v, 0) / g.length)
+    return lufs(g.reduce((s2, v) => s2 + v, 0) / g.length)
   } finally {
     setProject({ loudDb: keep })
   }
