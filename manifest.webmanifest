@@ -1,0 +1,15 @@
+{
+  "name": "ClipForge – Video Editor",
+  "short_name": "ClipForge",
+  "description": "Edit Shorts, Reels and YouTube videos with memes, captions and effects – right in your browser.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f1117",
+  "theme_color": "#7c5cff",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
