@@ -2,6 +2,8 @@ import { createRoot } from 'react-dom/client'
 import App from './App'
 import './styles.css'
 import './theme.css'
+import './light.css'
+import { applyTheme, currentTheme, watchSystemTheme } from './themeMode'
 import { preloadFonts } from './fonts'
 import * as store from './store'
 import * as processing from './processing'
@@ -31,3 +33,6 @@ document.fonts?.addEventListener?.('loadingdone', () => engine.requestRender())
 
 // free disk space used by exports from previous visits
 void fastExport.cleanOldExports()
+
+applyTheme(currentTheme())
+watchSystemTheme()

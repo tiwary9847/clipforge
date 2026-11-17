@@ -426,4 +426,5 @@ body:has(.modal-bg) .sheet-x, body:has(.prompter) .sheet-x { display: none !impo
 .tour-dots i.done { background: rgba(180, 163, 255, 0.6); }
 .tour-dots i.on { width: 20px; background: var(--grad); }
 .wl-tour { margin-left: 4px; font-size: 11px; text-transform: none; letter-spacing: 0; font-weight: 600; background: none; border: 0; padding: 0; cursor: pointer; }
-@media (max-width: 820px) { .tour-btn { display: inline-grid; } }
+/* phones: the tour is started from the welcome screen; keep the header to one line */
+@media (max-width: 820px) { .tour-btn { display: none !important; } }

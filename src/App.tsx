@@ -7,6 +7,7 @@ import { ExportDialog } from './components/ExportDialog'
 import { AutoEditDialog } from './components/AutoEditDialog'
 import { Icon } from './components/Icon'
 import { Tour, startTour } from './components/Tour'
+import { currentTheme, setTheme } from './themeMode'
 import { engine, FPS } from './engine'
 import {
   addMarker,
@@ -33,6 +34,12 @@ import { restoreProject, startAutosave } from './db'
 export default function App() {
   const [exporting, setExporting] = useState(false)
   const [autoOpen, setAutoOpen] = useState(false)
+  const [theme, setThemeState] = useState(currentTheme())
+  useEffect(() => {
+    const on = () => setThemeState(currentTheme())
+    window.addEventListener('cf:theme', on)
+    return () => window.removeEventListener('cf:theme', on)
+  }, [])
   useEffect(() => {
     const on = (e: Event) => (e as CustomEvent).detail === 'auto' && setAutoOpen(true)
     window.addEventListener('cf:open', on)
@@ -185,6 +192,9 @@ export default function App() {
             </option>
           ))}
         </select>
+        <button className="ico theme-btn" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'} aria-label="Toggle light / dark mode">
+          <Icon name={theme === 'light' ? 'moon' : 'sun'} size={16} />
+        </button>
         <button className="ico tour-btn" onClick={startTour} title="Quick tour"><Icon name="help" size={16} /></button>
         <button className="ico" disabled={!canUndo} onClick={undo} title="Undo (Ctrl+Z)"><Icon name="undo" size={16} /></button>
         <button className="ico" disabled={!canRedo} onClick={redo} title="Redo (Ctrl+Shift+Z)"><Icon name="redo" size={16} /></button>

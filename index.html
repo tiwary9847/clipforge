@@ -10,6 +10,12 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="description" content="Free in-browser video editor for YouTube Shorts, Instagram Reels and Facebook – memes with sound, auto-captions, auto-edit and more." />
+    <script>
+      try {
+        var t = localStorage.getItem('clipforge-theme') || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+        document.documentElement.dataset.theme = t
+      } catch (e) {}
+    </script>
     <title>ClipForge – Video Editor for Shorts, Reels & YouTube</title>
   </head>
   <body>

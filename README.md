@@ -153,3 +153,6 @@ Line-icon set replacing emoji controls (tabs, header, transport, timeline toolba
 ## v14 – First-time tour + long-video performance
 - **Quick tour**: 5-step spotlight walkthrough (import → edit → memes → captions → export) shown on the first visit; replay any time from the **?** button or "Take the 30-second tour" on the welcome screen. Phone-specific wording.
 - **Long videos**: exports stream straight to the browser's private disk (no whole-file-in-memory), audio is mixed in 10-second chunks with pre-roll (identical output, no clicks), one decoder per source file during export, and only clips near the playhead keep a live video player.
+
+## v15 – Light theme
+☀️/🌙 switch in the top bar. Follows the device's light/dark setting until you choose; your choice is remembered. Applied before first paint (no flash). Light styling covers every panel, dialog, timeline, welcome screen, tour and the phone layout.
