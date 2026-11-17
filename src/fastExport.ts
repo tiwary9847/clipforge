@@ -41,17 +41,46 @@ export interface Ctl {
   cancelled: boolean
 }
 
-export async function fastExport(onProgress: (p: number, label: string) => void, ctl: Ctl): Promise<{ blob: Blob; ext: string; codec: string } | null> {
+export interface ExportOpts {
+  from?: number
+  to?: number
+  bitrate?: number // video bits per second (default: high quality)
+  audioBitrate?: number
+  maxSide?: number // shrink the frame so its longer side is at most this
+  overlay?: (ctx: CanvasRenderingContext2D, W: number, H: number, t: number) => void
+}
+
+/** Loads every web font the project's text uses so the first frames don't fall back. */
+async function loadFonts() {
+  const fams = new Set<string>()
+  for (const c of getState().project.clips) if (c.text?.font) fams.add(c.text.font)
+  await Promise.all([...fams].map((f) => document.fonts.load(`700 40px ${f}`, 'अaक').catch(() => [])))
+}
+
+export async function fastExport(onProgress: (p: number, label: string) => void, ctl: Ctl, opts: ExportOpts = {}): Promise<{ blob: Blob; ext: string; codec: string } | null> {
   const preset = getPreset()
-  const W = preset.w
-  const H = preset.h
-  const dur = projectDuration()
+  const k = opts.maxSide ? Math.min(1, opts.maxSide / Math.max(preset.w, preset.h)) : 1
+  const W = Math.round((preset.w * k) / 2) * 2
+  const H = Math.round((preset.h * k) / 2) * 2
+  const full = projectDuration()
+  const from = Math.max(0, opts.from ?? 0)
+  const to = Math.min(full, opts.to ?? full)
+  const dur = to - from
   if (dur <= 0) throw new Error('Nothing to export yet – add a clip to the timeline.')
   engine.pause()
   const clips = getState().project.clips
+  await loadFonts()
 
   onProgress(0, 'Mixing audio…')
-  const audio = await mixProjectAudio(clips, getAsset, dur)
+  let audio = await mixProjectAudio(clips, getAsset, to)
+  if (audio && from > 0) {
+    const sr = audio.sampleRate
+    const s0 = Math.floor(from * sr)
+    const n = Math.max(1, audio.length - s0)
+    const cut = new AudioBuffer({ numberOfChannels: audio.numberOfChannels, length: n, sampleRate: sr })
+    for (let ch = 0; ch < audio.numberOfChannels; ch++) cut.copyToChannel(audio.getChannelData(ch).subarray(s0), ch)
+    audio = cut
+  }
   if (ctl.cancelled) return null
 
   const canvas = document.createElement('canvas')
@@ -60,13 +89,13 @@ export async function fastExport(onProgress: (p: number, label: string) => void,
   const ctx = canvas.getContext('2d', { alpha: false })!
   const target = new BufferTarget()
   const output = new Output({ format: new Mp4OutputFormat({ fastStart: 'in-memory' }), target })
-  const vsrc = new CanvasSource(canvas, { codec: 'avc', quality: QUALITY_HIGH })
+  const vsrc = new CanvasSource(canvas, { codec: 'avc', bitrate: opts.bitrate ?? QUALITY_HIGH })
   output.addVideoTrack(vsrc, { frameRate: FPS })
   let asrc: AudioBufferSource | null = null
   let audioCodec: 'aac' | 'opus' = 'aac'
   if (audio) {
     audioCodec = (await pickAudioCodec()) ?? 'aac'
-    asrc = new AudioBufferSource({ codec: audioCodec, bitrate: 192_000 })
+    asrc = new AudioBufferSource({ codec: audioCodec, bitrate: opts.audioBitrate ?? 192_000 })
     output.addAudioTrack(asrc)
   }
   await output.start()
@@ -92,7 +121,7 @@ export async function fastExport(onProgress: (p: number, label: string) => void,
         await output.cancel()
         return null
       }
-      const t = i / FPS
+      const t = from + i / FPS
       for (const c of clips) {
         if (c.kind !== 'video' || t < c.start || t >= c.start + c.dur) continue
         const a = getAsset(c.assetId)
@@ -103,7 +132,8 @@ export async function fastExport(onProgress: (p: number, label: string) => void,
         if (w) frames.set(c.id, w.canvas)
       }
       engine.paint(ctx, W, H, t, (c, lt) => (c.kind === 'video' ? frames.get(c.id) ?? null : engine.imageSource(c, lt)))
-      await vsrc.add(t, 1 / FPS)
+      opts.overlay?.(ctx, W, H, t)
+      await vsrc.add(i / FPS, 1 / FPS)
       if (i % 4 === 0) {
         onProgress(0.05 + 0.9 * (i / total), 'Encoding video…')
         await new Promise((r) => setTimeout(r, 0))

@@ -632,10 +632,10 @@ export function setTextAnimProp(id: string, patch: Partial<TextProps>) {
 
 
 /** Replaces one clip by consecutive pieces of its source (used by silence cutting and speed ramps). Later clips on the track ripple. */
-export function restructureClip(id: string, segs: { srcIn: number; srcLen: number; speed: number }[]) {
+export function restructureClip(id: string, segs: { srcIn: number; srcLen: number; speed: number }[], cp = true) {
   const c = getClip(id)
   if (!c || !segs.length) return false
-  checkpoint()
+  if (cp) checkpoint()
   let t = c.start
   const made: Clip[] = segs.map((g, i) => {
     const dur = g.srcLen / g.speed
@@ -744,4 +744,9 @@ export function replaceTimeline(clips: Clip[], projectPatch?: Partial<Project>) 
 /** Adds clips without an undo step of their own (caller already checkpointed). */
 export function insertSilent(clips: Clip[]) {
   set({ project: { ...state.project, clips: [...state.project.clips, ...clips] } })
+}
+
+/** Replace the clip list without an undo step of its own (caller already checkpointed). */
+export function setClipsSilent(clips: Clip[]) {
+  set({ project: { ...state.project, clips } })
 }

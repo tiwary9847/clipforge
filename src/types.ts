@@ -226,5 +226,6 @@ export interface Project {
   clips: Clip[]
   markers: number[]
   loudDb?: number
+  transcripts?: Record<string, { text: string; start: number; end: number }[]> // per asset, source seconds
   multicam?: { start: number; angles: { assetId: string; shift: number; name: string }[] } // master gain from loudness normalisation
 }

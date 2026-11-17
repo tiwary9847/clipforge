@@ -1,14 +1,21 @@
 import { Filters, DEFAULT_FILTERS, TextProps, TransType, FxType } from './types'
 
 export const FONTS = [
-  { label: 'Impact (meme)', css: 'Impact, "Arial Narrow Bold", Haettenschweiler, sans-serif' },
-  { label: 'Arial Black', css: '"Arial Black", "Arial Bold", Gadget, sans-serif' },
-  { label: 'Arial', css: 'Arial, Helvetica, sans-serif' },
-  { label: 'Comic Sans', css: '"Comic Sans MS", "Comic Neue", cursive' },
-  { label: 'Trebuchet', css: '"Trebuchet MS", Tahoma, sans-serif' },
-  { label: 'Verdana', css: 'Verdana, Geneva, sans-serif' },
-  { label: 'Georgia (serif)', css: 'Georgia, "Times New Roman", serif' },
-  { label: 'Courier (mono)', css: '"Courier New", Courier, monospace' },
+  { label: 'Impact (meme)', css: 'Impact, "Arial Narrow Bold", Haettenschweiler, "Noto Sans Devanagari", sans-serif' },
+  { label: 'Arial Black', css: '"Arial Black", "Arial Bold", Gadget, "Noto Sans Devanagari", sans-serif' },
+  { label: 'Arial', css: 'Arial, Helvetica, "Noto Sans Devanagari", sans-serif' },
+  { label: 'Comic Sans', css: '"Comic Sans MS", "Comic Neue", "Noto Sans Devanagari", cursive' },
+  { label: 'Trebuchet', css: '"Trebuchet MS", Tahoma, "Noto Sans Devanagari", sans-serif' },
+  { label: 'Verdana', css: 'Verdana, Geneva, "Noto Sans Devanagari", sans-serif' },
+  { label: 'Georgia (serif)', css: 'Georgia, "Times New Roman", "Noto Sans Devanagari", serif' },
+  { label: 'Courier (mono)', css: '"Courier New", Courier, "Noto Sans Devanagari", monospace' },
+  { label: 'हिन्दी · Baloo (bold, fun)', css: '"Baloo 2", "Noto Sans Devanagari", sans-serif' },
+  { label: 'हिन्दी · Mukta (clean)', css: 'Mukta, "Noto Sans Devanagari", sans-serif' },
+  { label: 'हिन्दी · Hind (subtitles)', css: 'Hind, "Noto Sans Devanagari", sans-serif' },
+  { label: 'हिन्दी · Noto Sans', css: '"Noto Sans Devanagari", sans-serif' },
+  { label: 'हिन्दी · Rozha (headline)', css: '"Rozha One", "Noto Sans Devanagari", serif' },
+  { label: 'हिन्दी · Yatra (festive)', css: '"Yatra One", "Noto Sans Devanagari", cursive' },
+  { label: 'हिन्दी · Kalam (handwritten)', css: 'Kalam, "Noto Sans Devanagari", cursive' },
 ]
 
 const base: TextProps = {
@@ -83,6 +90,24 @@ export const TEXT_PRESETS: TextPreset[] = [
     name: 'Retro serif',
     y: 0.5,
     props: { ...base, text: 'Retro Vibes', font: FONTS[6].css, size: 0.08, italic: true, bold: true, color: '#ffe9a8', stroke: '#7a1f00', strokeW: 0.12, shadow: true },
+  },
+  {
+    id: 'hi-title',
+    name: 'हिन्दी · टाइटल',
+    y: 0.2,
+    props: { ...base, text: 'जबरदस्त!', font: FONTS[8].css, size: 0.11, bold: true, color: '#ffd400', stroke: '#000000', strokeW: 0.14, shadow: true },
+  },
+  {
+    id: 'hi-sub',
+    name: 'हिन्दी · सबटाइटल',
+    y: 0.82,
+    props: { ...base, text: 'आज का व्लॉग', font: FONTS[10].css, size: 0.055, bold: true, color: '#ffffff', stroke: '#000000', strokeW: 0.1, bg: '#000000', bgOpacity: 0.45 },
+  },
+  {
+    id: 'hi-festive',
+    name: 'हिन्दी · त्योहार',
+    y: 0.45,
+    props: { ...base, text: 'शुभ दीपावली', font: FONTS[13].css, size: 0.1, color: '#ff9f1c', stroke: '#5a0000', strokeW: 0.12, shadow: true },
   },
 ]
 

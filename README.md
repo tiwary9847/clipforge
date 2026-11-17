@@ -85,3 +85,9 @@ Memes tab → 🌐 Online: search free Creative-Commons sound effects (Openverse
 - **Multicam** (Tools tab): pick 2–4 angles → synced automatically by their sound → live angle viewer; click an angle or press 1–4 while playing to cut. Sound stays from Cam 1. "Finish multicam" keeps the cuts.
 - **Group clips**: select clips → 🔗 Group (Ctrl+G). Clicking one selects the group; dragging moves it; trimming one clip's outer edge trims the rest to match; duplicates get their own group. Ungroup with Ctrl+Shift+G.
 - **Animated masks**: shapes with modes Show inside / Cut out / Blur inside / Pixelate / Spotlight; position and size are keyframeable (◆); one-tap Grow-in reveal; 🎯 Track mask makes a blur/pixelate follow a face or object.
+
+## v11 – Text editing, recording, Hindi fonts, WhatsApp
+- **Edit by text** (Tools tab): transcribe a clip, then delete words in the transcript to cut the video; one-tap removal of filler words (um/uh…, optional like/basically/matlab/toh…) and long pauses. Hindi can be shown in English letters.
+- **Record** (Tools tab): screen, webcam, or screen + webcam bubble, with mic and tab/system sound; lands on the timeline.
+- **Hindi fonts** bundled (Baloo 2, Mukta, Hind, Noto Sans Devanagari, Rozha One, Yatra One, Kalam), Devanagari fallback for every font, three Hindi text presets.
+- **WhatsApp status splitter** (Tools tab): 30 / 60 / 90-second parts, "1/3" badges, 720p compression, download or share each part.

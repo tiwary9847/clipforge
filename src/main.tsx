@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client'
 import App from './App'
 import './styles.css'
+import { preloadFonts } from './fonts'
 import * as store from './store'
 import * as processing from './processing'
 import * as dsp from './dsp'
@@ -21,3 +22,7 @@ createRoot(document.getElementById('root')!).render(<App />)
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}))
 }
+
+// Redraw once the bundled Hindi fonts are ready (the first frame may use a fallback)
+void preloadFonts().then(() => engine.requestRender())
+document.fonts?.addEventListener?.('loadingdone', () => engine.requestRender())

@@ -429,12 +429,12 @@ function parseTs(s: string) {
   return +(m[1] || 0) * 3600 + +m[2] * 60 + +m[3] + +m[4].padEnd(3, '0').slice(0, 3) / 1000
 }
 
-const MODELS = [
+export const MODELS = [
   { id: 'Xenova/whisper-tiny', name: 'Fast · Tiny (~40 MB)' },
   { id: 'Xenova/whisper-base', name: 'Balanced · Base (~75 MB)' },
   { id: 'Xenova/whisper-small', name: 'Accurate · Small (~250 MB)' },
 ]
-const LANGS = [
+export const LANGS = [
   ['auto', 'Auto-detect'],
   ['english', 'English'],
   ['hindi', 'Hindi'],
