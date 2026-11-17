@@ -5,6 +5,7 @@ import { addAsset, addAssetClip, getClip, getPreset, getState, patchText, projec
 import { startVoiceover } from '../processing'
 import { PRESETS } from '../types'
 import { TextEditDialog } from './TextEditDialog'
+import { Icon } from './Icon'
 import { RecMode, Recording, canRecordCamera, canRecordScreen, startRecording } from '../recorder'
 import { createMulticam, cutToAngle, endMulticam } from '../multicam'
 import { VOICES, measureLoudness, normaliseLoudness, speak } from '../pro'
@@ -41,12 +42,12 @@ export function ToolsTab() {
     <>
       <div className="tmpls two" style={{ marginTop: 0 }}>
         <button className="tmpl" onClick={() => setDlg('text')}>
-          <span className="em">📝</span>
+          <span className="em"><span className="wa-ic c"><Icon name="captions" size={18} /></span></span>
           <b>Edit by text</b>
           <small>Delete words to cut · remove “um/uh” & pauses</small>
         </button>
         <button className="tmpl" onClick={() => setDlg('rec')}>
-          <span className="em">⏺</span>
+          <span className="em"><span className="wa-ic b"><Icon name="record" size={18} /></span></span>
           <b>Record</b>
           <small>Screen, webcam or both (face bubble)</small>
         </button>
@@ -64,12 +65,12 @@ export function ToolsTab() {
       <div className="group-h">🖼 Thumbnail & teleprompter</div>
       <div className="tmpls two">
         <button className="tmpl" onClick={() => setDlg('thumb')}>
-          <span className="em">🖼</span>
+          <span className="em"><span className="wa-ic a"><Icon name="image" size={18} /></span></span>
           <b>Thumbnail maker</b>
           <small>Big-text YouTube thumbnail from any frame</small>
         </button>
         <button className="tmpl" onClick={() => setDlg('prompter')}>
-          <span className="em">📜</span>
+          <span className="em"><span className="wa-ic d"><Icon name="type" size={18} /></span></span>
           <b>Teleprompter</b>
           <small>Scrolling script + record your voice</small>
         </button>

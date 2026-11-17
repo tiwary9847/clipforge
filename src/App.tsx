@@ -202,7 +202,7 @@ export default function App() {
         <button onClick={() => engine.toggle()}>{playing ? <Icon name="pause" size={20} /> : <Icon name="play" size={20} />}<span>{playing ? 'Pause' : 'Play'}</span></button>
         <button onClick={() => setExporting(true)}><Icon name="upload" size={20} /><span>Export</span></button>
       </nav>
-      {sheet && <div className="sheet-x" onClick={() => setSheet(null)}>⌄ close</div>}
+      {sheet && <button className="sheet-x" onClick={() => setSheet(null)} aria-label="Close panel"><i />Close</button>}
       {exporting && <ExportDialog onClose={() => setExporting(false)} />}
       {autoOpen && <AutoEditDialog onClose={() => setAutoOpen(false)} />}
       {confirmNew && (
