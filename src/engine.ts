@@ -1,3 +1,4 @@
+import { levelsAt } from './viz'
 import { gradePixels, isIdentity } from './grade'
 import { buildEq } from './media'
 import { LookId, Asset, Chroma, Clip, Filters, MaskShape, TextProps, TRACKS, TransType, Transition } from './types'
@@ -134,6 +135,9 @@ function srcSize(s: CanvasImageSource): [number, number] {
   const a = s as any
   return [a.width, a.height]
 }
+
+const SHAPE_COLOR: Record<string, string> = { arrow: '#ffd400', circle: '#ff3b3b', box: '#ffd400', underline: '#ffe500', cross: '#ff3b3b', check: '#22c55e', subscribe: '#ff0000', like: '#1f6feb', progress: '#ff3b5c', callout: '#ffffff', 'viz-bars': '#b46cff', 'viz-wave': '#31d0ff', 'viz-circle': '#ff5c9a' }
+const SHAPE_BOX: Record<string, [number, number]> = { arrow: [1.5, 0.7], circle: [1.35, 1.05], box: [1.45, 1.05], underline: [1.6, 0.35], cross: [1, 1], check: [1.1, 0.9], subscribe: [2.6, 0.75], like: [1.6, 0.7], callout: [2.2, 1.0], progress: [1, 0.15], 'viz-bars': [2.5, 1.05], 'viz-wave': [2.5, 0.95], 'viz-circle': [1.35, 1.35] }
 
 const hex2rgb = (h: string): [number, number, number] => {
   const m = h.replace('#', '')
@@ -806,7 +810,9 @@ class Engine {
       bh = tl.h
     } else if (c.kind === 'sticker') {
       const sz = (c.stickerSize ?? 0.2) * H
-      bw = bh = sz * 1.25
+      const dims = c.shape ? SHAPE_BOX[c.shape] ?? [1.25, 1.25] : [1.25, 1.25]
+      bw = sz * dims[0]
+      bh = sz * dims[1]
     } else return
 
     boxes.push({ id: c.id, cx: px * W, cy: py * H, w: bw * pscale, h: bh * pscale, rot: prot })
@@ -902,6 +908,8 @@ class Engine {
       }
     } else if (tl && c.text) {
       this.drawText(ctx, c.text, tl, lt)
+    } else if (c.kind === 'sticker' && c.shape) {
+      this.drawShape(ctx, c, lt, t, W, H)
     } else if (c.kind === 'sticker') {
       ctx.font = `${(c.stickerSize ?? 0.2) * H}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`
       ctx.textAlign = 'center'
@@ -1174,6 +1182,18 @@ class Engine {
       ctx.restore()
     }
     const x = tp.align === 'left' ? -tw / 2 : tp.align === 'right' ? tw / 2 : 0
+    const fillAt = (cy: number): string | CanvasGradient => {
+      if (!tp.grad) return tp.color
+      const g = ctx.createLinearGradient(0, cy - fontPx * 0.5, 0, cy + fontPx * 0.5)
+      g.addColorStop(0, tp.color)
+      g.addColorStop(1, tp.grad)
+      return g
+    }
+    const charMode = Math.abs(tp.curve ?? 0) > 0.02 || anim === 'letters' || anim === 'bounce' || anim === 'glow' || anim === 'rainbow'
+    if (charMode) {
+      this.drawTextChars(ctx, tp, tl, lt, fillAt)
+      return
+    }
     const perWord = tp.hlIdx !== undefined || anim !== 'none'
     const allWords = lines.flatMap((l) => l.split(' ').filter(Boolean))
     const totalWords = Math.max(1, allWords.length)
@@ -1228,7 +1248,7 @@ class Engine {
               ctx.strokeStyle = tp.stroke
               ctx.strokeText(shown, -widths[k] / 2, 0)
             }
-            ctx.fillStyle = hot ? tp.hlColor ?? '#ffe500' : tp.color
+            ctx.fillStyle = hot ? tp.hlColor ?? '#ffe500' : fillAt(0)
             ctx.fillText(shown, -widths[k] / 2, 0)
             ctx.restore()
           }
@@ -1243,11 +1263,348 @@ class Engine {
           ctx.strokeStyle = tp.stroke
           ctx.strokeText(ln, x, y)
         }
-        ctx.fillStyle = tp.color
+        ctx.fillStyle = fillAt(y)
         ctx.fillText(ln, x, y)
       }
       ctx.shadowColor = 'transparent'
     })
+  }
+
+  /** Letter-by-letter text: curved baselines and per-letter animations. */
+  private drawTextChars(ctx: CanvasRenderingContext2D, tp: TextProps, tl: ReturnType<Engine['layoutText']>, lt: number, fillAt: (y: number) => string | CanvasGradient) {
+    const { lines, fontPx, lineH, tw } = tl
+    const anim = tp.anim ?? 'none'
+    const ad = Math.max(0.1, tp.animDur ?? 0.8)
+    const curve = tp.curve ?? 0
+    const total = Math.max(1, lines.reduce((n, l) => n + [...l].length, 0))
+    const stagger = ad / total
+    let ci = 0
+    ctx.textAlign = 'left'
+    lines.forEach((ln, i) => {
+      const y = (i - (lines.length - 1) / 2) * lineH
+      const chars = [...ln]
+      const widths = chars.map((ch) => ctx.measureText(ch).width)
+      const lw = widths.reduce((a, b) => a + b, 0)
+      const start = tp.align === 'left' ? -tw / 2 : tp.align === 'right' ? tw / 2 - lw : -lw / 2
+      const mid = start + lw / 2
+      const R = Math.abs(curve) > 0.02 ? lw / (Math.abs(curve) * Math.PI) : 0
+      const sag = R ? R * (1 - Math.cos(lw / R / 2)) : 0
+      const sign = curve > 0 ? 1 : -1
+      let cx = start
+      chars.forEach((ch, k) => {
+        const w = widths[k]
+        let px = cx + w / 2
+        let py = y
+        let rot = 0
+        if (R) {
+          const a = (px - mid) / R
+          px = mid + R * Math.sin(a)
+          py = y + sign * (R * (1 - Math.cos(a)) - sag / 2)
+          rot = sign * a
+        }
+        let alpha = 1
+        let sc = 1
+        let dy = 0
+        let fill: string | CanvasGradient = fillAt(0)
+        const lp = lt - ci * stagger
+        if (anim === 'letters') {
+          const p = Math.min(1, Math.max(0, lp / 0.22))
+          sc = p >= 1 ? 1 : easeOutBack(p)
+          alpha = Math.min(1, p * 3)
+        } else if (anim === 'bounce') {
+          const p = Math.min(1, Math.max(0, lp / 0.5))
+          const b = p >= 1 ? 1 : 1 - Math.abs(Math.cos(p * Math.PI * 1.5)) * (1 - p)
+          dy = -(1 - b) * fontPx * 1.1
+          alpha = lp > 0 ? 1 : 0
+        } else if (anim === 'rainbow') {
+          fill = `hsl(${(ci * 28 + lt * 140) % 360}, 95%, 62%)`
+        }
+        if (ch.trim() && alpha > 0) {
+          ctx.save()
+          ctx.globalAlpha *= alpha
+          ctx.translate(px, py + dy)
+          ctx.rotate(rot)
+          ctx.scale(sc, sc)
+          if (anim === 'glow') {
+            ctx.shadowColor = tp.grad ?? tp.color
+            ctx.shadowBlur = fontPx * (0.35 + 0.3 * Math.sin(lt * 5))
+          } else if (tp.shadow) {
+            ctx.shadowColor = tp.strokeW > 0 ? tp.stroke : 'rgba(0,0,0,.6)'
+            ctx.shadowBlur = fontPx * 0.2
+            ctx.shadowOffsetY = fontPx * 0.04
+          }
+          if (tp.strokeW > 0) {
+            ctx.lineWidth = fontPx * tp.strokeW
+            ctx.strokeStyle = tp.stroke
+            ctx.strokeText(ch, -w / 2, 0)
+          }
+          ctx.fillStyle = fill
+          ctx.fillText(ch, -w / 2, 0)
+          ctx.restore()
+        }
+        cx += w
+        ci++
+      })
+    })
+    ctx.textAlign = tp.align
+  }
+
+  /* ---------------- vector shapes, callouts and audio visualizers ---------------- */
+  private drawShape(ctx: CanvasRenderingContext2D, c: Clip, lt: number, t: number, W: number, H: number) {
+    const S = (c.stickerSize ?? 0.2) * H
+    const col = c.color ?? SHAPE_COLOR[c.shape!] ?? '#ffd400'
+    const draw = Math.min(1, Math.max(0, lt / 0.45)) // draw-on progress
+    const ink = (lw: number) => {
+      ctx.lineWidth = lw
+      ctx.lineCap = 'round'
+      ctx.lineJoin = 'round'
+      ctx.strokeStyle = col
+    }
+    const outline = () => {
+      ctx.save()
+      ctx.globalCompositeOperation = 'destination-over'
+      ctx.restore()
+    }
+    void outline
+    const pop = (d = 0.3) => {
+      const p = Math.min(1, lt / d)
+      return p >= 1 ? 1 : easeOutBack(p)
+    }
+    ctx.shadowColor = 'rgba(0,0,0,0.45)'
+    ctx.shadowBlur = S * 0.06
+    ctx.shadowOffsetY = S * 0.02
+    switch (c.shape) {
+      case 'arrow': {
+        const L = S * 1.3 * draw
+        const x0 = -S * 0.65
+        ink(S * 0.13)
+        ctx.beginPath()
+        ctx.moveTo(x0, 0)
+        ctx.lineTo(x0 + L, 0)
+        ctx.stroke()
+        if (draw > 0.6) {
+          const hx = x0 + L
+          ctx.beginPath()
+          ctx.moveTo(hx - S * 0.3, -S * 0.26)
+          ctx.lineTo(hx + S * 0.02, 0)
+          ctx.lineTo(hx - S * 0.3, S * 0.26)
+          ctx.stroke()
+        }
+        break
+      }
+      case 'circle': {
+        ink(S * 0.07)
+        ctx.beginPath()
+        const end = Math.PI * 2 * 1.08 * draw
+        for (let a = 0; a <= end; a += 0.08) {
+          const r = 1 + 0.04 * Math.sin(a * 3)
+          const xx = Math.cos(a - 2) * S * 0.6 * r
+          const yy = Math.sin(a - 2) * S * 0.45 * r
+          if (a === 0) ctx.moveTo(xx, yy)
+          else ctx.lineTo(xx, yy)
+        }
+        ctx.stroke()
+        break
+      }
+      case 'box': {
+        ink(S * 0.06)
+        const w = S * 1.3
+        const h = S * 0.9
+        const per = 2 * (w + h)
+        ctx.setLineDash([per * draw, per])
+        ctx.beginPath()
+        ctx.roundRect(-w / 2, -h / 2, w, h, S * 0.08)
+        ctx.stroke()
+        ctx.setLineDash([])
+        break
+      }
+      case 'underline': {
+        ink(S * 0.14)
+        ctx.globalAlpha *= 0.9
+        ctx.beginPath()
+        const w = S * 1.5 * draw
+        for (let i = 0; i <= 20; i++) {
+          const xx = -S * 0.75 + (w * i) / 20
+          const yy = Math.sin(i * 0.9) * S * 0.02
+          if (i === 0) ctx.moveTo(xx, yy)
+          else ctx.lineTo(xx, yy)
+        }
+        ctx.stroke()
+        break
+      }
+      case 'cross': {
+        ink(S * 0.16)
+        const a = Math.min(1, draw * 2)
+        const b = Math.max(0, draw * 2 - 1)
+        const r = S * 0.4
+        ctx.beginPath()
+        ctx.moveTo(-r, -r)
+        ctx.lineTo(-r + 2 * r * a, -r + 2 * r * a)
+        if (b > 0) {
+          ctx.moveTo(r, -r)
+          ctx.lineTo(r - 2 * r * b, -r + 2 * r * b)
+        }
+        ctx.stroke()
+        break
+      }
+      case 'check': {
+        ink(S * 0.16)
+        const p1 = Math.min(1, draw * 2.5)
+        const p2 = Math.max(0, (draw - 0.4) / 0.6)
+        ctx.beginPath()
+        ctx.moveTo(-S * 0.42, 0)
+        ctx.lineTo(-S * 0.42 + S * 0.28 * p1, S * 0.28 * p1)
+        if (p2 > 0) ctx.lineTo(-S * 0.14 + S * 0.58 * p2, S * 0.28 - S * 0.62 * p2)
+        ctx.stroke()
+        break
+      }
+      case 'subscribe': {
+        const k = pop()
+        ctx.scale(k, k)
+        const done = lt > c.dur * 0.55
+        const h = S * 0.56
+        ctx.font = `800 ${h * 0.42}px "Inter Variable", Arial, sans-serif`
+        const label = done ? 'SUBSCRIBED' : c.shapeText || 'SUBSCRIBE'
+        const w = Math.max(S * 2, ctx.measureText(label).width + h * 1.9)
+        // little "tap" squash when it gets clicked
+        const tap = done ? Math.max(0, 1 - (lt - c.dur * 0.55) / 0.2) : 0
+        ctx.scale(1 - tap * 0.08, 1 - tap * 0.08)
+        ctx.fillStyle = done ? '#5b5b5b' : col
+        ctx.beginPath()
+        ctx.roundRect(-w / 2, -h / 2, w, h, h / 2)
+        ctx.fill()
+        ctx.shadowColor = 'transparent'
+        ctx.fillStyle = '#fff'
+        ctx.font = `800 ${h * 0.42}px "Inter Variable", Arial, sans-serif`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(label, -h * 0.32, 0)
+        ctx.font = `${h * 0.55}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`
+        const ring = done ? Math.sin((lt - c.dur * 0.55) * 30) * 0.35 * Math.max(0, 1 - (lt - c.dur * 0.55)) : 0
+        ctx.save()
+        ctx.translate(w / 2 - h * 0.5, 0)
+        ctx.rotate(ring)
+        ctx.fillText('🔔', 0, 0)
+        ctx.restore()
+        break
+      }
+      case 'like': {
+        const k = pop()
+        ctx.scale(k, k)
+        const w = S * 1.5
+        const h = S * 0.6
+        ctx.fillStyle = col
+        ctx.beginPath()
+        ctx.roundRect(-w / 2, -h / 2, w, h, h / 2)
+        ctx.fill()
+        ctx.shadowColor = 'transparent'
+        ctx.fillStyle = '#fff'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.font = `${h * 0.5}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`
+        const thumb = 1 + 0.25 * Math.max(0, Math.sin(Math.min(1, Math.max(0, (lt - 0.35) / 0.4)) * Math.PI))
+        ctx.save()
+        ctx.translate(-w * 0.27, 0)
+        ctx.scale(thumb, thumb)
+        ctx.fillText('👍', 0, 0)
+        ctx.restore()
+        ctx.font = `800 ${h * 0.4}px "Inter Variable", Arial, sans-serif`
+        ctx.fillText(c.shapeText || 'LIKE', w * 0.12, 0)
+        break
+      }
+      case 'callout': {
+        const k = pop()
+        ctx.scale(k, k)
+        const text = c.shapeText || 'Wait for it…'
+        const fs = S * 0.28
+        ctx.font = `800 ${fs}px "Inter Variable", Arial, "Noto Sans Devanagari", sans-serif`
+        const w = Math.max(S * 0.9, ctx.measureText(text).width + fs * 1.4)
+        const h = fs * 2
+        ctx.fillStyle = col
+        ctx.beginPath()
+        ctx.roundRect(-w / 2, -h / 2, w, h, h * 0.35)
+        ctx.moveTo(-w * 0.18, h / 2 - 1)
+        ctx.lineTo(-w * 0.3, h / 2 + h * 0.45)
+        ctx.lineTo(-w * 0.02, h / 2 - 1)
+        ctx.fill()
+        ctx.shadowColor = 'transparent'
+        ctx.fillStyle = '#111'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(text, 0, 0)
+        break
+      }
+      case 'progress': {
+        ctx.setTransform(1, 0, 0, 1, 0, 0)
+        ctx.shadowColor = 'transparent'
+        const h = Math.max(3, H * 0.01 * ((c.stickerSize ?? 0.2) / 0.2))
+        const dur = Math.max(0.01, this.duration())
+        ctx.fillStyle = 'rgba(255,255,255,0.25)'
+        ctx.fillRect(0, H - h, W, h)
+        ctx.fillStyle = col
+        ctx.fillRect(0, H - h, W * Math.min(1, t / dur), h)
+        break
+      }
+      case 'viz-bars':
+      case 'viz-wave':
+      case 'viz-circle': {
+        const lv = levelsAt(t)
+        const n = lv.length
+        ctx.shadowColor = col
+        ctx.shadowBlur = S * 0.08
+        ctx.shadowOffsetY = 0
+        if (c.shape === 'viz-bars') {
+          const w = S * 2.4
+          const bw = w / (n * 2 - 1)
+          ctx.fillStyle = col
+          // mirrored around the centre: low frequencies in the middle
+          for (let i = 0; i < n * 2 - 1; i++) {
+            const b = Math.abs(i - (n - 1))
+            const v = 0.06 + lv[b] * 0.94
+            const h = S * v
+            ctx.beginPath()
+            ctx.roundRect(-w / 2 + i * bw + bw * 0.12, -h / 2, bw * 0.76, h, bw * 0.38)
+            ctx.fill()
+          }
+        } else if (c.shape === 'viz-wave') {
+          const w = S * 2.4
+          ink(S * 0.05)
+          for (const dir of [1, -1]) {
+            ctx.beginPath()
+            for (let i = 0; i <= 64; i++) {
+              const u = i / 64
+              const b = Math.min(n - 1, Math.floor(Math.abs(u - 0.5) * 2 * (n - 1)))
+              const env = Math.sin(u * Math.PI)
+              const yy = dir * Math.sin(u * Math.PI * 6 + t * 8) * lv[b] * S * 0.42 * env
+              const xx = -w / 2 + u * w
+              if (i === 0) ctx.moveTo(xx, yy)
+              else ctx.lineTo(xx, yy)
+            }
+            ctx.globalAlpha *= dir > 0 ? 1 : 0.5
+            ctx.stroke()
+          }
+        } else {
+          const r0 = S * 0.32
+          ink(S * 0.035)
+          const m = 48
+          for (let i = 0; i < m; i++) {
+            const a = (i / m) * Math.PI * 2 - Math.PI / 2
+            const b = Math.min(n - 1, Math.floor((Math.abs(((i / m) * 2) % 2 - 1)) * (n - 1)))
+            const L = r0 + S * 0.05 + lv[b] * S * 0.3
+            ctx.beginPath()
+            ctx.moveTo(Math.cos(a) * r0, Math.sin(a) * r0)
+            ctx.lineTo(Math.cos(a) * L, Math.sin(a) * L)
+            ctx.stroke()
+          }
+          ctx.beginPath()
+          ctx.arc(0, 0, r0 * 0.92, 0, Math.PI * 2)
+          ctx.globalAlpha *= 0.25
+          ctx.fillStyle = col
+          ctx.fill()
+        }
+        break
+      }
+    }
   }
 
   /* ---------- hit testing ---------- */

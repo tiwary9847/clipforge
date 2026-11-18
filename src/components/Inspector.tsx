@@ -23,7 +23,7 @@ import {
 } from '../store'
 import { engine } from '../engine'
 import { FILTER_PRESETS, FONTS, FX_LIST, TRANS_LIST, mkFilters } from '../library'
-import { Clip, DEFAULT_FILTERS, KfProp, PRESETS } from '../types'
+import { Clip, DEFAULT_FILTERS, Ease, KfProp, PRESETS } from '../types'
 import { Motion, evalProp, hasKeys, kfTimes } from '../anim'
 import { EqSection, GradeSection, LookSection, ProVideo, SceneSplit, TrackSection } from './ProPanels2'
 import { AudioTools, ChromaSection, CropMaskBlend, MultiPanel, SaveStyle, SpeedRamps, TextAnimSection, VideoTools } from './ProPanels'
@@ -196,6 +196,11 @@ function ClipPanel({ clip: c }: { clip: Clip }) {
             <label className="color"><span>Outline</span><input type="color" value={c.text.stroke} onChange={(e) => patchText(c.id, { stroke: e.target.value })} /></label>
             <label className="color"><span>Box</span><input type="color" value={c.text.bg} onChange={(e) => patchText(c.id, { bg: e.target.value })} /></label>
           </div>
+          <div className="row2">
+            <label className="ochk"><input type="checkbox" checked={!!c.text.grad} onChange={(e) => patchText(c.id, { grad: e.target.checked ? '#ff5c9a' : undefined })} /> Gradient fill</label>
+            {c.text.grad && <label className="color"><span>to</span><input type="color" value={c.text.grad} onChange={(e) => patchText(c.id, { grad: e.target.value })} /></label>}
+          </div>
+          <Slider label="Curve" value={c.text.curve ?? 0} min={-1} max={1} step={0.02} onChange={(v) => patchText(c.id, { curve: Math.abs(v) < 0.03 ? 0 : v })} fmt={(v) => (Math.abs(v) < 0.03 ? 'straight' : v > 0 ? `arch ${Math.round(v * 100)}%` : `smile ${Math.round(-v * 100)}%`)} />
           <Slider label="Outline" value={c.text.strokeW} min={0} max={0.3} onChange={(v) => patchText(c.id, { strokeW: v })} fmt={pct} />
           <Slider label="Box opacity" value={c.text.bgOpacity} min={0} max={1} onChange={(v) => patchText(c.id, { bgOpacity: v })} fmt={pct} />
           <div className="toggles">
@@ -218,6 +223,19 @@ function ClipPanel({ clip: c }: { clip: Clip }) {
       {c.kind === 'sticker' && (
         <Section title="Sticker">
           <Slider label="Size" value={c.stickerSize ?? 0.2} min={0.05} max={0.8} onChange={(v) => P({ stickerSize: v })} fmt={pct} />
+          {c.shape && (
+            <>
+              <div className="colors">
+                <label className="color"><span>Colour</span><input type="color" value={c.color ?? '#ffd400'} onChange={(e) => P({ color: e.target.value })} /></label>
+              </div>
+              {(c.shape === 'subscribe' || c.shape === 'like' || c.shape === 'callout') && (
+                <input className="full" value={c.shapeText ?? ''} placeholder={c.shape === 'callout' ? 'Wait for it…' : c.shape === 'like' ? 'LIKE' : 'SUBSCRIBE'} onChange={(e) => P({ shapeText: e.target.value })} />
+              )}
+              {c.shape === 'progress' && <div className="hint">Fills along the bottom as the video plays. Stretch it over the whole video.</div>}
+              {c.shape.startsWith('viz') && <div className="hint">Follows the music track (or your voice / video sound if there’s no music).</div>}
+              {c.shape === 'subscribe' && <div className="hint">Pops in, then gets “clicked” halfway and turns grey with a ringing bell.</div>}
+            </>
+          )}
         </Section>
       )}
 
@@ -253,6 +271,12 @@ function ClipPanel({ clip: c }: { clip: Clip }) {
               </button>
             ))}
           </div>
+          {keys.length > 0 && (
+            <>
+              <div className="hint">Motion curve between keyframes</div>
+              <Chips items={EASES} value={c.ease ?? 'smooth'} onPick={(v) => U({ ease: v })} />
+            </>
+          )}
           {keys.length > 0 && (
             <div className="toggles">
               <button
@@ -362,5 +386,15 @@ function ClipPanel({ clip: c }: { clip: Clip }) {
     </div>
   )
 }
+
+const EASES: { id: Ease; name: string }[] = [
+  { id: 'smooth', name: 'Smooth' },
+  { id: 'linear', name: 'Linear' },
+  { id: 'in', name: 'Ease in' },
+  { id: 'out', name: 'Ease out' },
+  { id: 'bounce', name: 'Bounce' },
+  { id: 'elastic', name: 'Elastic' },
+  { id: 'hold', name: 'Hold / jump' },
+]
 
 export { getState }

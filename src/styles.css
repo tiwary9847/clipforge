@@ -414,3 +414,10 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .lay-svg rect.c1{fill:rgba(255,92,154,.35);stroke:rgba(255,140,190,.9)}
 .lay-svg rect.c2{fill:rgba(49,208,255,.3);stroke:rgba(120,220,255,.9)}
 .lay-svg rect.c3{fill:rgba(255,200,60,.3);stroke:rgba(255,210,100,.9)}
+
+.shape-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.shape-btn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 2px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:inherit;cursor:pointer}
+.shape-btn:hover{border-color:var(--accent)}
+.shape-btn span{font-size:20px;line-height:1.1}
+.shape-btn small{font-size:9.5px;text-align:center;line-height:1.15;opacity:.85}
+[data-theme='light'] .shape-btn,[data-theme='light'] .lay{background:#fff;border-color:rgba(20,24,50,.1)}

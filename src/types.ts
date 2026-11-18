@@ -87,9 +87,13 @@ export interface TextProps {
   hlColor?: string
   anim?: TextAnim
   animDur?: number // seconds for the build-in
+  grad?: string // second colour: vertical gradient fill from `color` to this
+  curve?: number // -1..1 – bend the text into an arc
 }
 
-export type TextAnim = 'none' | 'typewriter' | 'pop' | 'fade' | 'slide' | 'wave'
+export type TextAnim = 'none' | 'typewriter' | 'pop' | 'fade' | 'slide' | 'wave' | 'letters' | 'bounce' | 'glow' | 'rainbow'
+export type Ease = 'smooth' | 'linear' | 'in' | 'out' | 'bounce' | 'elastic' | 'hold'
+export type ShapeId = 'arrow' | 'circle' | 'box' | 'underline' | 'cross' | 'check' | 'subscribe' | 'like' | 'progress' | 'callout' | 'viz-bars' | 'viz-wave' | 'viz-circle'
 
 export type MaskMode = 'show' | 'hide' | 'blur' | 'pixelate' | 'spotlight'
 export type MaskShape = 'none' | 'circle' | 'ellipse' | 'rounded' | 'star' | 'heart' | 'diamond'
@@ -168,6 +172,10 @@ export interface Clip {
   text?: TextProps
   emoji?: string
   stickerSize?: number
+  shape?: ShapeId // vector graphic instead of an emoji
+  color?: string
+  shapeText?: string
+  ease?: Ease // keyframe easing
 }
 
 export interface TrackDef {

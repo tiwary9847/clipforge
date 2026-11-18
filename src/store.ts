@@ -9,6 +9,7 @@ import {
   Project,
   TRACKS,
   TextProps,
+  ShapeId,
 } from './types'
 import { Motion, cloneKf, evalProp, motionKeys, scaleKeyTimes, splitKeyframes, KF_PROPS } from './anim'
 import { TextPreset, SFX_LIST } from './library'
@@ -332,6 +333,27 @@ export function addSticker(emoji: string) {
       start: t,
       dur: 3,
       transIn: { type: 'zoom-in', dur: 0.25 },
+    }),
+  )
+}
+
+export function addShape(shape: ShapeId, label: string) {
+  const t = timeGetter()
+  const full = shape === 'progress' || shape.startsWith('viz')
+  const total = Math.max(3, projectDuration())
+  const start = shape === 'progress' ? 0 : t
+  const dur = shape === 'progress' ? total : full ? Math.max(3, total - t) : shape === 'subscribe' ? 3.5 : 3
+  const track = freeOverlayTrack(start, dur)
+  const y = shape === 'subscribe' || shape === 'like' ? 0.8 : shape.startsWith('viz') ? 0.78 : shape === 'progress' ? 0.98 : 0.45
+  return insertClip(
+    baseClip('sticker', track, {
+      label,
+      shape,
+      stickerSize: shape === 'progress' ? 0.2 : shape.startsWith('viz') ? 0.16 : shape === 'subscribe' || shape === 'like' ? 0.11 : shape === 'callout' ? 0.16 : 0.2,
+      start,
+      dur,
+      y,
+      transIn: { type: shape === 'progress' || shape.startsWith('viz') ? 'fade' : 'none', dur: 0.3 },
     }),
   )
 }

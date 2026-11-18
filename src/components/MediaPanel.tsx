@@ -26,6 +26,8 @@ import { extractMono16k } from '../media'
 import { startVoiceover } from '../processing'
 import { TEMPLATES, applyTemplate } from '../templates'
 import { ToolsTab } from './ToolsTab'
+import { addShape } from '../store'
+import { ShapeId } from '../types'
 import { Icon } from './Icon'
 import { devanagariToRoman, emojiFor } from '../tools2'
 import { OnlineMemes } from './OnlineMemes'
@@ -305,10 +307,47 @@ function TextTab() {
   )
 }
 
+const SHAPES: [ShapeId, string, string][] = [
+  ['arrow', '➡️', 'Arrow'],
+  ['circle', '⭕', 'Circle it'],
+  ['box', '🔲', 'Box'],
+  ['underline', '〰️', 'Underline'],
+  ['cross', '❌', 'Wrong'],
+  ['check', '✅', 'Right'],
+  ['subscribe', '🔔', 'Subscribe button'],
+  ['like', '👍', 'Like button'],
+  ['callout', '💬', 'Speech bubble'],
+  ['progress', '▬', 'Progress bar'],
+]
+const VIZ: [ShapeId, string, string][] = [
+  ['viz-bars', '📊', 'Bars'],
+  ['viz-wave', '〰', 'Wave'],
+  ['viz-circle', '🔆', 'Circle'],
+]
+
 function StickerTab() {
   return (
     <>
-      <div className="hint">Reaction stickers & meme emoji. Combine with <b>Animation → Beat punch / Shake</b> for instant meme edits.</div>
+      <div className="group-h" style={{ marginTop: 0 }}>Callouts & shapes</div>
+      <div className="shape-grid">
+        {SHAPES.map(([id, em, name]) => (
+          <button key={id} className="shape-btn" onClick={() => addShape(id, name)} title={name}>
+            <span>{em}</span>
+            <small>{name}</small>
+          </button>
+        ))}
+      </div>
+      <div className="group-h">Audio visualizers</div>
+      <div className="hint">Moving bars that dance to your music or voice – great for podcasts and song clips.</div>
+      <div className="shape-grid">
+        {VIZ.map(([id, em, name]) => (
+          <button key={id} className="shape-btn" onClick={() => addShape(id, name)} title={name}>
+            <span>{em}</span>
+            <small>{name}</small>
+          </button>
+        ))}
+      </div>
+      <div className="hint" style={{ marginTop: 10 }}>Reaction stickers & meme emoji. Combine with <b>Animation → Beat punch / Shake</b> for instant meme edits.</div>
       {STICKER_GROUPS.map((g) => (
         <div key={g.name}>
           <div className="group-h">{g.name}</div>

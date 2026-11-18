@@ -14,6 +14,7 @@ import { engine, FPS } from './engine'
 import { getAsset, getPreset, getState, projectDuration } from './store'
 import { disposeInputs, getInput, mixRange, projectHasSound } from './media'
 import { Clip } from './types'
+import { prepareViz } from './viz'
 
 async function pickAudioCodec(): Promise<'aac' | 'opus' | null> {
   const hasAudio = projectHasSound(getState().project.clips)
@@ -71,6 +72,7 @@ export async function fastExport(onProgress: (p: number, label: string) => void,
   engine.pause()
   const clips = getState().project.clips
   await loadFonts()
+  await prepareViz()
 
   onProgress(0, 'Mixing audio…')
   if (ctl.cancelled) return null

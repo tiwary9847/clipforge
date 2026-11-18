@@ -17,9 +17,12 @@ import * as grade from './grade'
 import * as multicam from './multicam'
 import * as media from './media'
 import * as looks from './looks'
+import * as viz from './viz'
+import * as anim from './anim'
+import { setVizReady } from './viz'
 
 // Small handle for automated tests and for power users poking around in the console.
-;(window as any).__cf = { store, processing, dsp, engine, fastExport, library, tools2, pro, grade, multicam, media, looks }
+;(window as any).__cf = { store, processing, dsp, engine, fastExport, library, tools2, pro, grade, multicam, media, looks, viz, anim }
 
 createRoot(document.getElementById('root')!).render(<App />)
 
@@ -37,3 +40,5 @@ void fastExport.cleanOldExports()
 
 applyTheme(currentTheme())
 watchSystemTheme()
+
+setVizReady(() => engine.requestRender())

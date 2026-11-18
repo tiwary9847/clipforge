@@ -337,6 +337,10 @@ const TEXT_ANIMS: { id: TextAnim; name: string }[] = [
   { id: 'fade', name: 'Fade words' },
   { id: 'slide', name: 'Slide up' },
   { id: 'wave', name: 'Wave' },
+  { id: 'letters', name: 'Letter pop' },
+  { id: 'bounce', name: 'Letter bounce' },
+  { id: 'glow', name: 'Neon glow' },
+  { id: 'rainbow', name: 'Rainbow' },
 ]
 
 export function SaveStyle({ c }: { c: Clip }) {
@@ -376,7 +380,7 @@ export function TextAnimSection({ c }: { c: Clip }) {
           engine.seek(c.start)
         }}
       />
-      {anim !== 'none' && anim !== 'wave' && (
+      {anim !== 'none' && anim !== 'wave' && anim !== 'glow' && anim !== 'rainbow' && (
         <Slider label="Build-in time" value={c.text.animDur ?? 0.8} min={0.2} max={Math.max(0.3, Math.min(4, c.dur))} onChange={(v) => patchText(c.id, { animDur: v })} fmt={(v) => `${v.toFixed(1)}s`} />
       )}
       <div className="hint">Plays at the start of the text clip – scrub to its start to preview.</div>

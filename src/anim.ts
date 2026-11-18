@@ -1,9 +1,35 @@
-import { Clip, KfMap, KfProp, Keyframe } from './types'
+import { Ease, Clip, KfMap, KfProp, Keyframe } from './types'
 
 export const KF_PROPS: KfProp[] = ['x', 'y', 'scale', 'rotation', 'opacity', 'mx', 'my', 'ms']
 const KF_DEFAULT: Partial<Record<KfProp, number>> = { mx: 0, my: 0, ms: 1 }
 
-export function evalKeys(ks: Keyframe[], lt: number): number {
+export function easeFn(e: Ease | undefined, u: number): number {
+  switch (e) {
+    case 'linear':
+      return u
+    case 'in':
+      return u * u * u
+    case 'out':
+      return 1 - Math.pow(1 - u, 3)
+    case 'hold':
+      return u < 1 ? 0 : 1
+    case 'bounce': {
+      const n = 7.5625
+      const d = 2.75
+      let x = u
+      if (x < 1 / d) return n * x * x
+      if (x < 2 / d) return n * (x -= 1.5 / d) * x + 0.75
+      if (x < 2.5 / d) return n * (x -= 2.25 / d) * x + 0.9375
+      return n * (x -= 2.625 / d) * x + 0.984375
+    }
+    case 'elastic':
+      return u === 0 || u === 1 ? u : Math.pow(2, -10 * u) * Math.sin((u * 10 - 0.75) * ((2 * Math.PI) / 3)) + 1
+    default:
+      return u * u * (3 - 2 * u) // smooth
+  }
+}
+
+export function evalKeys(ks: Keyframe[], lt: number, ease?: Ease): number {
   if (lt <= ks[0].t) return ks[0].v
   const last = ks[ks.length - 1]
   if (lt >= last.t) return last.v
@@ -12,7 +38,7 @@ export function evalKeys(ks: Keyframe[], lt: number): number {
     const b = ks[i + 1]
     if (lt < b.t) {
       const u = (lt - a.t) / Math.max(1e-6, b.t - a.t)
-      const e = u * u * (3 - 2 * u) // smoothstep easing
+      const e = easeFn(ease, u)
       return a.v + (b.v - a.v) * e
     }
   }
@@ -21,7 +47,7 @@ export function evalKeys(ks: Keyframe[], lt: number): number {
 
 export function evalProp(c: Clip, p: KfProp, lt: number): number {
   const ks = c.kf?.[p]
-  return ks && ks.length ? evalKeys(ks, lt) : ((c[p] as number | undefined) ?? KF_DEFAULT[p] ?? 0)
+  return ks && ks.length ? evalKeys(ks, lt, c.ease) : ((c[p] as number | undefined) ?? KF_DEFAULT[p] ?? 0)
 }
 
 export const hasKeys = (c: Clip) => !!c.kf && KF_PROPS.some((p) => c.kf![p]?.length)
