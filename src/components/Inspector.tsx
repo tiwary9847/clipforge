@@ -25,7 +25,7 @@ import { engine } from '../engine'
 import { FILTER_PRESETS, FONTS, FX_LIST, TRANS_LIST, mkFilters } from '../library'
 import { Clip, DEFAULT_FILTERS, Ease, KfProp, PRESETS } from '../types'
 import { Motion, evalProp, hasKeys, kfTimes } from '../anim'
-import { EqSection, GradeSection, LookSection, ProVideo, SceneSplit, TrackSection } from './ProPanels2'
+import { EqSection, GradeSection, LookSection, ProVideo, SceneSplit, TrackSection, VoiceSection } from './ProPanels2'
 import { AudioTools, ChromaSection, CropMaskBlend, MultiPanel, SaveStyle, SpeedRamps, TextAnimSection, VideoTools } from './ProPanels'
 
 const pct = (v: number) => `${Math.round(v * 100)}%`
@@ -346,6 +346,7 @@ function ClipPanel({ clip: c }: { clip: Clip }) {
       )}
       <AudioTools c={c} />
       <EqSection c={c} />
+      <VoiceSection c={c} />
 
       {(isVisual || c.kind === 'adjust') && (
         <>

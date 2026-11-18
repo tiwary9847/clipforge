@@ -772,3 +772,17 @@ export function insertSilent(clips: Clip[]) {
 export function setClipsSilent(clips: Clip[]) {
   set({ project: { ...state.project, clips } })
 }
+
+/** Brings back an earlier version of the project (undoable). Clips whose media is gone are skipped. */
+export function restoreVersionProject(p: Project, name: string): number {
+  checkpoint()
+  const ids = new Set(state.assets.map((a) => a.id))
+  const clips = p.clips.filter((c) => !c.assetId || ids.has(c.assetId))
+  set({ project: { ...p, clips, markers: p.markers ?? [] }, projectName: name, selectedId: null, selIds: [] })
+  return p.clips.length - clips.length
+}
+
+/** Swap the whole project without history (used while batch-exporting). */
+export function swapProjectSilent(p: Project) {
+  set({ project: p, selectedId: null, selIds: [] })
+}

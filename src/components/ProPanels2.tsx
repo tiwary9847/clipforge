@@ -7,6 +7,7 @@ import { engine } from '../engine'
 import { Clip, Eq, Grade, KfProp, MaskMode, MaskShape } from '../types'
 import { DEFAULT_GRADE, GRADE_LOOKS, histogram, isIdentity, parseCube } from '../grade'
 import { LOOK_LIST } from '../library'
+import { VOICE_LIST } from '../voice'
 import { detectScenes, matchColour } from '../looks'
 import { removeBackground, removeVocals, smoothSlowMo, trackMask, trackOverlay } from '../pro'
 
@@ -213,6 +214,16 @@ export function EqSection({ c }: { c: Clip }) {
       <Slider label="Treble" value={e.high} min={-15} max={15} step={0.5} onChange={(v) => set({ high: v })} fmt={(v) => `${v > 0 ? '+' : ''}${v.toFixed(1)} dB`} />
       <label className="ochk"><input type="checkbox" checked={e.comp} onChange={(x) => updateClip(c.id, { eq: { ...e, comp: x.target.checked } })} /> Compressor (evens out loud and quiet parts)</label>
       <button className="btn full" disabled={!!busy} onClick={() => run('v', () => removeVocals(c.id))}>{busy ? 'Working…' : '🎤 Remove vocals (karaoke)'}</button>
+    </Section>
+  )
+}
+
+export function VoiceSection({ c }: { c: Clip }) {
+  if (c.kind !== 'video' && c.kind !== 'audio' && c.kind !== 'sfx') return null
+  return (
+    <Section title="Voice effect">
+      <Chips items={VOICE_LIST} value={c.voice ?? 'none'} onPick={(v) => updateClip(c.id, { voice: v === 'none' ? undefined : v })} />
+      <div className="hint">Changes how this clip sounds – in preview and in the exported video.</div>
     </Section>
   )
 }

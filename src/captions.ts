@@ -13,7 +13,7 @@ import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transfo
 env.allowLocalModels = false;
 let asr = null, key = '';
 self.onmessage = async (e) => {
-  const { model, audio, language, device } = e.data;
+  const { model, audio, language, device, translate } = e.data;
   try {
     const k = model + '|' + device;
     if (!asr || key !== k) {
@@ -25,7 +25,7 @@ self.onmessage = async (e) => {
       key = k;
     }
     self.postMessage({ type: 'status', msg: 'Transcribing…' });
-    const opts = { return_timestamps: 'word', chunk_length_s: 30, stride_length_s: 5, task: 'transcribe' };
+    const opts = { return_timestamps: 'word', chunk_length_s: 30, stride_length_s: 5, task: translate ? 'translate' : 'transcribe' };
     if (language && language !== 'auto') opts.language = language;
     const out = await asr(audio, opts);
     self.postMessage({ type: 'done', chunks: out.chunks || [], text: out.text || '' });
@@ -39,7 +39,7 @@ export type Progress = (msg: string, pct?: number) => void
 
 export async function transcribe(
   audio: Float32Array,
-  opts: { model: string; language: string; gpu: boolean },
+  opts: { model: string; language: string; gpu: boolean; translate?: boolean },
   onProgress: Progress,
   signal: { cancelled: boolean },
 ): Promise<Word[]> {
@@ -83,7 +83,7 @@ export async function transcribe(
         }
         // transfer a copy so the caller keeps its buffer
         const copy = audio.slice()
-        w.postMessage({ model: opts.model, audio: copy, language: opts.language, device: opts.gpu ? 'webgpu' : 'wasm' }, [copy.buffer])
+        w.postMessage({ model: opts.model, audio: copy, language: opts.language, device: opts.gpu ? 'webgpu' : 'wasm', translate: !!opts.translate }, [copy.buffer])
       })
   const words: Word[] = []
   for (const ch of raw) {

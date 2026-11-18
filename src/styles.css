@@ -421,3 +421,18 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .shape-btn span{font-size:20px;line-height:1.1}
 .shape-btn small{font-size:9.5px;text-align:center;line-height:1.15;opacity:.85}
 [data-theme='light'] .shape-btn,[data-theme='light'] .lay{background:#fff;border-color:rgba(20,24,50,.1)}
+
+.stock{display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02)}
+.stock-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.stock-hit{position:relative;padding:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#000;color:#fff;cursor:pointer;aspect-ratio:4/3;display:flex;flex-direction:column}
+.stock-hit img{width:100%;flex:1;min-height:0;object-fit:cover}
+.stock-hit i{position:absolute;top:4px;right:4px;font-style:normal;font-size:10px;background:rgba(0,0,0,.6);padding:1px 5px;border-radius:5px}
+.stock-hit small{font-size:9.5px;padding:3px 5px;background:rgba(0,0,0,.65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
+.stock-hit:hover{border-color:var(--accent)}
+.range-row input{width:70px;margin:0 4px;padding:4px 6px;border-radius:7px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:inherit}
+.chap{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:8px 0}
+.chap summary{cursor:pointer;font-weight:600;font-size:13px}
+.chap textarea{width:100%;margin:8px 0 4px;font-family:ui-monospace,monospace;font-size:12px;padding:6px;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:inherit}
+.versions{display:flex;flex-direction:column;gap:2px}
+.versions .wa-part span{font-size:11.5px}
+.btn.on{border-color:var(--accent)}

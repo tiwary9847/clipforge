@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { engine } from '../engine'
-import { Ctl, fastExport, fastExportSupport } from '../fastExport'
+import { Ctl, buildChapters, exportAudio, exportGif, fastExport, fastExportSupport } from '../fastExport'
 import { getPreset, getState, projectDuration } from '../store'
 import { fmtTime } from './Fields'
 import { getClientId, setClientId, uploadSupported, uploadToYouTube } from '../youtube'
@@ -18,6 +18,17 @@ type Phase = 'idle' | 'running' | 'done' | 'error'
 export function ExportDialog({ onClose }: { onClose: () => void }) {
   const [phase, setPhase] = useState<Phase>('idle')
   const [mode, setMode] = useState<'fast' | 'realtime'>('realtime')
+  const [what, setWhat] = useState<'video' | 'gif' | 'audio'>('video')
+  const [part, setPart] = useState(false)
+  const selRange = (() => {
+    const st = getState()
+    const sel = st.project.clips.filter((c) => st.selIds.includes(c.id))
+    return sel.length ? [Math.min(...sel.map((c) => c.start)), Math.max(...sel.map((c) => c.start + c.dur))] : [0, Math.min(projectDuration(), 10)]
+  })()
+  const [rFrom, setRFrom] = useState(+selRange[0].toFixed(1))
+  const [rTo, setRTo] = useState(+selRange[1].toFixed(1))
+  const [chap, setChap] = useState<{ text: string; problems: string[] } | null>(null)
+  const [copied, setCopied] = useState(false)
   const [fast, setFast] = useState<{ ok: boolean; reason?: string } | null>(null)
   const [label, setLabel] = useState('')
   const ctl = useRef<Ctl>({ cancelled: false })
@@ -48,8 +59,15 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
         setProg(p)
         if (l) setLabel(l)
       }
+      const range = part ? { from: Math.max(0, Math.min(rFrom, rTo)), to: Math.max(rFrom, rTo) } : {}
       const out =
-        mode === 'fast' ? await fastExport(onP, ctl.current) : await engine.exportVideo((p) => onP(p, 'Recording in real time…'))
+        what === 'gif'
+          ? await exportGif(onP, ctl.current, range)
+          : what === 'audio'
+            ? await exportAudio(onP, ctl.current, range)
+            : mode === 'fast' || part
+              ? await fastExport(onP, ctl.current, range)
+              : await engine.exportVideo((p) => onP(p, 'Recording in real time…'))
       if (!out) {
         setPhase('idle')
         return
@@ -83,6 +101,25 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
 
         {phase === 'idle' && (
           <>
+            <div className="osrc">
+              <button className={what === 'video' ? 'on' : ''} onClick={() => setWhat('video')}>🎬 Video (MP4)</button>
+              <button className={what === 'gif' ? 'on' : ''} onClick={() => { setWhat('gif'); setPart(dur > 30 || part) }}>🖼 GIF</button>
+              <button className={what === 'audio' ? 'on' : ''} onClick={() => setWhat('audio')}>🎵 Sound only</button>
+            </div>
+            <label className="ochk">
+              <input type="checkbox" checked={part} onChange={(e) => setPart(e.target.checked)} /> Only part of the video
+            </label>
+            {part && (
+              <div className="row2 range-row">
+                <label>From <input type="number" min={0} max={dur} step={0.1} value={rFrom} onChange={(e) => setRFrom(+e.target.value)} /> s</label>
+                <label>to <input type="number" min={0} max={dur} step={0.1} value={rTo} onChange={(e) => setRTo(+e.target.value)} /> s</label>
+                <span className="hint">({Math.max(0, rTo - rFrom).toFixed(1)} s{getState().selIds.length ? ', from your selection' : ''})</span>
+              </div>
+            )}
+            {what === 'gif' && <div className="hint">GIFs are silent, 480 px, 12 fps and up to 30 s – good for WhatsApp, Twitter/X and websites.</div>}
+            {what === 'audio' && <div className="hint">Exports just the mixed sound – as .m4a (AAC), or .wav where the browser can’t make AAC. Handy for podcasts.</div>}
+            {what === 'video' && (
+            <>
             <label className={'opt' + (mode === 'fast' ? ' on' : '')}>
               <input type="radio" checked={mode === 'fast'} disabled={!fast?.ok} onChange={() => setMode('fast')} />
               <div>
@@ -101,10 +138,23 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
               <div>
                 <b>Real-time recording</b>
                 <div className="hint">
-                  Works everywhere but takes about {Math.ceil(dur)}s for this video. Keep this tab open and in front.
+                  Works everywhere but takes about {Math.ceil(dur)}s for this video. Keep this tab open and in front.{part ? ' (Parts always use fast export.)' : ''}
                 </div>
               </div>
             </label>
+            </>
+            )}
+            <details className="chap" onToggle={(e) => (e.currentTarget as HTMLDetailsElement).open && setChap(buildChapters())}>
+              <summary>📑 YouTube chapters from your markers</summary>
+              {chap && (
+                <>
+                  <textarea readOnly rows={Math.min(8, chap.text.split('\n').length + 1)} value={chap.text} />
+                  {chap.problems.map((p) => <div key={p} className="hint warn">⚠ {p}</div>)}
+                  <div className="hint">Put a marker (M) where each chapter starts; a title clip near a marker names the chapter. Paste this list into your YouTube description.</div>
+                  <button className="btn sm" onClick={() => { void navigator.clipboard?.writeText(chap.text); setCopied(true); setTimeout(() => setCopied(false), 1500) }}>{copied ? '✓ Copied' : '📋 Copy chapters'}</button>
+                </>
+              )}
+            </details>
             <div className="hint">Nothing is uploaded – everything is processed on your device.</div>
             <div className="modal-actions">
               <button className="btn" onClick={onClose}>Close</button>
@@ -129,7 +179,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
 
         {phase === 'done' && result && (
           <>
-            <video className="result" src={result.url} controls playsInline />
+            {result.ext === 'gif' ? <img className="result" src={result.url} alt="GIF preview" /> : result.ext === 'm4a' || result.ext === 'wav' ? <audio className="result" src={result.url} controls /> : <video className="result" src={result.url} controls playsInline />}
             <div className="hint">
               {(result.size / 1048576).toFixed(1)} MB · .{result.ext} · {result.codec}
               {result.codec.startsWith('H.264 + AAC') || result.codec === 'H.264 (no audio)'

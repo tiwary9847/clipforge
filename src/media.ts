@@ -1,6 +1,7 @@
 import { getState } from './store'
 import { ALL_FORMATS, AudioBufferSink, BlobSource, Input } from 'mediabunny'
 import { Asset, Clip } from './types'
+import { buildVoice } from './voice'
 import { engine } from './engine'
 
 const inputs = new Map<string, Input>()
@@ -94,10 +95,14 @@ export async function scheduleClipAudio(ctx: BaseAudioContext, dest: AudioNode, 
   const fade: Pt[] = c.fadeIn > 0 ? [{ t: c.start, v: 0 }, { t: c.start + c.fadeIn, v: vol }] : [{ t: c.start, v: vol }]
   if (c.fadeOut > 0) fade.push({ t: Math.max(c.start + c.fadeIn, end - c.fadeOut), v: vol }, { t: end, v: 0 })
   envelope(g.gain, fade, t0)
+  // optional voice effect sits between the sources and the clip gain
+  const vfx = buildVoice(ctx, c.voice)
+  const into: AudioNode = vfx ? vfx.input : g
+  if (vfx) vfx.output.connect(g)
   if (c.kind === 'sfx' && c.sfxId) {
     const src = ctx.createBufferSource()
     src.buffer = engine.getSfx(c.sfxId)
-    src.connect(g)
+    src.connect(into)
     const off = Math.max(0, t0 - c.start)
     if (off >= src.buffer.duration) return false
     src.start(Math.max(0, c.start - t0), off)
@@ -115,7 +120,7 @@ export async function scheduleClipAudio(ctx: BaseAudioContext, dest: AudioNode, 
     const src = ctx.createBufferSource()
     src.buffer = w.buffer
     src.playbackRate.value = c.speed
-    src.connect(g)
+    src.connect(into)
     let at = c.start + (w.timestamp - c.srcIn) / c.speed // timeline time where this buffer begins
     let off = 0
     if (at < wa) {

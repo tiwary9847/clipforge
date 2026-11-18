@@ -26,6 +26,7 @@ import { extractMono16k } from '../media'
 import { startVoiceover } from '../processing'
 import { TEMPLATES, applyTemplate } from '../templates'
 import { ToolsTab } from './ToolsTab'
+import { StockPanel } from './StockPanel'
 import { addShape } from '../store'
 import { ShapeId } from '../types'
 import { Icon } from './Icon'
@@ -125,6 +126,7 @@ function AssetCard({ a }: { a: Asset }) {
 
 function MediaTab() {
   const assets = useStore((s) => s.assets)
+  const [stock, setStock] = useState(false)
   const input = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(0)
   const [msg, setMsg] = useState('')
@@ -153,6 +155,10 @@ function MediaTab() {
       <button className="btn primary full" onClick={() => input.current?.click()}>
         ＋ Import video, image or audio
       </button>
+      <button className={'btn full' + (stock ? ' on' : '')} onClick={() => setStock(!stock)}>
+        🎬 Free stock videos & photos {stock ? '▲' : '▼'}
+      </button>
+      {stock && <StockPanel />}
       <div className="hint">
         Files stay on your device – nothing is uploaded. Drop files anywhere, or drag a card onto the timeline.
         For memes, import short MP4/WebM reaction clips, PNG stickers and MP3 sounds.
@@ -513,6 +519,7 @@ function AutoCaptions({ styleId }: { styleId: string }) {
   const [gpu, setGpu] = useState(false)
   const [roman, setRoman] = useState(true)
   const [emoji, setEmoji] = useState(false)
+  const [translate, setTranslate] = useState(false)
   const [phase, setPhase] = useState<'idle' | 'run' | 'done' | 'error'>('idle')
   const [status, setStatus] = useState('')
   const [pct, setPct] = useState<number | undefined>()
@@ -537,7 +544,7 @@ function AutoCaptions({ styleId }: { styleId: string }) {
       setStatus('Reading the audio…')
       const audio = await extractMono16k(source, asset)
       if (!audio || audio.length < 1600) throw new Error('This clip has no audio to transcribe.')
-      const words = await transcribe(audio, { model, language: lang, gpu }, (m, p) => {
+      const words = await transcribe(audio, { model, language: lang, gpu, translate }, (m, p) => {
         setStatus(m)
         setPct(p)
       }, sig.current)
@@ -586,7 +593,8 @@ function AutoCaptions({ styleId }: { styleId: string }) {
           <option key={id} value={id}>{n}</option>
         ))}
       </select>
-      <label className="ochk"><input type="checkbox" checked={roman} onChange={(e) => setRoman(e.target.checked)} /> Hindi in English letters (Hinglish) – otherwise देवनागरी</label>
+      <label className="ochk"><input type="checkbox" checked={translate} onChange={(e) => setTranslate(e.target.checked)} /> Translate the speech into English captions</label>
+      {!translate && <label className="ochk"><input type="checkbox" checked={roman} onChange={(e) => setRoman(e.target.checked)} /> Hindi in English letters (Hinglish) – otherwise देवनागरी</label>}
       <label className="ochk"><input type="checkbox" checked={emoji} onChange={(e) => setEmoji(e.target.checked)} /> Add emoji after key words 🔥💰❤️</label>
       {lang === 'hindi' && model !== MODELS[2].id && <div className="hint">Tip: pick the Accurate · Small model for Hindi – the smaller ones make more mistakes.</div>}
       <div className="chips">

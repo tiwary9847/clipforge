@@ -5,16 +5,18 @@ import { Asset } from './types'
 let dbp: Promise<IDBDatabase> | null = null
 const db = () =>
   (dbp ??= new Promise<IDBDatabase>((res, rej) => {
-    const r = indexedDB.open('clipforge', 1)
+    const r = indexedDB.open('clipforge', 2)
     r.onupgradeneeded = () => {
-      r.result.createObjectStore('kv')
-      r.result.createObjectStore('media')
+      const names = r.result.objectStoreNames
+      if (!names.contains('kv')) r.result.createObjectStore('kv')
+      if (!names.contains('media')) r.result.createObjectStore('media')
+      if (!names.contains('versions')) r.result.createObjectStore('versions', { keyPath: 'id' })
     }
     r.onsuccess = () => res(r.result)
     r.onerror = () => rej(r.error)
   }))
 
-function tx<T>(store: 'kv' | 'media', mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBRequest<T>): Promise<T> {
+function tx<T>(store: 'kv' | 'media' | 'versions', mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBRequest<T>): Promise<T> {
   return db().then(
     (d) =>
       new Promise<T>((res, rej) => {
@@ -100,4 +102,62 @@ export function startAutosave() {
     timer = window.setTimeout(save, 700)
   })
   void save()
+}
+
+/* ---------------- version history ---------------- */
+
+export interface Version {
+  id: number
+  time: number
+  name: string
+  auto: boolean
+  projectName: string
+  project: import('./types').Project
+  clips: number
+  dur: number
+}
+
+const MAX_AUTO = 30
+let lastAutoJson = ''
+
+export async function saveVersion(name = '', auto = false): Promise<Version | null> {
+  const s = getState()
+  if (!s.project.clips.length) return null
+  const json = JSON.stringify(s.project)
+  if (auto && json === lastAutoJson) return null
+  lastAutoJson = json
+  const v: Version = {
+    id: Date.now(),
+    time: Date.now(),
+    name: name.trim(),
+    auto,
+    projectName: s.projectName,
+    project: JSON.parse(json),
+    clips: s.project.clips.length,
+    dur: s.project.clips.reduce((m, c) => Math.max(m, c.start + c.dur), 0),
+  }
+  await tx('versions', 'readwrite', (st) => st.put(v))
+  // keep the newest MAX_AUTO automatic snapshots; named ones are kept forever
+  const all = await listVersions()
+  const autos = all.filter((x) => x.auto)
+  for (const old of autos.slice(MAX_AUTO)) await tx('versions', 'readwrite', (st) => st.delete(old.id))
+  return v
+}
+
+export async function listVersions(): Promise<Version[]> {
+  try {
+    const all = (await tx<Version[]>('versions', 'readonly', (st) => st.getAll())) ?? []
+    return all.sort((a, b) => b.time - a.time)
+  } catch {
+    return []
+  }
+}
+
+export async function deleteVersion(id: number) {
+  await tx('versions', 'readwrite', (st) => st.delete(id))
+}
+
+/** Every 5 minutes, snapshot the project if it changed. */
+export function startVersionTimer() {
+  setInterval(() => void saveVersion('', true).catch(() => {}), 5 * 60 * 1000)
 }

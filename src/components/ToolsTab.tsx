@@ -8,6 +8,9 @@ import { TextEditDialog } from './TextEditDialog'
 import { Icon } from './Icon'
 import { RecMode, Recording, canRecordCamera, canRecordScreen, startRecording } from '../recorder'
 import { LAYOUTS, addAdjustmentLayer, applyLayout } from '../looks'
+import { Moment, exportMoments, findMoments, openMoment } from '../shorts'
+import { Version, deleteVersion, listVersions, saveVersion } from '../db'
+import { checkpoint, restoreVersionProject } from '../store'
 import { createMulticam, cutToAngle, endMulticam } from '../multicam'
 import { VOICES, measureLoudness, normaliseLoudness, speak } from '../pro'
 import { Brand, Hook, addHook, addLogo, exportBackup, findHook, grabFrame, importBackup, loadBrand, renderThumb, saveBrand } from '../tools2'
@@ -53,6 +56,8 @@ export function ToolsTab() {
           <small>Screen, webcam or both (face bubble)</small>
         </button>
       </div>
+      <div className="group-h">✂️ Long video → Shorts</div>
+      <LongToShorts />
       <div className="group-h">🔲 Split-screen layouts</div>
       <Layouts />
       <div className="group-h">🎚 Adjustment layer</div>
@@ -85,6 +90,8 @@ export function ToolsTab() {
       <BrandKit />
       <div className="group-h">📦 All formats at once</div>
       <MultiExport />
+      <div className="group-h">🕘 Version history</div>
+      <Versions />
       <div className="group-h">💾 Backup & restore</div>
       <Backup />
       {dlg === 'thumb' && <ThumbDialog onClose={() => setDlg('')} />}
@@ -903,6 +910,142 @@ function Layouts() {
             <LayoutThumb id={l.id} />
             <small>{l.name}</small>
           </button>
+        ))}
+      </div>
+      {msg && <div className="hint">{msg}</div>}
+    </>
+  )
+}
+
+/* ---------- long video → Shorts ---------- */
+
+function LongToShorts() {
+  const clips = useStore((s) => s.project.clips)
+  const selId = useStore((s) => s.selectedId)
+  const vids = clips.filter((c) => c.kind === 'video')
+  const sel = vids.find((c) => c.id === selId) ?? [...vids].sort((a, b) => b.dur - a.dur)[0]
+  const [count, setCount] = useState(3)
+  const [len, setLen] = useState(30)
+  const [ms, setMs] = useState<Moment[]>([])
+  const [busy, setBusy] = useState('')
+  const [msg, setMsg] = useState('')
+  const [files, setFiles] = useState<{ name: string; blob: Blob }[]>([])
+  const fmt = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`
+  if (!sel) return <div className="hint">Add a long video (a vlog, podcast or stream) to the timeline first.</div>
+  const assetId = sel.assetId!
+  return (
+    <>
+      <div className="hint">Finds the liveliest moments in “{sel.label}” and turns each into its own vertical Short.</div>
+      <div className="chips">
+        {[3, 5, 8].map((n) => <button key={n} className={'chip' + (count === n ? ' on' : '')} onClick={() => setCount(n)}>{n} Shorts</button>)}
+        {[15, 30, 45, 60].map((n) => <button key={n} className={'chip' + (len === n ? ' on' : '')} onClick={() => setLen(n)}>{n}s</button>)}
+      </div>
+      <button
+        className="btn full"
+        disabled={!!busy}
+        onClick={async () => {
+          setBusy('Listening…')
+          setMsg('')
+          setFiles([])
+          try {
+            const r = await findMoments(sel.id, count, len, setBusy)
+            setMs(r)
+            setMsg(r.length < count ? `Only found ${r.length} separate moments of ${len}s in this video.` : '')
+          } catch (e) {
+            setMsg((e as Error).message)
+          }
+          setBusy('')
+        }}
+      >
+        {busy || '🔎 Find the best moments'}
+      </button>
+      {ms.map((m, i) => (
+        <div key={i} className="wa-part">
+          <span>⭐ Short {i + 1}: {fmt(m.start)} – {fmt(m.start + m.len)}</span>
+          <button className="btn sm" disabled={!!busy} onClick={() => { checkpoint(); openMoment(assetId, m); setUi({ toast: `Short ${i + 1} opened as a 9:16 project – Undo goes back.` }); setTimeout(() => engine.render(), 60) }}>Open</button>
+        </div>
+      ))}
+      {ms.length > 0 && (
+        <button
+          className="btn primary full"
+          disabled={!!busy}
+          onClick={async () => {
+            setMsg('')
+            try {
+              setFiles(await exportMoments(assetId, ms, 'shorts', setBusy))
+              setMsg('All Shorts exported – download them below.')
+            } catch (e) {
+              setMsg((e as Error).message)
+            }
+            setBusy('')
+            setTimeout(() => engine.render(), 60)
+          }}
+        >
+          ⬇ Export all {ms.length} as Shorts (9:16)
+        </button>
+      )}
+      {files.map((f) => (
+        <div key={f.name} className="wa-part">
+          <span>🎬 {f.name} · {(f.blob.size / 1048576).toFixed(1)} MB</span>
+          <button className="btn sm" onClick={() => download(f.blob, `${safeName()}-${f.name}`)}>⬇</button>
+        </div>
+      ))}
+      {msg && <div className="hint">{msg}</div>}
+    </>
+  )
+}
+
+/* ---------- version history ---------- */
+
+function Versions() {
+  const [list, setList] = useState<Version[] | null>(null)
+  const [name, setName] = useState('')
+  const [msg, setMsg] = useState('')
+  const refresh = () => void listVersions().then(setList)
+  useEffect(refresh, [])
+  const ago = (t: number) => {
+    const s = (Date.now() - t) / 1000
+    if (s < 60) return 'just now'
+    if (s < 3600) return `${Math.round(s / 60)} min ago`
+    if (s < 86400) return `${Math.round(s / 3600)} h ago`
+    return new Date(t).toLocaleString()
+  }
+  return (
+    <>
+      <div className="hint">A snapshot is saved automatically every 5 minutes while you edit (last 30 kept). Save a named version before big changes.</div>
+      <div className="osearch">
+        <input placeholder="Version name (optional)" value={name} onChange={(e) => setName(e.target.value)} />
+        <button
+          className="btn sm primary"
+          onClick={async () => {
+            const v = await saveVersion(name || 'Saved version')
+            setName('')
+            setMsg(v ? 'Version saved.' : 'Add something to the timeline first.')
+            refresh()
+          }}
+        >
+          Save
+        </button>
+      </div>
+      {list && !list.length && <div className="hint">No versions yet.</div>}
+      <div className="versions">
+        {list?.slice(0, 12).map((v) => (
+          <div key={v.id} className="wa-part">
+            <span>
+              {v.auto ? '🕘' : '📌'} <b>{v.name || 'Auto-save'}</b> · {ago(v.time)} · {v.clips} clips · {v.dur.toFixed(0)}s
+            </span>
+            <button
+              className="btn sm"
+              onClick={() => {
+                const lost = restoreVersionProject(v.project, v.projectName)
+                setMsg(`Restored “${v.name || 'auto-save'}”.${lost ? ` ${lost} clip(s) skipped because their media was deleted.` : ''} Undo brings back what you had.`)
+                setTimeout(() => engine.render(), 60)
+              }}
+            >
+              Restore
+            </button>
+            <button className="ico" title="Delete version" onClick={async () => { await deleteVersion(v.id); refresh() }}>✕</button>
+          </div>
         ))}
       </div>
       {msg && <div className="hint">{msg}</div>}

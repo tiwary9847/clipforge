@@ -156,3 +156,22 @@ Line-icon set replacing emoji controls (tabs, header, transport, timeline toolba
 
 ## v15 – Light theme
 ☀️/🌙 switch in the top bar. Follows the device's light/dark setting until you choose; your choice is remembered. Applied before first paint (no flash). Light styling covers every panel, dialog, timeline, welcome screen, tour and the phone layout.
+
+## v16 – "everything the paid apps have"
+- **Effects library**: film grain, VHS, RGB split, light leak, lens flare, zoom blur, glow, vignette; new motions (quake, bounce, zoom pulse, drift, tilt).
+- **More transitions**: flash, blur, glitch, whip pan, circle reveal, flip, bounce.
+- **Split-screen layouts**: stack, side-by-side, picture-in-picture, reaction, 3-up, grid (Tools tab).
+- **Portrait background blur** (AI person cut-out, background blurred).
+- **Scene detection**: splits a clip at every camera cut, one undo step.
+- **Colour match**: makes one clip look like another.
+- **Adjustment layer**: a clip on V-tracks that grades/looks everything under it.
+- **Text styles**: gradient fill, curved text, letter pop/bounce, neon glow, rainbow.
+- **Shapes & callouts**: arrows, circles, boxes, underline, ✓/✗, subscribe button, like, progress bar, speech callout (draw-on animated).
+- **Smooth keyframes**: smooth / linear / ease in / ease out / bounce / elastic / hold.
+- **Voice effects**: chipmunk, deep, robot, echo, reverb, cave, phone, megaphone, radio, alien (preview + export).
+- **Audio visualizers**: bars, wave, circle – react to your music/voice.
+- **Long video → Shorts**: finds the liveliest moments and exports each as a 9:16 Short.
+- **Caption translation**: speech → English captions (Whisper translate).
+- **Free stock**: Pexels & Pixabay search (bring your own free API key).
+- **More export**: GIF, sound only (.m4a/.wav), only part of the video, YouTube chapters from markers.
+- **Version history**: auto snapshot every 5 min + named versions, restore with undo.

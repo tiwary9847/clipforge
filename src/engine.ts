@@ -1,3 +1,4 @@
+import { VoiceChain, buildVoice } from './voice'
 import { levelsAt } from './viz'
 import { gradePixels, isIdentity } from './grade'
 import { buildEq } from './media'
@@ -14,6 +15,9 @@ interface MediaEntry {
   gain: GainNode
   url: string
   eq?: { input: AudioNode; set: (c: Clip) => void }
+  vin?: GainNode
+  voiceId?: string
+  voice?: VoiceChain | null
 }
 export interface Box {
   id: string
@@ -356,11 +360,13 @@ class Engine {
     const ctx = this.audio
     const node = ctx.createMediaElementSource(el)
     const gain = ctx.createGain()
+    const vin = ctx.createGain()
     const eq = buildEq(ctx, this.master)
     eq.set(c)
-    node.connect(gain)
+    node.connect(vin)
+    vin.connect(gain)
     gain.connect(eq.input)
-    this.media.set(c.id, { el, gain, url: a.proxyUrl ?? a.url, eq })
+    this.media.set(c.id, { el, gain, url: a.proxyUrl ?? a.url, eq, vin, voiceId: 'none' })
   }
 
   private disposeMedia(id: string) {
@@ -460,6 +466,19 @@ class Engine {
     this.raf = requestAnimationFrame(this.tick)
   }
 
+  private swapVoice(m: { gain: GainNode; vin?: GainNode; voiceId?: string; voice?: VoiceChain | null }, c: Clip) {
+    if (!m.vin) return
+    m.vin.disconnect()
+    m.voice?.stop()
+    m.voice?.output.disconnect()
+    m.voice = buildVoice(this.audio, c.voice)
+    if (m.voice) {
+      m.vin.connect(m.voice.input)
+      m.voice.output.connect(m.gain)
+    } else m.vin.connect(m.gain)
+    m.voiceId = c.voice ?? 'none'
+  }
+
   private applyLoud() {
     if (!this.master) return
     const db = getState().project.loudDb
@@ -499,6 +518,7 @@ class Engine {
           }
           m.gain.gain.value = this.fadeGain(c, t - c.start) * (c.eq?.comp ? 1.6 : 1)
           m.eq?.set(c)
+          if ((c.voice ?? 'none') !== m.voiceId) this.swapVoice(m, c)
         } else {
           if (!el.paused) el.pause()
           // warm up the next clip so cuts are seamless

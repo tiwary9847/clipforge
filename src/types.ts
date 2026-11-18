@@ -165,6 +165,7 @@ export interface Clip {
   grade?: Grade
   look?: { id: LookId; amt: number }
   eq?: Eq
+  voice?: import('./voice').VoiceFx
   freeze?: boolean
   stab?: Stab
   duck?: { t: number; g: number }[]
