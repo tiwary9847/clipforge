@@ -19,7 +19,7 @@ export interface Asset {
   enriched?: boolean // thumbnails/waveform pass finished (even if the file has no audio)
 }
 
-export type ClipKind = 'video' | 'image' | 'audio' | 'text' | 'sticker' | 'sfx'
+export type ClipKind = 'video' | 'image' | 'audio' | 'text' | 'sticker' | 'sfx' | 'adjust'
 
 export interface Filters {
   brightness: number // 1 = normal
@@ -52,13 +52,21 @@ export type TransType =
   | 'zoom-out'
   | 'spin'
   | 'wipe'
+  | 'flash'
+  | 'blur'
+  | 'glitch'
+  | 'whip'
+  | 'circle'
+  | 'flip'
+  | 'bounce'
 
 export interface Transition {
   type: TransType
   dur: number
 }
 
-export type FxType = 'none' | 'shake' | 'punch' | 'pulse' | 'spin' | 'float' | 'glitch'
+export type FxType = 'none' | 'shake' | 'punch' | 'pulse' | 'spin' | 'float' | 'glitch' | 'quake' | 'bounce' | 'zoompulse' | 'drift' | 'tilt'
+export type LookId = 'grain' | 'vhs' | 'rgb' | 'leak' | 'flare' | 'zoomblur' | 'glow' | 'vignette'
 
 export interface TextProps {
   text: string
@@ -151,6 +159,7 @@ export interface Clip {
   blend?: string
   chroma?: Chroma
   grade?: Grade
+  look?: { id: LookId; amt: number }
   eq?: Eq
   freeze?: boolean
   stab?: Stab
@@ -212,6 +221,7 @@ export interface Grade {
   curve: number[] // 5 output values for inputs 0, .25, .5, .75, 1
   lut?: { name: string; size: number; data: number[] }
   lutMix: number // 0..1
+  match?: { g: number[]; o: number[] } // per-channel gain / offset from colour match
 }
 export interface Eq {
   low: number // dB

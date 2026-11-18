@@ -377,7 +377,7 @@ export function duplicateClip(id: string) {
   insertClip(copy)
 }
 
-export function splitClip(id: string | null, at: number) {
+export function splitClip(id: string | null, at: number, cp = true) {
   const c = getClip(id)
   if (!c || at <= c.start + 0.05 || at >= clipEnd(c) - 0.05) return false
   const first = at - c.start
@@ -395,7 +395,7 @@ export function splitClip(id: string | null, at: number) {
     kf: kfB,
     text: c.text ? { ...c.text } : undefined,
   }
-  checkpoint()
+  if (cp) checkpoint()
   set({
     project: { ...state.project, clips: state.project.clips.flatMap((x) => (x.id === c.id ? [a, b] : [x])) },
     selectedId: b.id,

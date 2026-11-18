@@ -20,7 +20,7 @@ import { engine } from '../engine'
 import { RAMPS, dropProxy, makeProxy, needsProxy, analyzeStabilization, applySpeedRamp, autoDuck, cutSilences, markBeats, reduceNoise, reverseClip, setStabStrength } from '../processing'
 import { Chroma, Clip, MaskShape, TextAnim } from '../types'
 import { autoReframe, beatZoom } from '../tools2'
-import { MaskSection } from './ProPanels2'
+import { MaskSection, SceneSplit } from './ProPanels2'
 
 const pct = (v: number) => `${Math.round(v * 100)}%`
 const toast = (m: string) => setUi({ toast: m })
@@ -179,6 +179,8 @@ export function VideoTools({ c }: { c: Clip }) {
               <div className="hint">Auto-zoom {Math.round((st.zoom - 1) * 100)}% to hide moving edges. Lower smoothing keeps intentional pans; higher removes more shake.</div>
             </>
           )}
+          <hr className="sep" />
+          <SceneSplit c={c} />
           <hr className="sep" />
           <div className="hint">Auto-reframe (wide video → vertical, follows the action)</div>
           <button

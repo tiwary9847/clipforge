@@ -6,6 +6,8 @@ import { Chips } from './Fields'
 import { engine } from '../engine'
 import { Clip, Eq, Grade, KfProp, MaskMode, MaskShape } from '../types'
 import { DEFAULT_GRADE, GRADE_LOOKS, histogram, isIdentity, parseCube } from '../grade'
+import { LOOK_LIST } from '../library'
+import { detectScenes, matchColour } from '../looks'
 import { removeBackground, removeVocals, smoothSlowMo, trackMask, trackOverlay } from '../pro'
 
 const toast = (m: string) => setUi({ toast: m })
@@ -130,6 +132,7 @@ export function GradeSection({ c }: { c: Clip }) {
       >
         Apply this grade to all clips
       </button>
+      {c.kind !== 'adjust' && <MatchColour c={c} />}
     </Section>
   )
 }
@@ -151,6 +154,16 @@ export function ProVideo({ c }: { c: Clip }) {
         }}
       >
         {busy && busy !== 'slow' ? busy === 'bg' ? 'Starting…' : busy : '✂️ Remove background'}
+      </button>
+      <button
+        className="btn full"
+        disabled={!!busy}
+        onClick={() => {
+          sig.current = { cancelled: false }
+          run('pb', () => removeBackground(c.id, (m) => setBusy(m), sig.current, 'blur'))
+        }}
+      >
+        🌫 Blur background (portrait mode)
       </button>
       {busy && busy !== 'slow' && <button className="lnk" onClick={() => (sig.current.cancelled = true)}>cancel</button>}
       {c.kind === 'video' && (
@@ -274,5 +287,57 @@ export function MaskSection({ c }: { c: Clip }) {
         </>
       )}
     </Section>
+  )
+}
+
+/* ---------- look effects ---------- */
+
+export function LookSection({ c }: { c: Clip }) {
+  const look = c.look
+  return (
+    <Section title="Effects (looks)" right={look ? <button className="lnk" onClick={() => updateClip(c.id, { look: undefined })}>Remove</button> : undefined}>
+      <div className="chips">
+        {LOOK_LIST.map((l) => (
+          <button key={l.id} title={l.hint} className={'chip' + (look?.id === l.id ? ' on' : '')} onClick={() => updateClip(c.id, { look: look?.id === l.id ? undefined : { id: l.id, amt: look?.amt ?? 0.6 } })}>
+            {l.name}
+          </button>
+        ))}
+      </div>
+      {look && (
+        <>
+          <div className="hint">{LOOK_LIST.find((l) => l.id === look.id)?.hint}</div>
+          <Slider label="Strength" value={look.amt} min={0} max={1} onChange={(v) => patchClip(c.id, { look: { ...look, amt: v } })} fmt={(v) => Math.round(v * 100) + '%'} />
+        </>
+      )}
+    </Section>
+  )
+}
+
+export function MatchColour({ c }: { c: Clip }) {
+  const clips = useStore((s) => s.project.clips)
+  const others = clips.filter((x) => x.id !== c.id && (x.kind === 'video' || x.kind === 'image'))
+  const [ref, setRef] = useState('')
+  const { busy, run } = useBusy()
+  if (!others.length) return null
+  return (
+    <div className="row2" style={{ flexWrap: 'nowrap' }}>
+      <select className="full" value={ref} onChange={(e) => setRef(e.target.value)}>
+        <option value="">Match colours to…</option>
+        {others.map((o) => <option key={o.id} value={o.id}>{o.label} ({o.start.toFixed(1)}s)</option>)}
+      </select>
+      <button className="btn sm" disabled={!ref || !!busy} onClick={() => run('m', () => matchColour(c.id, ref))}>{busy ? '…' : 'Match'}</button>
+    </div>
+  )
+}
+
+export function SceneSplit({ c }: { c: Clip }) {
+  const { busy, run, setBusy } = useBusy()
+  return (
+    <>
+      <div className="hint">Scene detection – splits this clip wherever the camera cuts to a new shot.</div>
+      <button className="btn full" disabled={!!busy} onClick={() => run('s', () => detectScenes(c.id, (p) => setBusy(`Looking for cuts… ${Math.round(p * 100)}%`)))}>
+        {busy ? (busy === 's' ? 'Looking for cuts…' : busy) : '🎬 Split at scene changes'}
+      </button>
+    </>
   )
 }

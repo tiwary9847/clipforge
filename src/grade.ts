@@ -27,7 +27,7 @@ export const GRADE_LOOKS: { id: string; name: string; g: Partial<Grade> }[] = [
 
 export const isIdentity = (g?: Grade) =>
   !g ||
-  (!g.temp && !g.tint && !g.shadows && !g.highlights && !g.vibrance && !(g.liftAmt > 0) && !(g.gainAmt > 0) && !(g.lut && g.lutMix > 0) &&
+  (!g.match && !g.temp && !g.tint && !g.shadows && !g.highlights && !g.vibrance && !(g.liftAmt > 0) && !(g.gainAmt > 0) && !(g.lut && g.lutMix > 0) &&
     g.curve.every((v, i) => Math.abs(v - i / 4) < 1e-3))
 
 const hex = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255)
@@ -50,6 +50,7 @@ export function buildTables(g: Grade): [Uint8ClampedArray, Uint8ClampedArray, Ui
   for (let v = 0; v < 256; v++) {
     for (let ch = 0; ch < 3; ch++) {
       let x = v / 255
+      if (g.match) x = x * g.match.g[ch] + g.match.o[ch]
       x *= wb[ch]
       x += g.shadows * 0.35 * Math.pow(1 - Math.min(1, x), 3)
       x += g.highlights * 0.35 * Math.pow(Math.min(1, Math.max(0, x)), 3)

@@ -520,7 +520,7 @@ export async function speak(text: string, voice: string, status: Status): Promis
 
 /* ---------- AI background removal ---------- */
 
-export async function removeBackground(clipId: string, status: Status, signal: { cancelled: boolean }): Promise<string> {
+export async function removeBackground(clipId: string, status: Status, signal: { cancelled: boolean }, mode: 'remove' | 'blur' = 'remove'): Promise<string> {
   const c = getClip(clipId)
   const a = c && getAsset(c.assetId)
   if (!c || !a || (c.kind !== 'video' && c.kind !== 'image')) throw new Error('Select a video or photo clip.')
@@ -558,8 +558,16 @@ export async function removeBackground(clipId: string, status: Status, signal: {
     tg.drawImage(frame, 0, 0, W, H)
     tg.globalCompositeOperation = 'destination-in'
     tg.drawImage(mask, 0, 0, W, H)
-    dst.fillStyle = '#00ff00'
-    dst.fillRect(0, 0, W, H)
+    if (mode === 'blur') {
+      // portrait mode: soft background, sharp person
+      dst.save()
+      dst.filter = `blur(${Math.max(6, Math.round(Math.max(W, H) / 70))}px)`
+      dst.drawImage(frame, -W * 0.03, -H * 0.03, W * 1.06, H * 1.06)
+      dst.restore()
+    } else {
+      dst.fillStyle = '#00ff00'
+      dst.fillRect(0, 0, W, H)
+    }
     dst.drawImage(tmp, 0, 0)
   }
   const KEY = { on: true, color: '#00ff00', sim: 0.25, smooth: 0.08, spill: 0.4 }
@@ -571,17 +579,22 @@ export async function removeBackground(clipId: string, status: Status, signal: {
     out.width = W
     out.height = H
     const og = out.getContext('2d')!
-    // images keep real transparency (PNG), no green needed
-    og.drawImage(img, 0, 0, W, H)
-    og.globalCompositeOperation = 'destination-in'
-    og.drawImage(await maskOf(img), 0, 0, W, H)
-    const blob = await new Promise<Blob>((r) => out.toBlob((b) => r(b!), 'image/png'))
-    const na = await engine.importFile(new File([blob], `${base(a)} (cut out).png`, { type: 'image/png' }))
+    if (mode === 'blur') {
+      composite(og, img, await maskOf(img))
+    } else {
+      // images keep real transparency (PNG), no green needed
+      og.drawImage(img, 0, 0, W, H)
+      og.globalCompositeOperation = 'destination-in'
+      og.drawImage(await maskOf(img), 0, 0, W, H)
+    }
+    const type = mode === 'blur' ? 'image/jpeg' : 'image/png'
+    const blob = await new Promise<Blob>((r) => out.toBlob((b) => r(b!), type, 0.92))
+    const na = await engine.importFile(new File([blob], `${base(a)} (${mode === 'blur' ? 'portrait' : 'cut out'}).${mode === 'blur' ? 'jpg' : 'png'}`, { type }))
     if (!na) throw new Error('Could not load the cut-out image.')
     addAsset(na)
     checkpoint()
-    patchClip(c.id, { assetId: na.id, label: `${c.label} (cut out)` })
-    return 'Background removed.'
+    patchClip(c.id, { assetId: na.id, label: `${c.label} (${mode === 'blur' ? 'portrait' : 'cut out'})` })
+    return mode === 'blur' ? 'Background blurred.' : 'Background removed.'
   }
 
   const from = c.srcIn
@@ -604,12 +617,16 @@ export async function removeBackground(clipId: string, status: Status, signal: {
     composite(wr.ctx, f.canvas as HTMLCanvasElement, mask)
     await wr.add(Math.max(0, f.timestamp - from), f.duration)
     if (++n % 5 === 0) {
-      status(`Removing background… ${Math.round(((f.timestamp - from) / total) * 100)}%`, (f.timestamp - from) / total)
+      status(`${mode === 'blur' ? 'Blurring' : 'Removing'} background… ${Math.round(((f.timestamp - from) / total) * 100)}%`, (f.timestamp - from) / total)
       await tick()
     }
   }
-  const na = await wr.finish(`${base(a)} (no background).mp4`)
+  const na = await wr.finish(`${base(a)} (${mode === 'blur' ? 'portrait' : 'no background'}).mp4`)
   checkpoint()
+  if (mode === 'blur') {
+    patchClip(c.id, { assetId: na.id, srcIn: 0, label: `${c.label} (portrait)` })
+    return 'Background blurred – you stay sharp, the background is soft like portrait mode.'
+  }
   patchClip(c.id, { assetId: na.id, srcIn: 0, chroma: KEY, label: `${c.label} (no background)` })
   return 'Background removed. Put a new background (video, photo or colour) on the Main track under it, with this clip on an overlay track.'
 }

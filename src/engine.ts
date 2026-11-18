@@ -1,6 +1,6 @@
 import { gradePixels, isIdentity } from './grade'
 import { buildEq } from './media'
-import { Asset, Chroma, Clip, Filters, MaskShape, TextProps, TRACKS, TransType, Transition } from './types'
+import { LookId, Asset, Chroma, Clip, Filters, MaskShape, TextProps, TRACKS, TransType, Transition } from './types'
 import { getAsset, getPreset, getState, projectDuration, setTimeGetter, subscribe, uid } from './store'
 import { SFX_LIST } from './library'
 import { computePeaks, makeSfx } from './sfx'
@@ -51,6 +51,10 @@ interface Mods {
   rot: number
   hue: number
   wipe: { x: number; w: number } | null
+  blur: number // px at 1080p
+  flash: number // white overlay 0..1
+  circle: number | null // circular reveal radius 0..1
+  sx: number // horizontal squash for flip
 }
 
 function applyTrans(m: Mods, t: Transition, presence: number, dir: 1 | -1) {
@@ -87,6 +91,40 @@ function applyTrans(m: Mods, t: Transition, presence: number, dir: 1 | -1) {
     case 'wipe':
       m.wipe = dir > 0 ? { x: 0, w: e } : { x: 1 - e, w: e }
       break
+    case 'flash':
+      m.flash = Math.max(m.flash, Math.pow(inv, 1.5))
+      m.alpha *= Math.min(1, e * 3)
+      break
+    case 'blur':
+      m.blur += inv * 40
+      m.alpha *= Math.min(1, e * 2)
+      break
+    case 'glitch': {
+      const k = Math.floor(presence * 18)
+      if (inv > 0.05) {
+        m.ox += (hash(k + 11) - 0.5) * 0.12 * inv
+        m.hue = hash(k + 5) * 360 * inv
+        m.alpha *= hash(k + 2) > 0.25 ? 1 : 0.3
+      }
+      break
+    }
+    case 'whip':
+      m.ox += dir * inv * 1.2
+      m.blur += inv * 60
+      break
+    case 'circle':
+      m.circle = e
+      break
+    case 'flip':
+      m.sx *= Math.max(0.02, Math.abs(Math.cos(inv * Math.PI * 0.5)))
+      m.alpha *= e < 0.02 ? 0 : 1
+      break
+    case 'bounce': {
+      const p = clamp01(presence)
+      m.sc *= p >= 1 ? 1 : Math.max(0.01, 1 + Math.sin(p * Math.PI * 2.5) * Math.exp(-p * 4) * 0.35 - (1 - p) * 0.9 * (p < 0.3 ? 1 : 0))
+      m.alpha *= Math.min(1, p * 4)
+      break
+    }
   }
 }
 
@@ -547,7 +585,10 @@ class Engine {
       const list = project.clips
         .filter((c) => c.track === tid && t >= c.start && t < c.start + c.dur)
         .sort((a, b) => a.start - b.start)
-      for (const c of list) this.drawClip(ctx, c, t, W, H, getSrc, boxes)
+      for (const c of list) {
+        if (c.kind === 'adjust') this.applyAdjust(ctx, c, t, W, H)
+        else this.drawClip(ctx, c, t, W, H, getSrc, boxes)
+      }
     }
   }
 
@@ -577,7 +618,7 @@ class Engine {
   }
 
   private modifiers(c: Clip, lt: number): Mods {
-    const m: Mods = { alpha: 1, ox: 0, oy: 0, sc: 1, rot: 0, hue: 0, wipe: null }
+    const m: Mods = { alpha: 1, ox: 0, oy: 0, sc: 1, rot: 0, hue: 0, wipe: null, blur: 0, flash: 0, circle: null, sx: 1 }
     if (c.transIn.type !== 'none' && c.transIn.dur > 0 && lt < c.transIn.dur) applyTrans(m, c.transIn, lt / c.transIn.dur, 1)
     const rem = c.dur - lt
     if (c.transOut.type !== 'none' && c.transOut.dur > 0 && rem < c.transOut.dur) applyTrans(m, c.transOut, rem / c.transOut.dur, -1)
@@ -599,6 +640,26 @@ class Engine {
       case 'float':
         m.oy += Math.sin(lt * 2.2) * 0.02
         m.rot += Math.sin(lt * 1.5) * 3
+        break
+      case 'quake':
+        m.ox += (Math.sin(lt * 71) + Math.sin(lt * 113 + 2)) * 0.018
+        m.oy += (Math.sin(lt * 83 + 1) + Math.sin(lt * 127)) * 0.014
+        m.rot += Math.sin(lt * 57) * 3
+        m.sc *= 1.06
+        break
+      case 'bounce':
+        m.oy -= Math.abs(Math.sin(lt * 5)) * 0.04
+        m.sc *= 1 + 0.03 * Math.abs(Math.cos(lt * 5))
+        break
+      case 'zoompulse':
+        m.sc *= 1 + 0.09 * Math.pow(Math.max(0, Math.cos(lt * Math.PI * 2)), 8)
+        break
+      case 'drift':
+        m.sc *= 1.04 + lt * 0.012
+        m.ox += Math.sin(lt * 0.4) * 0.015
+        break
+      case 'tilt':
+        m.rot += Math.sin(lt * 1.6) * 6
         break
       case 'glitch': {
         const step = Math.floor(lt * 14)
@@ -756,12 +817,18 @@ class Engine {
       ctx.rect(mod.wipe.x * W, 0, mod.wipe.w * W, H)
       ctx.clip()
     }
+    if (mod.circle !== null) {
+      ctx.beginPath()
+      ctx.arc(W / 2, H / 2, Math.max(0.5, (mod.circle * Math.hypot(W, H)) / 2), 0, Math.PI * 2)
+      ctx.clip()
+    }
     ctx.translate((px + mod.ox) * W, (py + mod.oy) * H)
     ctx.rotate(((prot + mod.rot) * Math.PI) / 180)
     const sc = pscale * mod.sc
-    ctx.scale(c.flipX ? -sc : sc, sc)
+    ctx.scale((c.flipX ? -sc : sc) * mod.sx, sc)
     ctx.globalAlpha = Math.max(0, Math.min(1, popa * mod.alpha))
-    const f = filterString(c.filters, mod.hue, W)
+    let f = filterString(c.filters, mod.hue, W)
+    if (mod.blur > 0.3) f = (f === 'none' ? '' : f + ' ') + `blur(${((mod.blur * W) / 1080).toFixed(1)}px)`
     if (f !== 'none') ctx.filter = f
     if (c.blend && c.blend !== 'source-over') ctx.globalCompositeOperation = c.blend as GlobalCompositeOperation
     const masked = isMedia && c.mask && c.mask.shape !== 'none'
@@ -793,6 +860,14 @@ class Engine {
         else ctx.drawImage(s2, -bw / 2, -bh / 2, bw, bh)
       }
       draw()
+      if (c.look && c.look.amt > 0) {
+        const s0 = src
+        const r0 = srcRect
+        this.applyLook(ctx, c.look.id, c.look.amt, lt, bw, bh, W, (g, w, h) => {
+          if (r0) g.drawImage(s0, r0[0], r0[1], r0[2], r0[3], 0, 0, w, h)
+          else g.drawImage(s0, 0, 0, w, h)
+        })
+      }
       if (masked && (mode === 'blur' || mode === 'pixelate' || mode === 'spotlight')) {
         const amt = c.mask!.amt ?? 0.5
         ctx.save()
@@ -832,6 +907,248 @@ class Engine {
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       ctx.fillText(c.emoji ?? '⭐', 0, 0)
+    }
+    ctx.restore()
+    if (mod.flash > 0.01) {
+      ctx.save()
+      ctx.setTransform(1, 0, 0, 1, 0, 0)
+      ctx.filter = 'none'
+      ctx.globalCompositeOperation = 'source-over'
+      ctx.globalAlpha = Math.min(1, mod.flash)
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, W, H)
+      ctx.restore()
+    }
+  }
+
+  /* ---------------- look effects (film grain, VHS, light leaks …) ---------------- */
+  private noiseTile?: HTMLCanvasElement
+  private scanTile?: HTMLCanvasElement
+  private fxA?: HTMLCanvasElement
+  private fxB?: HTMLCanvasElement
+
+  /** Draws a look over a box centred at the current origin. paintSrc draws the clean picture into a context. */
+  applyLook(ctx: CanvasRenderingContext2D, id: LookId, amt: number, lt: number, bw: number, bh: number, W: number, paintSrc: (g: CanvasRenderingContext2D, w: number, h: number) => void) {
+    const x0 = -bw / 2
+    const y0 = -bh / 2
+    ctx.save()
+    ctx.filter = 'none'
+    const split = (d: number) => {
+      const w = Math.max(2, Math.round(Math.min(bw, 960)))
+      const h = Math.max(2, Math.round((w * bh) / bw))
+      const A = (this.fxA ??= document.createElement('canvas'))
+      const B = (this.fxB ??= document.createElement('canvas'))
+      for (const [cv, col] of [[A, '#ff0000'], [B, '#00ffff']] as [HTMLCanvasElement, string][]) {
+        if (cv.width !== w || cv.height !== h) {
+          cv.width = w
+          cv.height = h
+        }
+        const g = cv.getContext('2d')!
+        g.globalCompositeOperation = 'source-over'
+        g.clearRect(0, 0, w, h)
+        paintSrc(g, w, h)
+        g.globalCompositeOperation = 'multiply'
+        g.fillStyle = col
+        g.fillRect(0, 0, w, h)
+      }
+      ctx.globalCompositeOperation = 'lighten'
+      ctx.drawImage(A, x0 + d, y0, bw, bh)
+      ctx.drawImage(B, x0 - d, y0, bw, bh)
+      ctx.globalCompositeOperation = 'source-over'
+    }
+    const rect = () => ctx.fillRect(x0, y0, bw, bh)
+    switch (id) {
+      case 'grain': {
+        if (!this.noiseTile) {
+          const n = (this.noiseTile = document.createElement('canvas'))
+          n.width = n.height = 256
+          const g = n.getContext('2d')!
+          const im = g.createImageData(256, 256)
+          for (let i = 0; i < im.data.length; i += 4) {
+            const v = 128 + (Math.random() - 0.5) * 255
+            im.data[i] = im.data[i + 1] = im.data[i + 2] = v
+            im.data[i + 3] = 255
+          }
+          g.putImageData(im, 0, 0)
+        }
+        const pat = ctx.createPattern(this.noiseTile, 'repeat')!
+        const k = Math.floor(lt * 24)
+        pat.setTransform(new DOMMatrix().translate(hash(k) * 256, hash(k + 9) * 256).scale(Math.max(1, W / 1080)))
+        ctx.globalCompositeOperation = 'overlay'
+        ctx.globalAlpha = 0.18 + amt * 0.5
+        ctx.fillStyle = pat
+        rect()
+        break
+      }
+      case 'vignette': {
+        const g = ctx.createRadialGradient(0, 0, Math.min(bw, bh) * 0.28, 0, 0, Math.hypot(bw, bh) / 2)
+        g.addColorStop(0, 'rgba(0,0,0,0)')
+        g.addColorStop(1, `rgba(0,0,0,${0.35 + amt * 0.6})`)
+        ctx.fillStyle = g
+        rect()
+        break
+      }
+      case 'leak': {
+        ctx.globalCompositeOperation = 'screen'
+        const p = lt * 0.35
+        const R = Math.max(bw, bh)
+        const blobs: [number, number, string][] = [
+          [Math.sin(p) * bw * 0.4, -bh * 0.32 + Math.cos(p * 0.7) * bh * 0.08, '255,120,40'],
+          [Math.cos(p * 1.3) * bw * 0.45, bh * 0.3, '255,60,140'],
+          [-bw * 0.45, Math.sin(p * 0.9) * bh * 0.3, '255,200,90'],
+        ]
+        blobs.forEach(([bx, by, col], i) => {
+          const g = ctx.createRadialGradient(bx, by, 0, bx, by, R * (0.55 - i * 0.1))
+          g.addColorStop(0, `rgba(${col},${(0.35 + amt * 0.55) * (1 - i * 0.2)})`)
+          g.addColorStop(1, `rgba(${col},0)`)
+          ctx.fillStyle = g
+          rect()
+        })
+        break
+      }
+      case 'flare': {
+        ctx.globalCompositeOperation = 'screen'
+        const fx = -bw * 0.22 + Math.sin(lt * 0.6) * bw * 0.12
+        const fy = -bh * 0.3
+        const R = Math.min(bw, bh)
+        const a = 0.35 + amt * 0.6
+        let g = ctx.createRadialGradient(fx, fy, 0, fx, fy, R * 0.35)
+        g.addColorStop(0, `rgba(255,255,240,${a})`)
+        g.addColorStop(0.25, `rgba(255,210,140,${a * 0.6})`)
+        g.addColorStop(1, 'rgba(255,160,80,0)')
+        ctx.fillStyle = g
+        rect()
+        ctx.save()
+        ctx.translate(fx, fy)
+        ctx.scale(1, 0.035)
+        g = ctx.createRadialGradient(0, 0, 0, 0, 0, bw * 0.7)
+        g.addColorStop(0, `rgba(255,240,220,${a * 0.9})`)
+        g.addColorStop(1, 'rgba(255,240,220,0)')
+        ctx.fillStyle = g
+        ctx.fillRect(-bw, -bh * 20, bw * 2, bh * 40)
+        ctx.restore()
+        for (const [k, r, col] of [[0.6, 0.05, '120,200,255'], [1.1, 0.09, '180,120,255'], [1.5, 0.035, '255,180,120']] as [number, number, string][]) {
+          const rx = fx + (0 - fx) * k * 1.4
+          const ry = fy + (0 - fy) * k * 1.4
+          g = ctx.createRadialGradient(rx, ry, 0, rx, ry, R * r)
+          g.addColorStop(0, `rgba(${col},${a * 0.35})`)
+          g.addColorStop(1, `rgba(${col},0)`)
+          ctx.fillStyle = g
+          rect()
+        }
+        break
+      }
+      case 'zoomblur': {
+        const n = 6
+        ctx.globalAlpha = 0.12 + amt * 0.1
+        const w = Math.max(2, Math.round(Math.min(bw, 960)))
+        const h = Math.max(2, Math.round((w * bh) / bw))
+        const A = (this.fxA ??= document.createElement('canvas'))
+        if (A.width !== w || A.height !== h) {
+          A.width = w
+          A.height = h
+        }
+        const g = A.getContext('2d')!
+        g.globalCompositeOperation = 'source-over'
+        g.clearRect(0, 0, w, h)
+        paintSrc(g, w, h)
+        for (let i = 1; i <= n; i++) {
+          const k = 1 + i * (0.012 + amt * 0.03)
+          ctx.drawImage(A, (x0 * k), (y0 * k), bw * k, bh * k)
+        }
+        break
+      }
+      case 'glow': {
+        const w = Math.max(2, Math.round(Math.min(bw, 640)))
+        const h = Math.max(2, Math.round((w * bh) / bw))
+        const A = (this.fxA ??= document.createElement('canvas'))
+        if (A.width !== w || A.height !== h) {
+          A.width = w
+          A.height = h
+        }
+        const g = A.getContext('2d')!
+        g.globalCompositeOperation = 'source-over'
+        g.filter = `blur(${Math.round(w / 45)}px) brightness(1.25)`
+        g.clearRect(0, 0, w, h)
+        paintSrc(g, w, h)
+        g.filter = 'none'
+        ctx.globalCompositeOperation = 'screen'
+        ctx.globalAlpha = 0.25 + amt * 0.55
+        ctx.drawImage(A, x0, y0, bw, bh)
+        break
+      }
+      case 'rgb':
+        split(bw * (0.004 + amt * 0.014) * (1 + 0.5 * Math.sin(lt * 9)))
+        break
+      case 'vhs': {
+        const jit = hash(Math.floor(lt * 12)) > 0.8 ? (hash(Math.floor(lt * 12) + 3) - 0.5) * bw * 0.01 : 0
+        ctx.save()
+        ctx.translate(jit, 0)
+        split(bw * (0.003 + amt * 0.006))
+        ctx.restore()
+        if (!this.scanTile) {
+          const sc = (this.scanTile = document.createElement('canvas'))
+          sc.width = 4
+          sc.height = 4
+          const g = sc.getContext('2d')!
+          g.fillStyle = 'rgba(0,0,0,0.55)'
+          g.fillRect(0, 0, 4, 1)
+        }
+        const pat = ctx.createPattern(this.scanTile, 'repeat')!
+        pat.setTransform(new DOMMatrix().scale(Math.max(1, W / 720)))
+        ctx.globalAlpha = 0.25 + amt * 0.45
+        ctx.fillStyle = pat
+        rect()
+        // rolling bright band
+        const by = y0 + (((lt * 0.18) % 1.2) - 0.1) * bh
+        const g = ctx.createLinearGradient(0, by - bh * 0.05, 0, by + bh * 0.05)
+        g.addColorStop(0, 'rgba(255,255,255,0)')
+        g.addColorStop(0.5, `rgba(255,255,255,${0.05 + amt * 0.1})`)
+        g.addColorStop(1, 'rgba(255,255,255,0)')
+        ctx.globalAlpha = 1
+        ctx.fillStyle = g
+        rect()
+        break
+      }
+    }
+    ctx.restore()
+  }
+
+  /* ---------------- adjustment layers ---------------- */
+  private adjCanvas?: HTMLCanvasElement
+  private applyAdjust(ctx: CanvasRenderingContext2D, c: Clip, t: number, W: number, H: number) {
+    const lt = t - c.start
+    const mod = this.modifiers(c, lt)
+    const alpha = Math.max(0, Math.min(1, evalProp(c, 'opacity', lt) * mod.alpha))
+    if (alpha <= 0.001) return
+    const f = filterString(c.filters, mod.hue, W)
+    const grade = c.grade && !isIdentity(c.grade)
+    const look = c.look && c.look.amt > 0
+    if (f === 'none' && !grade && !look) return
+    const A = (this.adjCanvas ??= document.createElement('canvas'))
+    if (A.width !== W || A.height !== H) {
+      A.width = W
+      A.height = H
+    }
+    const g = A.getContext('2d', { willReadFrequently: true })!
+    g.setTransform(1, 0, 0, 1, 0, 0)
+    g.filter = f
+    g.clearRect(0, 0, W, H)
+    g.drawImage(ctx.canvas, 0, 0, W, H)
+    g.filter = 'none'
+    if (grade) {
+      const im = g.getImageData(0, 0, W, H)
+      gradePixels(im.data, c.grade!)
+      g.putImageData(im, 0, 0)
+    }
+    ctx.save()
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    ctx.filter = 'none'
+    ctx.globalAlpha = alpha
+    ctx.drawImage(A, 0, 0)
+    if (look) {
+      ctx.translate(W / 2, H / 2)
+      this.applyLook(ctx, c.look!.id, c.look!.amt, lt, W, H, W, (gg, w, h) => gg.drawImage(A, 0, 0, w, h))
     }
     ctx.restore()
   }

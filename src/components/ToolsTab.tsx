@@ -7,6 +7,7 @@ import { PRESETS } from '../types'
 import { TextEditDialog } from './TextEditDialog'
 import { Icon } from './Icon'
 import { RecMode, Recording, canRecordCamera, canRecordScreen, startRecording } from '../recorder'
+import { LAYOUTS, addAdjustmentLayer, applyLayout } from '../looks'
 import { createMulticam, cutToAngle, endMulticam } from '../multicam'
 import { VOICES, measureLoudness, normaliseLoudness, speak } from '../pro'
 import { Brand, Hook, addHook, addLogo, exportBackup, findHook, grabFrame, importBackup, loadBrand, renderThumb, saveBrand } from '../tools2'
@@ -52,6 +53,11 @@ export function ToolsTab() {
           <small>Screen, webcam or both (face bubble)</small>
         </button>
       </div>
+      <div className="group-h">🔲 Split-screen layouts</div>
+      <Layouts />
+      <div className="group-h">🎚 Adjustment layer</div>
+      <div className="hint">One layer that applies filters, colour grade or an effect to every clip below it.</div>
+      <button className="btn full" onClick={() => setUi({ toast: addAdjustmentLayer() })}>＋ Add adjustment layer at the playhead</button>
       <div className="group-h">💬 WhatsApp status</div>
       <WhatsAppSplit />
       <div className="group-h">🎥 Multicam</div>
@@ -857,4 +863,49 @@ function drawPartBadge(g: CanvasRenderingContext2D, W: number, H: number, txt: s
   g.textBaseline = 'top'
   g.fillText(txt, x + pad, y + pad * 0.6)
   g.restore()
+}
+
+function LayoutThumb({ id }: { id: string }) {
+  const L = LAYOUTS.find((x) => x.id === id)!
+  const P = getPreset()
+  const portrait = P.h >= P.w
+  const W = portrait ? 27 : 48
+  const H = portrait ? 48 : 27
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="lay-svg">
+      {L.rects(portrait).map(([x, y, w, h], i) => (
+        <rect key={i} x={x * W + 1} y={y * H + 1} width={w * W - 2} height={h * H - 2} rx={2} className={'c' + i} />
+      ))}
+    </svg>
+  )
+}
+
+function Layouts() {
+  const [msg, setMsg] = useState('')
+  useStore((s) => s.project.presetId)
+  return (
+    <>
+      <div className="hint">Select 2–4 clips on the timeline (Ctrl/⌘-click), or stack them on different tracks under the playhead, then pick a layout.</div>
+      <div className="lays">
+        {LAYOUTS.map((l) => (
+          <button
+            key={l.id}
+            className="lay"
+            onClick={() => {
+              try {
+                setMsg(applyLayout(l.id))
+                setTimeout(() => engine.render(), 30)
+              } catch (e) {
+                setMsg((e as Error).message)
+              }
+            }}
+          >
+            <LayoutThumb id={l.id} />
+            <small>{l.name}</small>
+          </button>
+        ))}
+      </div>
+      {msg && <div className="hint">{msg}</div>}
+    </>
+  )
 }

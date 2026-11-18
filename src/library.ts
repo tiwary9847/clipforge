@@ -1,4 +1,4 @@
-import { Filters, DEFAULT_FILTERS, TextProps, TransType, FxType } from './types'
+import { LookId, Filters, DEFAULT_FILTERS, TextProps, TransType, FxType } from './types'
 
 export const FONTS = [
   { label: 'Impact (meme)', css: 'Impact, "Arial Narrow Bold", Haettenschweiler, "Noto Sans Devanagari", sans-serif' },
@@ -141,6 +141,22 @@ export const FX_LIST: { id: FxType; name: string }[] = [
   { id: 'spin', name: 'Spin' },
   { id: 'float', name: 'Float' },
   { id: 'glitch', name: 'Glitch' },
+  { id: 'quake', name: 'Earthquake' },
+  { id: 'bounce', name: 'Bounce' },
+  { id: 'zoompulse', name: 'Zoom beat' },
+  { id: 'drift', name: 'Slow drift' },
+  { id: 'tilt', name: 'Tilt' },
+]
+
+export const LOOK_LIST: { id: LookId; name: string; hint: string }[] = [
+  { id: 'grain', name: '🎞 Film grain', hint: 'Fine moving grain like real film' },
+  { id: 'vhs', name: '📼 VHS', hint: 'Old tape: colour bleed, scanlines, rolling band' },
+  { id: 'rgb', name: '🌈 RGB split', hint: 'Red / blue colour fringes – glitchy' },
+  { id: 'leak', name: '🔆 Light leak', hint: 'Warm orange-pink light drifting in' },
+  { id: 'flare', name: '☀️ Lens flare', hint: 'Bright sun flare with streak' },
+  { id: 'zoomblur', name: '💨 Zoom blur', hint: 'Speed blur rushing from the centre' },
+  { id: 'glow', name: '✨ Dreamy glow', hint: 'Soft bloom on bright areas' },
+  { id: 'vignette', name: '⚫ Vignette', hint: 'Darkened edges, focus in the middle' },
 ]
 
 export const TRANS_LIST: { id: TransType; name: string }[] = [
@@ -154,6 +170,13 @@ export const TRANS_LIST: { id: TransType; name: string }[] = [
   { id: 'zoom-out', name: 'Zoom out' },
   { id: 'spin', name: 'Spin' },
   { id: 'wipe', name: 'Wipe' },
+  { id: 'flash', name: 'Flash ⚡' },
+  { id: 'blur', name: 'Blur' },
+  { id: 'glitch', name: 'Glitch' },
+  { id: 'whip', name: 'Whip pan' },
+  { id: 'circle', name: 'Circle' },
+  { id: 'flip', name: 'Flip' },
+  { id: 'bounce', name: 'Bounce' },
 ]
 
 export const STICKER_GROUPS: { name: string; items: string[] }[] = [

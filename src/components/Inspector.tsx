@@ -25,7 +25,7 @@ import { engine } from '../engine'
 import { FILTER_PRESETS, FONTS, FX_LIST, TRANS_LIST, mkFilters } from '../library'
 import { Clip, DEFAULT_FILTERS, KfProp, PRESETS } from '../types'
 import { Motion, evalProp, hasKeys, kfTimes } from '../anim'
-import { EqSection, GradeSection, ProVideo, TrackSection } from './ProPanels2'
+import { EqSection, GradeSection, LookSection, ProVideo, SceneSplit, TrackSection } from './ProPanels2'
 import { AudioTools, ChromaSection, CropMaskBlend, MultiPanel, SaveStyle, SpeedRamps, TextAnimSection, VideoTools } from './ProPanels'
 
 const pct = (v: number) => `${Math.round(v * 100)}%`
@@ -283,7 +283,14 @@ function ClipPanel({ clip: c }: { clip: Clip }) {
 
       {isVisual && <CropMaskBlend c={c} />}
       {(c.kind === 'video' || c.kind === 'image') && <ChromaSection c={c} />}
-      {(c.kind === 'video' || c.kind === 'image') && <GradeSection c={c} />}
+      {c.kind === 'adjust' && (
+        <Section title="Adjustment layer">
+          <div className="hint">Everything on the tracks below this layer gets its filters, colour grade and effect while it’s on the timeline. Use it to grade or stylise many clips at once.</div>
+          {KS('opacity', 'Strength', 0, 1, pct)}
+        </Section>
+      )}
+      {(c.kind === 'video' || c.kind === 'image' || c.kind === 'adjust') && <LookSection c={c} />}
+      {(c.kind === 'video' || c.kind === 'image' || c.kind === 'adjust') && <GradeSection c={c} />}
       {(c.kind === 'video' || c.kind === 'image') && <ProVideo c={c} />}
       <TrackSection c={c} />
       {c.kind === 'video' && <VideoTools c={c} />}
@@ -316,7 +323,7 @@ function ClipPanel({ clip: c }: { clip: Clip }) {
       <AudioTools c={c} />
       <EqSection c={c} />
 
-      {isVisual && (
+      {(isVisual || c.kind === 'adjust') && (
         <>
           <Section title="Filters & colour" right={<button className="link" onClick={() => U({ filters: { ...DEFAULT_FILTERS } })}>Reset</button>}>
             <div className="chips">
@@ -335,9 +342,11 @@ function ClipPanel({ clip: c }: { clip: Clip }) {
             <Slider label="Black & white" value={c.filters.grayscale} min={0} max={1} onChange={(v) => P({ filters: { ...c.filters, grayscale: v } })} fmt={pct} />
           </Section>
 
+          {isVisual && (
           <Section title="Animation (meme FX)">
             <Chips items={FX_LIST} value={c.fx} onPick={(v) => U({ fx: v })} />
           </Section>
+          )}
 
           <Section title="Transitions">
             <div className="hint">In</div>

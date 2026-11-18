@@ -16,9 +16,10 @@ import * as pro from './pro'
 import * as grade from './grade'
 import * as multicam from './multicam'
 import * as media from './media'
+import * as looks from './looks'
 
 // Small handle for automated tests and for power users poking around in the console.
-;(window as any).__cf = { store, processing, dsp, engine, fastExport, library, tools2, pro, grade, multicam, media }
+;(window as any).__cf = { store, processing, dsp, engine, fastExport, library, tools2, pro, grade, multicam, media, looks }
 
 createRoot(document.getElementById('root')!).render(<App />)
 

@@ -108,7 +108,7 @@ export function cutToAngle(k: number, t: number): string {
   checkpoint()
   let right: Clip = cur
   if (t > cur.start + 0.04) {
-    splitClip(cur.id, t)
+    splitClip(cur.id, t, false)
     right = getState().project.clips.find((c) => c.mc && c.track === 'v1' && Math.abs(c.start - t) < 0.02 && c.id !== cur.id) ?? cur
   }
   const avail = a.duration - tk
