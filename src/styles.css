@@ -452,3 +452,4 @@ textarea.desc{width:100%;font-size:12.5px;padding:8px;border-radius:8px;border:1
 .tmpl.on{border-color:var(--accent);box-shadow:0 0 0 2px rgba(139,92,246,.3)}
 .modal.eraser{max-width:620px;width:96vw}
 .erase-cv{display:block;margin:8px auto;max-width:100%;border-radius:10px;border:1px solid var(--line)}
+textarea.desc{min-height:120px;resize:vertical}

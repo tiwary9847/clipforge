@@ -197,3 +197,16 @@ Line-icon set replacing emoji controls (tabs, header, transport, timeline toolba
 - **Real map styles**: Street (OpenStreetMap), Clean (CARTO Voyager), Satellite (Esri imagery + place names), Dark (CARTO), Simple (offline outline). Web-Mercator tiles at a zoom that keeps labels readable in the final video; all tiles are downloaded before export; missing tiles fall back to a lower zoom, then to the offline outline map. Required map credits are drawn in the corner. If OpenStreetMap refuses tiles (e.g. a page opened from disk) Street switches to Clean.
 - Navigation-style route (white casing), map pins for stops, labels that avoid the title card, vehicle on a white disc.
 - **Any place**: 580 built-in places + OpenStreetMap search for any town or village (remembered offline).
+
+## v18 – creative pro tools
+- **Text behind you** (clip → You: text behind & effects): AI cut-out of the person on a layer above a giant title; 4 styles.
+- **Person effects**: glow outline (any colour), echo trail (ghost copies), 2–3 clones of you.
+- **Fill-in video templates** (Templates tab): Beat drop, Travel diary, Day in my life, Before/after, Squad montage, Festival vibes – your clips (best moment of each) cut on the beat of your song or a generated drum beat, with transitions, looks and text.
+- **Photo slideshow**: beat-synced, Ken Burns zoom/pan, Smooth / Punchy / Memories styles, title.
+- **Studio voice**: bundled RNNoise (AI noise suppression, offline, 112 KB) + broadcast chain (HPF, de-boom, presence, air, compression, level match); Natural/Warm/Bright/Podcast. Test: noise in pauses −32 → −58 dB.
+- **Cartoon / pencil sketch / comic** looks (live, video and photo).
+- **Sky replacement**: sky mask (bright, smooth, connected to the top, grown to edges, temporally smoothed) + 7 generated skies with light matching. Test: 97.5 % pixel accuracy, 0.5 % false sky.
+- **Object eraser** for photos: brush + multi-scale PatchMatch fill (no download).
+- **Tap to cut out anything** (SlimSAM, on-device): sticker / blur / erase / keep only it; video uses the current frame.
+- **3D photo zoom**: Depth Anything depth map → Otsu near/far split → filled background plate + near layers with parallax; zoom in/out, slide, orbit.
+- **Script to video**: AI-written or pasted script → scenes with keywords → TTS voice-over → Pexels/Pixabay clips (or colour backgrounds) → captions.
