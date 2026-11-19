@@ -26,10 +26,13 @@ import * as speakers from './speakers'
 import * as dub from './dub'
 import * as dspx from './dsp'
 import * as creative from './creative'
+import * as studio from './studio'
+import * as inp from './inpaint'
+import * as looks2 from './looks2'
 import { setVizReady } from './viz'
 
 // Small handle for automated tests and for power users poking around in the console.
-;(window as any).__cf = { store, processing, dsp, engine, fastExport, library, tools2, pro, grade, multicam, media, looks, viz, anim, shorts, faces, speakers, dub, dspx, creative }
+;(window as any).__cf = { store, processing, dsp, engine, fastExport, library, tools2, pro, grade, multicam, media, looks, viz, anim, shorts, faces, speakers, dub, dspx, creative, studio, inp, looks2 }
 
 createRoot(document.getElementById('root')!).render(<App />)
 

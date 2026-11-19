@@ -9,6 +9,7 @@ import { computePeaks, makeSfx } from './sfx'
 import { duckAt, evalProp, stabCorrection, volAt } from './anim'
 import { Face, faceAt, srcTime } from './faces'
 import { drawMap } from './travelmap'
+import { cartoonize, drawSky } from './looks2'
 
 export const FPS = 30
 
@@ -826,6 +827,8 @@ class Engine {
     const fh = Math.max(0.05, 1 - ct - (c.crop?.b ?? 0))
     let src: CanvasImageSource | null = null
     let srcRect: [number, number, number, number] | null = null
+    let rawSrc: CanvasImageSource | null = null
+    let rawRect: [number, number, number, number] | null = null
     let bw = 0
     let bh = 0
     let tl: ReturnType<Engine['layoutText']> | null = null
@@ -844,6 +847,12 @@ class Engine {
           const [SW, SH] = srcSize(src)
           srcRect = [cl * SW, ct * SH, fw * SW, fh * SH]
         }
+      }
+      rawSrc = src
+      rawRect = srcRect
+      if (src && c.cartoon && c.cartoon.amt > 0) {
+        src = cartoonize(src, srcRect, c.cartoon.style, c.cartoon.amt)
+        srcRect = null
       }
     } else if (c.kind === 'text' && c.text) {
       ctx.save()
@@ -919,6 +928,7 @@ class Engine {
         ctx.restore()
       }
       draw()
+      if (c.sky && c.sky.amt > 0 && rawSrc) drawSky(ctx, rawSrc, rawRect, c.sky.id, c.sky.amt, bw, bh, c.id)
       if (c.beauty && (c.beauty.smooth > 0 || c.beauty.bright > 0 || c.beauty.tone > 0)) this.applyBeauty(ctx, c, lt, src, srcRect, bw, bh, sc)
       if (c.look && c.look.amt > 0) {
         const s0 = src

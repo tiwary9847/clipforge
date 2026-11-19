@@ -28,6 +28,7 @@ import { Clip, DEFAULT_FILTERS, Ease, KfProp, PRESETS } from '../types'
 import { Motion, evalProp, hasKeys, kfTimes } from '../anim'
 import { BeautySection } from './FacePanels'
 import { PersonSection } from './CreativePanels'
+import { CartoonSection, EraserSection, SkySection, StudioSection } from './LookPanels'
 import { EnhanceSection } from './MorePanels'
 import { EqSection, GradeSection, LookSection, ProVideo, SceneSplit, TrackSection, VoiceSection } from './ProPanels2'
 import { AudioTools, ChromaSection, CropMaskBlend, MultiPanel, SaveStyle, SpeedRamps, TextAnimSection, VideoTools } from './ProPanels'
@@ -319,6 +320,10 @@ function ClipPanel({ clip: c }: { clip: Clip }) {
       )}
       <BeautySection c={c} />
       <PersonSection c={c} />
+      <EraserSection c={c} />
+      <SkySection c={c} />
+      <CartoonSection c={c} />
+      <StudioSection c={c} />
       {c.kind === 'image' && !getAsset(c.assetId)?.animated && (
         <Section title="Photo enhance & upscale">
           <EnhanceSection c={c} />
