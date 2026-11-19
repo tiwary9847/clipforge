@@ -20,6 +20,7 @@ import * as looks from './looks'
 import * as viz from './viz'
 import * as anim from './anim'
 import * as shorts from './shorts'
+import { setTileReady } from './travelmap'
 import * as faces from './faces'
 import * as speakers from './speakers'
 import * as dub from './dub'
@@ -47,6 +48,7 @@ applyTheme(currentTheme())
 watchSystemTheme()
 
 setVizReady(() => engine.requestRender())
+setTileReady(() => engine.requestRender())
 
 // automatic version snapshots
 import('./db').then((m) => m.startVersionTimer())

@@ -192,3 +192,8 @@ Line-icon set replacing emoji controls (tabs, header, transport, timeline toolba
 - **Auto chapters** (Tools): from topic changes in what you say (plus pauses and cuts), named from each part's keywords; becomes markers and the Export → YouTube chapters list.
 - **Title, description & hashtags** (Tools): offline keyword ideas in Hinglish, or better ones with your own Gemini (free tier) / Claude key.
 - **Photo enhance & upscale** (Tools, or clip → Photo enhance): auto light & colour, low-light lift, grain removal, sharpening, 2×/4× enlarging, optional AI 2× upscaler (Swin2SR) for small photos.
+
+## v17.1 – travel map on a real map
+- **Real map styles**: Street (OpenStreetMap), Clean (CARTO Voyager), Satellite (Esri imagery + place names), Dark (CARTO), Simple (offline outline). Web-Mercator tiles at a zoom that keeps labels readable in the final video; all tiles are downloaded before export; missing tiles fall back to a lower zoom, then to the offline outline map. Required map credits are drawn in the corner. If OpenStreetMap refuses tiles (e.g. a page opened from disk) Street switches to Clean.
+- Navigation-style route (white casing), map pins for stops, labels that avoid the title card, vehicle on a white disc.
+- **Any place**: 580 built-in places + OpenStreetMap search for any town or village (remembered offline).

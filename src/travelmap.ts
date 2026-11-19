@@ -2,7 +2,9 @@
 // a vehicle riding along it and each stop popping in.
 import GEO from './geo.json'
 import { Clip } from './types'
+import { getPreset, getState } from './store'
 
+export type MapStyle = 'street' | 'clean' | 'dark' | 'satellite' | 'simple'
 export type TravelMode = 'car' | 'train' | 'plane' | 'bike' | 'walk' | 'bus'
 export interface Stop {
   n: string
@@ -12,7 +14,7 @@ export interface Stop {
 export interface MapData {
   stops: Stop[]
   mode: TravelMode
-  theme: 'light' | 'dark' | 'paper'
+  theme: MapStyle | 'light' | 'paper'
   title?: string
 }
 
@@ -124,212 +126,410 @@ export function km(a: Stop, b: Stop) {
   return 2 * R * Math.asin(Math.sqrt(h))
 }
 
-const THEMES = {
-  light: { sea: '#cfe8f5', land: '#f6f1e6', border: '#c9bfa8', route: '#ff3b5c', text: '#1d1d1f', pill: '#ffffff' },
-  dark: { sea: '#0d1726', land: '#1e2a3b', border: '#3a4b63', route: '#ffd400', text: '#ffffff', pill: '#111827' },
-  paper: { sea: '#e9dcc0', land: '#f7efdc', border: '#b49d72', route: '#c0392b', text: '#3b2a1a', pill: '#fff8e8' },
+
+/* ================= real map tiles ================= */
+
+interface TileStyle {
+  url: string // {z}/{x}/{y}
+  labels?: string // optional overlay (place names on satellite)
+  px: number // tile image size (512 = retina)
+  max: number
+  credit: string
+  route: string
+  dark: boolean
+}
+export const MAP_STYLES: { id: MapStyle; name: string; icon: string }[] = [
+  { id: 'street', name: 'Street', icon: '🗺' },
+  { id: 'clean', name: 'Clean', icon: '🧭' },
+  { id: 'satellite', name: 'Satellite', icon: '🛰' },
+  { id: 'dark', name: 'Dark', icon: '🌙' },
+  { id: 'simple', name: 'Simple (offline)', icon: '📜' },
+]
+const TILES: Record<string, TileStyle> = {
+  street: { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', px: 256, max: 18, credit: '© OpenStreetMap contributors', route: '#e8173c', dark: false },
+  clean: { url: 'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png', px: 512, max: 18, credit: '© OpenStreetMap contributors © CARTO', route: '#e8173c', dark: false },
+  dark: { url: 'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png', px: 512, max: 18, credit: '© OpenStreetMap contributors © CARTO', route: '#ffd400', dark: true },
+  satellite: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    labels: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+    px: 256,
+    max: 17,
+    credit: 'Imagery © Esri, Maxar, Earthstar Geographics',
+    route: '#ffd400',
+    dark: true,
+  },
+}
+export const styleOf = (m: MapData): MapStyle => {
+  const st = m.theme === 'light' ? 'street' : m.theme === 'paper' ? 'simple' : m.theme
+  return st === 'street' && osmFails >= 2 ? 'clean' : st
+}
+
+// tile cache: url → image (loaded), or a pending promise
+const cache = new Map<string, HTMLImageElement>()
+const pending = new Map<string, Promise<void>>()
+const failed = new Set<string>()
+let onTile = () => {}
+let osmFails = 0 // OpenStreetMap refuses some pages (e.g. a file opened from disk) – then Street uses the Clean map
+export const setTileReady = (f: () => void) => (onTile = f)
+
+function load(url: string): Promise<void> {
+  if (cache.has(url) || failed.has(url)) return Promise.resolve()
+  let p = pending.get(url)
+  if (p) return p
+  p = new Promise<void>((res) => {
+    const im = new Image()
+    im.crossOrigin = 'anonymous' // keeps the canvas exportable
+    im.onload = () => {
+      cache.set(url, im)
+      if (cache.size > 600) cache.delete(cache.keys().next().value!)
+      pending.delete(url)
+      onTile()
+      res()
+    }
+    im.onerror = () => {
+      failed.add(url)
+      if (url.includes('tile.openstreetmap.org') && ++osmFails >= 2) onTile()
+      pending.delete(url)
+      res()
+    }
+    im.src = url
+  })
+  pending.set(url, p)
+  return p
+}
+const tileUrl = (t: string, z: number, x: number, y: number) => t.replace('{z}', String(z)).replace('{x}', String(x)).replace('{y}', String(y))
+
+// Web-Mercator, in "zoom 0" pixels (the whole world = 256)
+const MX = (lon: number) => ((lon + 180) / 360) * 256
+const MY = (lat: number) => {
+  const r = (Math.max(-85, Math.min(85, lat)) * Math.PI) / 180
+  return ((1 - Math.asinh(Math.tan(r)) / Math.PI) / 2) * 256
 }
 
 const ease = (u: number) => (u < 0.5 ? 2 * u * u : 1 - (-2 * u + 2) ** 2 / 2)
+
+/** The visible map area of a map clip at local time lt: centre + width, in zoom-0 pixels. */
+function viewAt(m: MapData, lt: number) {
+  const xs = m.stops.map((s) => MX(s.lon))
+  const ys = m.stops.map((s) => MY(s.lat))
+  const cx = (Math.min(...xs) + Math.max(...xs)) / 2
+  const cy = (Math.min(...ys) + Math.max(...ys)) / 2
+  const minSpan = (1.2 / 360) * 256 // about 130 km across, so a short trip still shows its surroundings
+  const span = Math.max(minSpan, Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) * 1.6
+  const intro = ease(Math.min(1, lt / 0.9))
+  return { cx, cy, view: span * (2.2 - 1.2 * intro) }
+}
+
+/** Map zoom level that keeps map labels a readable size on the final video. */
+function zoomFor(c: Clip, st: TileStyle, view: number) {
+  const out = (c.stickerSize ?? 0.2) * getPreset().h * 3.2 * Math.abs(c.scale || 1) // card size in output pixels
+  const s = out / view // output px per zoom-0 px
+  const z = Math.round(Math.log2((256 * s) / (st.px * 1.15)))
+  return Math.max(2, Math.min(st.max, z))
+}
+
+function tilesFor(cx: number, cy: number, view: number, z: number) {
+  const n = 2 ** z
+  const k = n / 256 // tiles per zoom-0 px
+  const x0 = Math.floor((cx - view / 2) * k)
+  const x1 = Math.floor((cx + view / 2) * k)
+  const y0 = Math.max(0, Math.floor((cy - view / 2) * k))
+  const y1 = Math.min(n - 1, Math.floor((cy + view / 2) * k))
+  const out: [number, number][] = []
+  for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) out.push([x, y])
+  return out
+}
+
+/** Downloads every map picture a map clip needs (all zoom steps of its animation). Used before export. */
+export async function prepareMaps(timeoutMs = 15000) {
+  const jobs: Promise<void>[] = []
+  for (const c of getState().project.clips) {
+    if (c.shape !== 'map' || !c.map?.stops.length) continue
+    const st = TILES[styleOf(c.map)]
+    if (!st) continue
+    for (let lt = 0; lt <= 1.0; lt += 0.1) {
+      const v = viewAt(c.map, lt)
+      const z = zoomFor(c, st, v.view)
+      for (const [x, y] of tilesFor(v.cx, v.cy, v.view, z)) {
+        const n = 2 ** z
+        const xx = ((x % n) + n) % n
+        jobs.push(load(tileUrl(st.url, z, xx, y)))
+        if (st.labels) jobs.push(load(tileUrl(st.labels, z, xx, y)))
+      }
+    }
+  }
+  await Promise.race([Promise.all(jobs), new Promise((r) => setTimeout(r, timeoutMs))])
+}
+
+/** Draws one tile layer; missing tiles are filled from a lower zoom (blurry for a moment) and requested. */
+function drawTiles(ctx: CanvasRenderingContext2D, tpl: string, z: number, cx: number, cy: number, view: number, s: number) {
+  const n = 2 ** z
+  const tw = (256 / n) * s // tile size on the canvas
+  let missing = 0
+  for (const [x, y] of tilesFor(cx, cy, view, z)) {
+    const xx = ((x % n) + n) % n
+    const dx = ((x * 256) / n - cx) * s
+    const dy = ((y * 256) / n - cy) * s
+    const im = cache.get(tileUrl(tpl, z, xx, y))
+    if (im) {
+      ctx.drawImage(im, dx, dy, tw + 0.6, tw + 0.6)
+      continue
+    }
+    missing++
+    void load(tileUrl(tpl, z, xx, y))
+    // stand-in from a parent tile
+    for (let up = 1; up <= 4 && z - up >= 0; up++) {
+      const pz = z - up
+      const f = 2 ** up
+      const px = Math.floor(xx / f)
+      const py = Math.floor(y / f)
+      const p = cache.get(tileUrl(tpl, pz, px, py))
+      if (!p) continue
+      const sub = p.naturalWidth / f
+      ctx.drawImage(p, (xx % f) * sub, (y % f) * sub, sub, sub, dx, dy, tw + 0.6, tw + 0.6)
+      break
+    }
+  }
+  return missing
+}
+
+const SIMPLE = { sea: '#cfe8f5', land: '#f6f1e6', border: '#c9bfa8', route: '#ff3b5c', text: '#1d1d1f', pill: '#ffffff' }
 
 /** Draws the map card centred at the origin, box = S*3.2 square. */
 export function drawMap(ctx: CanvasRenderingContext2D, c: Clip, lt: number, S: number) {
   const m = c.map
   const size = S * 3.2
   const half = size / 2
-  const th = THEMES[m?.theme ?? 'light']
+  const style = m ? styleOf(m) : 'simple'
+  const tile = TILES[style]
   ctx.save()
   ctx.beginPath()
   ctx.roundRect(-half, -half, size, size, size * 0.05)
-  ctx.fillStyle = th.sea
+  ctx.fillStyle = tile ? (tile.dark ? '#1b2330' : '#e9e5dc') : SIMPLE.sea
   ctx.fill()
   ctx.clip()
-  if (!m || m.stops.length < 1) {
+  if (!m || !m.stops.length) {
     ctx.restore()
     return
   }
   const st = m.stops
-  // view: route bounds + padding, at least ~1.5° across so a short trip still shows context
-  let la0 = Math.min(...st.map((s) => s.lat))
-  let la1 = Math.max(...st.map((s) => s.lat))
-  let lo0 = Math.min(...st.map((s) => s.lon))
-  let lo1 = Math.max(...st.map((s) => s.lon))
-  const k = Math.cos((((la0 + la1) / 2) * Math.PI) / 180)
-  let spanX = (lo1 - lo0) * k
-  let spanY = la1 - la0
-  const span = Math.max(1.5, spanX, spanY) * 1.55
-  const cx = (lo0 + lo1) / 2
-  const cy = (la0 + la1) / 2
-  // intro: start zoomed out 2× and settle in
-  const intro = ease(Math.min(1, lt / 0.9))
-  const view = span * (1.9 - 0.9 * intro)
-  const sc = size / view
-  const X = (lon: number) => (lon - cx) * k * sc
-  const Y = (lat: number) => -(lat - cy) * sc
-  void la0, la1, lo0, lo1, spanX, spanY
-  // land
+  const { cx, cy, view } = viewAt(m, lt)
+  const s = size / view
+  const X = (lon: number) => (MX(lon) - cx) * s
+  const Y = (lat: number) => (MY(lat) - cy) * s
   ctx.lineJoin = 'round'
+  // ---- background: the simple outline map is always drawn first, so any map picture that hasn't
+  // downloaded (or can't, when offline) shows a clean map instead of a hole
+  ctx.fillStyle = SIMPLE.sea
+  ctx.fillRect(-half, -half, size, size)
   const polys = [...(GEO as any).world, ...(GEO as any).southAsia] as [string, number[]][]
-  const vx0 = cx - view / k / 2
-  const vx1 = cx + view / k / 2
-  const vy0 = cy - view / 2
-  const vy1 = cy + view / 2
   for (const [, f] of polys) {
-    let minX = 999
-    let maxX = -999
-    let minY = 999
-    let maxY = -999
-    for (let i = 0; i < f.length; i += 2) {
-      if (f[i] < minX) minX = f[i]
-      if (f[i] > maxX) maxX = f[i]
-      if (f[i + 1] < minY) minY = f[i + 1]
-      if (f[i + 1] > maxY) maxY = f[i + 1]
-    }
-    if (maxX < vx0 || minX > vx1 || maxY < vy0 || minY > vy1) continue
+    let any = false
     ctx.beginPath()
     for (let i = 0; i < f.length; i += 2) {
       const x = X(f[i])
       const y = Y(f[i + 1])
       if (i === 0) ctx.moveTo(x, y)
       else ctx.lineTo(x, y)
+      if (!any && x > -size * 2 && x < size * 2 && y > -size * 2 && y < size * 2) any = true
     }
+    if (!any) continue
     ctx.closePath()
-    ctx.fillStyle = th.land
+    ctx.fillStyle = SIMPLE.land
     ctx.fill()
-    ctx.strokeStyle = th.border
+    ctx.strokeStyle = SIMPLE.border
     ctx.lineWidth = Math.max(1, size * 0.003)
     ctx.stroke()
   }
-  // route geometry (planes fly an arc)
+  let shown = 0
+  if (tile) {
+    const z = zoomFor(c, tile, view)
+    ctx.imageSmoothingQuality = 'high'
+    const list = tilesFor(cx, cy, view, z)
+    const miss = drawTiles(ctx, tile.url, z, cx, cy, view, s)
+    if (tile.labels) drawTiles(ctx, tile.labels, z, cx, cy, view, s)
+    shown = list.length - miss
+  }
+  const offline = !tile || shown === 0
+  const routeCol = tile && !offline ? tile.route : SIMPLE.route
+  // ---- route geometry (planes fly an arc)
   const pts: [number, number][] = []
   for (let i = 0; i < st.length - 1; i++) {
     const a: [number, number] = [X(st[i].lon), Y(st[i].lat)]
     const b: [number, number] = [X(st[i + 1].lon), Y(st[i + 1].lat)]
-    const N = 40
+    const N = 48
+    const d = Math.hypot(b[0] - a[0], b[1] - a[1])
+    const bend = m.mode === 'plane' ? 0.22 : 0.03
+    const nx = -(b[1] - a[1]) / (d || 1)
+    const ny = (b[0] - a[0]) / (d || 1)
     for (let j = i === 0 ? 0 : 1; j <= N; j++) {
       const u = j / N
-      let x = a[0] + (b[0] - a[0]) * u
-      let y = a[1] + (b[1] - a[1]) * u
-      const d = Math.hypot(b[0] - a[0], b[1] - a[1])
-      const bend = m.mode === 'plane' ? 0.22 : 0.04
-      const nx = -(b[1] - a[1]) / (d || 1)
-      const ny = (b[0] - a[0]) / (d || 1)
       const h = Math.sin(u * Math.PI) * d * bend
-      x += nx * h
-      y += ny * h
-      pts.push([x, y])
+      pts.push([a[0] + (b[0] - a[0]) * u + nx * h, a[1] + (b[1] - a[1]) * u + ny * h])
     }
   }
   if (st.length === 1) pts.push([X(st[0].lon), Y(st[0].lat)])
   const dur = Math.max(1.5, c.dur - 1.6)
-  const prog = Math.min(1, Math.max(0, (lt - 0.9) / dur))
-  const P = ease(prog)
+  const P = ease(Math.min(1, Math.max(0, (lt - 0.9) / dur)))
   const lens = [0]
   for (let i = 1; i < pts.length; i++) lens.push(lens[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]))
   const total = lens[lens.length - 1] || 1
   const upto = P * total
-  // dashed full route faintly, solid drawn part on top
+  const path = (to: number) => {
+    ctx.beginPath()
+    let head: [number, number] = pts[0]
+    let dir = 0
+    ctx.moveTo(pts[0][0], pts[0][1])
+    for (let i = 1; i < pts.length; i++) {
+      if (lens[i] <= to) {
+        ctx.lineTo(pts[i][0], pts[i][1])
+        head = pts[i]
+        dir = Math.atan2(pts[i][1] - pts[i - 1][1], pts[i][0] - pts[i - 1][0])
+      } else {
+        const f = (to - lens[i - 1]) / Math.max(1e-6, lens[i] - lens[i - 1])
+        head = [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * f, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * f]
+        dir = Math.atan2(pts[i][1] - pts[i - 1][1], pts[i][0] - pts[i - 1][0])
+        ctx.lineTo(head[0], head[1])
+        break
+      }
+    }
+    return { head, dir }
+  }
   ctx.lineCap = 'round'
-  ctx.setLineDash([size * 0.012, size * 0.012])
-  ctx.strokeStyle = th.route + '55'
-  ctx.lineWidth = size * 0.008
-  ctx.beginPath()
-  pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])))
+  // planned route, faint and dashed
+  ctx.setLineDash([size * 0.014, size * 0.012])
+  ctx.strokeStyle = tile && !offline ? (tile.dark ? 'rgba(255,255,255,0.55)' : 'rgba(30,30,40,0.45)') : routeCol + '66'
+  ctx.lineWidth = size * 0.007
+  path(total)
   ctx.stroke()
   ctx.setLineDash([])
-  ctx.strokeStyle = th.route
-  ctx.lineWidth = size * 0.013
-  ctx.shadowColor = 'rgba(0,0,0,0.25)'
-  ctx.shadowBlur = size * 0.01
-  ctx.beginPath()
-  let head: [number, number] = pts[0]
-  let dir = 0
-  for (let i = 0; i < pts.length; i++) {
-    if (lens[i] <= upto) {
-      if (i) ctx.lineTo(pts[i][0], pts[i][1])
-      else ctx.moveTo(pts[i][0], pts[i][1])
-      head = pts[i]
-      if (i) dir = Math.atan2(pts[i][1] - pts[i - 1][1], pts[i][0] - pts[i - 1][0])
-    } else {
-      const f = (upto - lens[i - 1]) / Math.max(1e-6, lens[i] - lens[i - 1])
-      head = [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * f, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * f]
-      dir = Math.atan2(pts[i][1] - pts[i - 1][1], pts[i][0] - pts[i - 1][0])
-      ctx.lineTo(head[0], head[1])
-      break
-    }
-  }
+  // travelled part: white casing + colour, like a navigation app
+  path(upto)
+  ctx.strokeStyle = '#ffffff'
+  ctx.lineWidth = size * 0.022
+  ctx.shadowColor = 'rgba(0,0,0,0.35)'
+  ctx.shadowBlur = size * 0.012
   ctx.stroke()
   ctx.shadowColor = 'transparent'
-  // stops: pop in when the route reaches them
+  const { head, dir } = path(upto)
+  ctx.strokeStyle = routeCol
+  ctx.lineWidth = size * 0.013
+  ctx.stroke()
+  const titleText = m.title || (st.length > 1 ? `${st[0].n} → ${st[st.length - 1].n}` : st[0].n)
+  ctx.font = `800 ${size * 0.055}px Inter, system-ui, sans-serif`
+  const titleW = ctx.measureText(titleText).width
+  // ---- stops: map pins that drop in when the route reaches them
   const segLen = total / Math.max(1, st.length - 1)
-  st.forEach((s, i) => {
-    const reached = st.length === 1 ? lt > 0.9 : upto >= segLen * i - 1e-6
-    if (!reached && i > 0) return
-    const tReach = st.length === 1 ? 0.9 : 0.9 + dur * (i / Math.max(1, st.length - 1)) * 0.98
-    const pop = Math.min(1, Math.max(0, (lt - Math.min(tReach, 0.9 + (i === 0 ? 0 : dur * 0.02))) / 0.3))
-    const x = X(s.lon)
-    const y = Y(s.lat)
-    const r = size * 0.018 * (i === 0 || i === st.length - 1 ? 1.25 : 1) * (0.4 + 0.6 * Math.max(pop, i === 0 ? intro : 0))
+  const intro = ease(Math.min(1, lt / 0.9))
+  st.forEach((p, i) => {
+    const reachedAt = st.length === 1 ? 0 : segLen * i
+    if (i > 0 && upto < reachedAt - 1e-6) return
+    const tReach = i === 0 ? 0.6 : 0.9 + dur * (i / Math.max(1, st.length - 1)) * 0.98
+    const pop = i === 0 ? intro : Math.min(1, Math.max(0, (lt - Math.min(tReach, lt)) / 0.3 + (upto >= reachedAt ? 0.4 : 0)))
+    const x = X(p.lon)
+    const y = Y(p.lat)
+    const last = i === st.length - 1 && st.length > 1
+    const r = size * 0.026 * (0.5 + 0.5 * Math.min(1, pop))
+    // pin
+    ctx.save()
+    ctx.translate(x, y)
+    ctx.shadowColor = 'rgba(0,0,0,0.4)'
+    ctx.shadowBlur = size * 0.012
+    ctx.shadowOffsetY = size * 0.004
+    ctx.fillStyle = i === 0 ? '#16a34a' : last ? '#dc2626' : '#2563eb'
+    ctx.beginPath()
+    ctx.moveTo(0, 0)
+    ctx.bezierCurveTo(-r * 0.4, -r * 0.9, -r * 1.05, -r * 1.25, -r * 1.05, -r * 1.95)
+    ctx.arc(0, -r * 1.95, r * 1.05, Math.PI, 0)
+    ctx.bezierCurveTo(r * 1.05, -r * 1.25, r * 0.4, -r * 0.9, 0, 0)
+    ctx.fill()
+    ctx.shadowColor = 'transparent'
     ctx.fillStyle = '#fff'
     ctx.beginPath()
-    ctx.arc(x, y, r * 1.45, 0, Math.PI * 2)
+    ctx.arc(0, -r * 1.95, r * 0.42, 0, Math.PI * 2)
     ctx.fill()
-    ctx.fillStyle = th.route
-    ctx.beginPath()
-    ctx.arc(x, y, r, 0, Math.PI * 2)
-    ctx.fill()
+    ctx.restore()
     // label
     const fs = size * 0.042
     ctx.font = `700 ${fs}px Inter, system-ui, sans-serif`
-    const tw = ctx.measureText(s.n).width
-    const above = i % 2 === 0
-    const ly = above ? y - r * 2 - fs * 0.9 : y + r * 2 + fs * 0.9
+    const tw = ctx.measureText(p.n).width
     const lx = Math.max(-half + tw / 2 + fs * 0.6, Math.min(half - tw / 2 - fs * 0.6, x))
-    ctx.globalAlpha = Math.max(pop, i === 0 ? intro : 0)
-    ctx.fillStyle = th.pill
+    let ly = y - r * 3.3 - fs * 0.5
+    // would hit the title card in the top-left? put the name under the pin instead
+    const tfs = size * 0.055
+    const titleBottom = -half + tfs * 0.5 + tfs * (st.length > 1 ? 2.25 : 1.5) + fs * 0.3
+    const titleRight = -half + tfs * 0.5 + Math.min(size * 0.86, titleW) + tfs * 0.9 + fs * 0.3
+    if (ly - fs * 0.72 < titleBottom && lx - tw / 2 - fs * 0.5 < titleRight) ly = y + fs * 1.1
+    if (ly - fs * 0.72 < -half + fs * 0.2) ly = y + fs * 1.1
+    ctx.globalAlpha = Math.min(1, Math.max(0, pop))
+    ctx.fillStyle = 'rgba(255,255,255,0.95)'
+    ctx.shadowColor = 'rgba(0,0,0,0.3)'
+    ctx.shadowBlur = size * 0.01
     ctx.beginPath()
-    ctx.roundRect(lx - tw / 2 - fs * 0.45, ly - fs * 0.7, tw + fs * 0.9, fs * 1.4, fs * 0.7)
+    ctx.roundRect(lx - tw / 2 - fs * 0.5, ly - fs * 0.72, tw + fs, fs * 1.44, fs * 0.72)
     ctx.fill()
-    ctx.fillStyle = th.text
+    ctx.shadowColor = 'transparent'
+    ctx.fillStyle = '#111827'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText(s.n, lx, ly + fs * 0.04)
+    ctx.fillText(p.n, lx, ly + fs * 0.04)
     ctx.globalAlpha = 1
   })
-  // vehicle at the head of the line
+  // ---- vehicle riding at the head of the line
   if (st.length > 1 && lt > 0.9) {
     const icon = MODES.find((x) => x.id === m.mode)?.icon ?? '🚗'
     const fs = size * 0.085
     ctx.save()
     ctx.translate(head[0], head[1])
+    // a white disc behind the vehicle so it stands out on any map
+    ctx.fillStyle = 'rgba(255,255,255,0.92)'
+    ctx.shadowColor = 'rgba(0,0,0,0.35)'
+    ctx.shadowBlur = size * 0.015
+    ctx.beginPath()
+    ctx.arc(0, 0, fs * 0.62, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.shadowColor = 'transparent'
     if (m.mode === 'plane') ctx.rotate(dir + Math.PI / 4)
-    else if (Math.cos(dir) > 0) ctx.scale(-1, 1) // emoji vehicles face left – flip when going right
-    ctx.font = `${fs}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`
+    else if (Math.cos(dir) > 0 && m.mode !== 'train' && m.mode !== 'walk') ctx.scale(-1, 1) // side-view vehicles face left
+    ctx.font = `${fs * 0.8}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText(icon, 0, -fs * 0.15)
+    ctx.fillText(icon, 0, fs * 0.04)
     ctx.restore()
   }
-  // title + distance
-  const dist = st.slice(1).reduce((s, p, i) => s + km(st[i], p), 0)
+  // ---- title card + distance
+  const dist = st.slice(1).reduce((a, p, i) => a + km(st[i], p), 0)
   const title = m.title || (st.length > 1 ? `${st[0].n} → ${st[st.length - 1].n}` : st[0].n)
   const fs = size * 0.055
   ctx.font = `800 ${fs}px Inter, system-ui, sans-serif`
-  ctx.textAlign = 'left'
-  ctx.textBaseline = 'top'
-  ctx.fillStyle = th.pill + 'e6'
-  const tw = Math.min(size * 0.9, ctx.measureText(title).width)
+  const tw = Math.min(size * 0.86, ctx.measureText(title).width)
+  ctx.fillStyle = 'rgba(255,255,255,0.94)'
+  ctx.shadowColor = 'rgba(0,0,0,0.25)'
+  ctx.shadowBlur = size * 0.015
   ctx.beginPath()
   ctx.roundRect(-half + fs * 0.5, -half + fs * 0.5, tw + fs * 0.9, fs * (st.length > 1 ? 2.25 : 1.5), fs * 0.4)
   ctx.fill()
-  ctx.fillStyle = th.text
-  ctx.fillText(title, -half + fs * 0.95, -half + fs * 0.75, size * 0.9)
+  ctx.shadowColor = 'transparent'
+  ctx.fillStyle = '#111827'
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'top'
+  ctx.fillText(title, -half + fs * 0.95, -half + fs * 0.75, size * 0.86)
   if (st.length > 1) {
     ctx.font = `600 ${fs * 0.55}px Inter, system-ui, sans-serif`
-    ctx.globalAlpha = 0.75
-    const shown = Math.round(dist * P)
-    ctx.fillText(`${MODES.find((x) => x.id === m.mode)?.icon ?? ''}  ≈ ${shown.toLocaleString('en-IN')} km straight line`, -half + fs * 0.95, -half + fs * 1.75)
-    ctx.globalAlpha = 1
+    ctx.fillStyle = '#4b5563'
+    ctx.fillText(`${MODES.find((x) => x.id === m.mode)?.icon ?? ''}  ≈ ${Math.round(dist * P).toLocaleString('en-IN')} km straight line`, -half + fs * 0.95, -half + fs * 1.75)
+  }
+  // ---- map credit (required by the map providers)
+  if (tile && !offline) {
+    const cs = size * 0.022
+    ctx.font = `500 ${cs}px Inter, system-ui, sans-serif`
+    const cw = ctx.measureText(tile.credit).width
+    ctx.fillStyle = 'rgba(255,255,255,0.8)'
+    ctx.fillRect(half - cw - cs * 1.2, half - cs * 1.7, cw + cs * 1.2, cs * 1.7)
+    ctx.fillStyle = '#333'
+    ctx.textAlign = 'right'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(tile.credit, half - cs * 0.6, half - cs * 0.85)
   }
   ctx.restore()
 }

@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { addMapClip, setUi, useStore } from '../store'
-import { Found, MODES, MapData, Stop, TravelMode, findPlace, km, rememberPlace, searchOnline, suggest } from '../travelmap'
+import { Found, MAP_STYLES, MODES, MapData, Stop, TravelMode, findPlace, km, rememberPlace, searchOnline, suggest } from '../travelmap'
 import { Chapter, Sentence, TitlePack, aiTitles, applyChapters, makeTitles, spokenFromCaptions, suggestChapters } from '../chapters'
 import { wordsOnTimeline } from '../dub'
 import { EnhanceOpts, enhanceAsset } from '../enhance'
@@ -17,7 +17,7 @@ export function TravelMapSection() {
   const [stops, setStops] = useState<Stop[]>([])
   const [q, setQ] = useState('')
   const [mode, setMode] = useState<TravelMode>('car')
-  const [theme, setTheme] = useState<MapData['theme']>('light')
+  const [theme, setTheme] = useState<MapData['theme']>('street')
   const [title, setTitle] = useState('')
   const [dur, setDur] = useState(5)
   const local = suggest(q)
@@ -97,9 +97,15 @@ export function TravelMapSection() {
         ))}
       </div>
       <div className="chips">
-        {(['light', 'dark', 'paper'] as const).map((t) => (
-          <button key={t} className={'chip' + (theme === t ? ' on' : '')} onClick={() => setTheme(t)}>{t === 'light' ? '☀️ Light' : t === 'dark' ? '🌙 Dark' : '📜 Paper'}</button>
+        {MAP_STYLES.map((t) => (
+          <button key={t.id} className={'chip' + (theme === t.id ? ' on' : '')} onClick={() => setTheme(t.id)}>{t.icon} {t.name}</button>
         ))}
+      </div>
+      <div className="hint">
+        {theme === 'simple'
+          ? 'Simple outline map – works offline.'
+          : 'Real map with roads, rivers and towns – needs internet while editing and exporting; the map credit stays in the corner. ' +
+            (theme === 'street' ? 'Street (OpenStreetMap) is free for any video.' : 'Free for non-commercial videos – check the provider’s terms before using it in monetised videos.')}
       </div>
       <div className="osearch">
         <input placeholder="Title (optional) e.g. Noida to Manali road trip" value={title} onChange={(e) => setTitle(e.target.value)} />
