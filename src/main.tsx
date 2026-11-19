@@ -36,10 +36,14 @@ import * as musicgen from './musicgen'
 import * as autoedit2 from './autoedit2'
 import * as broll from './broll'
 import * as videoobj from './videoobj'
+import * as retakes from './retakes'
+import * as hooks from './hooks'
+import * as postcheck from './postcheck'
+import * as social from './social'
 import { setVizReady } from './viz'
 
 // Small handle for automated tests and for power users poking around in the console.
-;(window as any).__cf = { store, processing, dsp, engine, fastExport, library, tools2, pro, grade, multicam, media, looks, viz, anim, shorts, faces, speakers, dub, dspx, creative, studio, inp, looks2, depth3d, s2v, musicgen, autoedit2, broll, videoobj }
+;(window as any).__cf = { store, processing, dsp, engine, fastExport, library, tools2, pro, grade, multicam, media, looks, viz, anim, shorts, faces, speakers, dub, dspx, creative, studio, inp, looks2, depth3d, s2v, musicgen, autoedit2, broll, videoobj, retakes, hooks, postcheck, social }
 
 createRoot(document.getElementById('root')!).render(<App />)
 

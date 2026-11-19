@@ -1938,10 +1938,47 @@ class Engine {
         ctx.shadowColor = 'transparent'
         const h = Math.max(3, H * 0.01 * ((c.stickerSize ?? 0.2) / 0.2))
         const dur = Math.max(0.01, this.duration())
-        ctx.fillStyle = 'rgba(255,255,255,0.25)'
-        ctx.fillRect(0, H - h, W, h)
-        ctx.fillStyle = col
-        ctx.fillRect(0, H - h, W * Math.min(1, t / dur), h)
+        const pg = c.prog ?? { pos: 'bottom', style: 'bar' }
+        const f = Math.min(1, t / dur)
+        const m = pg.style === 'bar' ? 0 : Math.round(W * 0.04)
+        const y0 = pg.pos === 'top' ? (pg.style === 'bar' ? 0 : H * 0.02) : pg.style === 'bar' ? H - h : H - h - H * 0.02
+        const bw = W - 2 * m
+        const r = pg.style === 'bar' ? 0 : h / 2
+        if (pg.style === 'chapters') {
+          // one segment per chapter (markers), small gaps between
+          const cuts = [0, ...(getState().project.markers ?? []).filter((x) => x > 0.5 && x < dur - 0.5).sort((a, b) => a - b), dur]
+          const gp = Math.max(2, h * 0.8)
+          for (let i = 0; i + 1 < cuts.length; i++) {
+            const a = m + (bw * cuts[i]) / dur + (i ? gp / 2 : 0)
+            const b = m + (bw * cuts[i + 1]) / dur - (i + 2 < cuts.length ? gp / 2 : 0)
+            ctx.fillStyle = 'rgba(255,255,255,0.3)'
+            ctx.beginPath()
+            ctx.roundRect(a, y0, Math.max(1, b - a), h, h / 2)
+            ctx.fill()
+            const fillTo = Math.min(b, m + bw * f)
+            if (fillTo > a) {
+              ctx.fillStyle = col
+              ctx.beginPath()
+              ctx.roundRect(a, y0, fillTo - a, h, h / 2)
+              ctx.fill()
+            }
+          }
+        } else {
+          ctx.fillStyle = 'rgba(255,255,255,0.25)'
+          ctx.beginPath()
+          ctx.roundRect(m, y0, bw, h, r)
+          ctx.fill()
+          ctx.fillStyle = col
+          ctx.beginPath()
+          ctx.roundRect(m, y0, Math.max(r * 2, bw * f), h, r)
+          ctx.fill()
+          if (pg.style === 'round') {
+            ctx.beginPath()
+            ctx.arc(m + Math.max(r, bw * f), y0 + h / 2, h * 1.1, 0, Math.PI * 2)
+            ctx.fillStyle = '#ffffff'
+            ctx.fill()
+          }
+        }
         break
       }
       case 'map':

@@ -134,7 +134,7 @@ function stats(frames: ImageData[]) {
 }
 
 /** Makes clip `id` look like clip `refId` (matches average colour and contrast per channel). */
-export async function matchColour(id: string, refId: string): Promise<string> {
+export async function matchColour(id: string, refId: string, cp = true, gentle = false): Promise<string> {
   const c = getClip(id)
   const r = getClip(refId)
   if (!c || !r) throw new Error('Pick a clip to match.')
@@ -142,11 +142,33 @@ export async function matchColour(id: string, refId: string): Promise<string> {
   if (!A.length || !B.length) throw new Error('Couldn’t read the pictures of these clips.')
   const sa = stats(A)
   const sb = stats(B)
-  const g = sa.std.map((v, k) => Math.min(1.7, Math.max(0.6, sb.std[k] / v)))
-  const o = sa.mean.map((m, k) => Math.min(0.35, Math.max(-0.35, sb.mean[k] - g[k] * m)))
-  checkpoint()
+  // gentle = camera-to-camera correction only (used for "match all", where some clips may be different scenes)
+  const [g0, g1, oo] = gentle ? [0.8, 1.25, 0.12] : [0.6, 1.7, 0.35]
+  const g = sa.std.map((v, k) => Math.min(g1, Math.max(g0, sb.std[k] / v)))
+  const o = sa.mean.map((m, k) => Math.min(oo, Math.max(-oo, sb.mean[k] - g[k] * m)))
+  if (cp) checkpoint()
   patchClip(id, { grade: { ...(c.grade ?? DEFAULT_GRADE), match: { g: g.map((v) => +v.toFixed(3)), o: o.map((v) => +v.toFixed(3)) } } })
   return `Colours matched to “${r.label}”. Fine-tune with the sliders, or Reset to undo.`
+}
+
+/** Makes every other video/photo clip look like the reference clip (one undo step). Clips from the same file are matched to it too only if they were graded differently. */
+export async function matchAll(refId: string, onProgress?: (m: string) => void): Promise<string> {
+  const r = getClip(refId)
+  if (!r) throw new Error('Pick the clip to match to.')
+  const list = getState().project.clips.filter((c) => c.id !== refId && (c.kind === 'video' || c.kind === 'image') && c.assetId && c.assetId !== r.assetId && !c.cutoutOf && !c.label.startsWith('💬'))
+  if (!list.length) throw new Error('No other clips from different cameras to match.')
+  checkpoint()
+  let n = 0
+  for (const c of list) {
+    n++
+    onProgress?.(`Matching ${n} of ${list.length}…`)
+    try {
+      await matchColour(c.id, refId, false, true)
+    } catch {
+      n--
+    }
+  }
+  return `${n} clip${n === 1 ? '' : 's'} now match the colours of “${r.label}”. Undo to go back.`
 }
 
 /* ---------------- scene detection ---------------- */

@@ -186,6 +186,7 @@ export interface Clip {
   follow?: Follow
   map?: import('./travelmap').MapData
   cutoutOf?: string // this clip is the cut-out person of that clip
+  prog?: { pos: 'top' | 'bottom'; style: 'bar' | 'round' | 'chapters' } // progress-bar look
   studioOf?: string // cleaned voice made from that clip
   echoOf?: string
   glow?: { color: string; size: number } // glowing outline around a cut-out

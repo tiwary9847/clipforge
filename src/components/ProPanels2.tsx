@@ -8,7 +8,7 @@ import { Clip, Eq, Grade, KfProp, MaskMode, MaskShape } from '../types'
 import { DEFAULT_GRADE, GRADE_LOOKS, histogram, isIdentity, parseCube } from '../grade'
 import { LOOK_LIST } from '../library'
 import { VOICE_LIST } from '../voice'
-import { detectScenes, matchColour } from '../looks'
+import { detectScenes, matchAll, matchColour } from '../looks'
 import { removeBackground, removeVocals, smoothSlowMo, trackMask, trackOverlay } from '../pro'
 
 const toast = (m: string) => setUi({ toast: m })
@@ -134,6 +134,7 @@ export function GradeSection({ c }: { c: Clip }) {
         Apply this grade to all clips
       </button>
       {c.kind !== 'adjust' && <MatchColour c={c} />}
+      {c.kind !== 'adjust' && <MatchAllColour c={c} />}
     </Section>
   )
 }
@@ -338,6 +339,17 @@ export function MatchColour({ c }: { c: Clip }) {
       </select>
       <button className="btn sm" disabled={!ref || !!busy} onClick={() => run('m', () => matchColour(c.id, ref))}>{busy ? '…' : 'Match'}</button>
     </div>
+  )
+}
+
+export function MatchAllColour({ c }: { c: Clip }) {
+  const clips = useStore((s) => s.project.clips)
+  const { busy, run } = useBusy()
+  if (!clips.some((x) => x.id !== c.id && (x.kind === 'video' || x.kind === 'image') && x.assetId !== c.assetId)) return null
+  return (
+    <button className="btn sm full" disabled={!!busy} title="Phone, DSLR and front-camera clips end up with the same colours" onClick={() => run('a', () => matchAll(c.id))}>
+      {busy ? 'Matching…' : '🎨 Make all other clips match this one'}
+    </button>
   )
 }
 

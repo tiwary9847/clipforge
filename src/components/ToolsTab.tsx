@@ -10,6 +10,7 @@ import { RecMode, Recording, canRecordCamera, canRecordScreen, startRecording } 
 import { LAYOUTS, addAdjustmentLayer, applyLayout } from '../looks'
 import { DubSection, SpeakersSection } from './VoicePanels'
 import { ScriptToVideo } from './ScriptPanel'
+import { BadTakes, ChatStory, HookWriter, ReadyCheck, ReplySticker } from './PostPanels'
 import { AutoSfxSection, AutoZoomSection, BrollSection, MusicMaker } from './AutoPanels'
 import { ChaptersSection, EnhanceSection, TitlesSection, TravelMapSection } from './MorePanels'
 import { Moment, exportMoments, findMoments, openMoment } from '../shorts'
@@ -60,6 +61,10 @@ export function ToolsTab() {
           <small>Screen, webcam or both (face bubble)</small>
         </button>
       </div>
+      <div className="group-h">✅ Ready to post?</div>
+      <ReadyCheck />
+      <div className="group-h">🔁 Bad-take remover</div>
+      <BadTakes />
       <div className="group-h">🎵 Music maker (no copyright)</div>
       <MusicMaker />
       <div className="group-h">🎯 Auto punch-in zooms</div>
@@ -68,6 +73,10 @@ export function ToolsTab() {
       <AutoSfxSection />
       <div className="group-h">🎬 Auto b-roll</div>
       <BrollSection />
+      <div className="group-h">💬 Chat story</div>
+      <ChatStory />
+      <div className="group-h">🗨 Reply to a comment</div>
+      <ReplySticker />
       <div className="group-h">📝 Script to video</div>
       <ScriptToVideo />
       <div className="group-h">🗺 Travel map</div>
@@ -97,6 +106,8 @@ export function ToolsTab() {
       <AiVoice />
       <div className="group-h">📏 Loudness</div>
       <Loudness />
+      <div className="group-h">🪝 Hook lines (AI writes your opening text)</div>
+      <HookWriter />
       <div className="group-h">🪝 Hook finder</div>
       <HookFinder />
       <div className="group-h">🖼 Thumbnail & teleprompter</div>

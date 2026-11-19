@@ -219,3 +219,12 @@ Line-icon set replacing emoji controls (tabs, header, transport, timeline toolba
 - **Auto b-roll** (Tools tab): reads your captions, finds lines that name something you can film (places from the 580-place list, Hinglish words like khana/pahad/bazaar translated to English, common English nouns), searches Pexels/Pixabay and lays 2–3 s clips over your talking on V2/V3, full screen or small corner; the opening stays on your face. Test (mocked stock): "Goa", "mountains", "market" picked from 6 lines; "subscribe kar dena guys" correctly skipped.
 - **Object through a whole video** (video clip → ✂️ Tap to cut out anything): tap it once, then **Blur it in the whole clip**, **Pixelate it**, or **Cut it out** (its own transparent layer). The tap is tracked forwards and backwards from the frame you tapped. Test: a moving face (345–626 px travel) tracked within ~20 px on most frames over 6 s; cut-out follows it.
 
+## v20 – post-ready pack
+- **✅ Ready to post?** (Tools tab): scores the video out of 100 like a Shorts/Reels coach – speech in the first second, hook text, captions, long pauses, something changing on screen every 6 s (12 s for 16:9), length, text under the app buttons, black gaps, background music, loudness (−14 LUFS) – with a one-tap fix for most, and **Fix all**. Test: a raw 27 s talking clip went 45 → 100 after Fix all.
+- **🔁 Bad-take remover**: finds lines you said again soon after (false starts and repeated sentences) from your captions, shows ✗ bad / ✓ kept, and ripple-cuts the bad tries across every track so captions stay in sync. Test: both planted retakes found, the later legit repeat left alone, every caption still on its exact words afterwards.
+- **🪝 Hook lines**: 3 opening lines from what you say (offline, or written by Gemini/Claude with your key), or your own; the pick goes on the first 2.6 s in big Impact text with a highlighted keyword and a whoosh.
+- **💬 Chat story**: type “Name: message” lines (Me: for your side) → messages pop in one by one with typing dots, message/sent sounds and optional lo-fi music; Green / Blue / Dark looks; group chats show names.
+- **🗨 Reply to a comment**: “Reply to @name’s comment” bubble (Light / Dark / Glass) at the playhead with a pop.
+- **🎨 Colour match – all clips**: “Make all other clips match this one” (gentle, camera-level correction). Test: a blue-tinted copy of a photo went from mean RGB 139/154/55 to 167/164/24 vs the original 168/164/17.
+- **Progress bar** sticker: top or bottom, Thin bar / Rounded (with a dot) / Chapters (split at your markers).
+

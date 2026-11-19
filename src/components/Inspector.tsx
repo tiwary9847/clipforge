@@ -237,7 +237,19 @@ function ClipPanel({ clip: c }: { clip: Clip }) {
               {(c.shape === 'subscribe' || c.shape === 'like' || c.shape === 'callout') && (
                 <input className="full" value={c.shapeText ?? ''} placeholder={c.shape === 'callout' ? 'Wait for it…' : c.shape === 'like' ? 'LIKE' : 'SUBSCRIBE'} onChange={(e) => P({ shapeText: e.target.value })} />
               )}
-              {c.shape === 'progress' && <div className="hint">Fills along the bottom as the video plays. Stretch it over the whole video.</div>}
+              {c.shape === 'progress' && (
+                <>
+                  <div className="hint">Fills as the video plays. Stretch it over the whole video. “Chapters” splits it at your markers.</div>
+                  <div className="chips">
+                    {(['bottom', 'top'] as const).map((p) => (
+                      <button key={p} className={'chip' + ((c.prog?.pos ?? 'bottom') === p ? ' on' : '')} onClick={() => updateClip(c.id, { prog: { style: c.prog?.style ?? 'bar', pos: p } })}>{p === 'top' ? '⬆ Top' : '⬇ Bottom'}</button>
+                    ))}
+                    {([['bar', 'Thin bar'], ['round', 'Rounded'], ['chapters', 'Chapters']] as const).map(([id, n]) => (
+                      <button key={id} className={'chip' + ((c.prog?.style ?? 'bar') === id ? ' on' : '')} onClick={() => updateClip(c.id, { prog: { pos: c.prog?.pos ?? 'bottom', style: id } })}>{n}</button>
+                    ))}
+                  </div>
+                </>
+              )}
               {c.shape.startsWith('viz') && <div className="hint">Follows the music track (or your voice / video sound if there’s no music).</div>}
               {c.shape === 'subscribe' && <div className="hint">Pops in, then gets “clicked” halfway and turns grey with a ringing bell.</div>}
             </>
