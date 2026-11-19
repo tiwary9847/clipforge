@@ -89,6 +89,10 @@ export interface TextProps {
   animDur?: number // seconds for the build-in
   grad?: string // second colour: vertical gradient fill from `color` to this
   curve?: number // -1..1 – bend the text into an arc
+  hlStyle?: 'color' | 'box' | 'big' // how the karaoke word is shown
+  kwIdx?: number[] // keyword word indices, drawn in kwColor
+  kwColor?: string
+  emoji?: string // pops in above the caption
 }
 
 export type TextAnim = 'none' | 'typewriter' | 'pop' | 'fade' | 'slide' | 'wave' | 'letters' | 'bounce' | 'glow' | 'rainbow'

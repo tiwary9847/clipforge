@@ -10,6 +10,7 @@ import { RecMode, Recording, canRecordCamera, canRecordScreen, startRecording } 
 import { LAYOUTS, addAdjustmentLayer, applyLayout } from '../looks'
 import { DubSection, SpeakersSection } from './VoicePanels'
 import { ScriptToVideo } from './ScriptPanel'
+import { AutoSfxSection, AutoZoomSection, MusicMaker } from './AutoPanels'
 import { ChaptersSection, EnhanceSection, TitlesSection, TravelMapSection } from './MorePanels'
 import { Moment, exportMoments, findMoments, openMoment } from '../shorts'
 import { Version, deleteVersion, listVersions, saveVersion } from '../db'
@@ -59,6 +60,12 @@ export function ToolsTab() {
           <small>Screen, webcam or both (face bubble)</small>
         </button>
       </div>
+      <div className="group-h">🎵 Music maker (no copyright)</div>
+      <MusicMaker />
+      <div className="group-h">🎯 Auto punch-in zooms</div>
+      <AutoZoomSection />
+      <div className="group-h">🔊 Auto sound effects</div>
+      <AutoSfxSection />
       <div className="group-h">📝 Script to video</div>
       <ScriptToVideo />
       <div className="group-h">🗺 Travel map</div>

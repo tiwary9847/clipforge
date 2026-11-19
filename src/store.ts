@@ -406,7 +406,7 @@ export function addSfx(sfxId: string) {
 }
 
 export function addCaptionClips(
-  lines: { text: string; start: number; dur: number; hlIdx?: number; color?: string }[],
+  lines: { text: string; start: number; dur: number; hlIdx?: number; color?: string; extra?: Partial<TextProps> }[],
   textStyle: TextProps,
   y: number,
 ) {
@@ -417,7 +417,7 @@ export function addCaptionClips(
       start: l.start,
       dur: l.dur,
       y,
-      text: { ...textStyle, ...(l.color ? { color: l.color } : {}), text: l.text, hlIdx: l.hlIdx },
+      text: { ...textStyle, ...(l.color ? { color: l.color } : {}), ...(l.extra ?? {}), text: l.text, hlIdx: l.hlIdx },
     }),
   )
   set({ project: { ...state.project, clips: [...state.project.clips, ...made] }, selectedId: made[0]?.id ?? null, selIds: made[0] ? [made[0].id] : [] })

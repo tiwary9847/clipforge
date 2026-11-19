@@ -1444,7 +1444,7 @@ class Engine {
       this.drawTextChars(ctx, tp, tl, lt, fillAt)
       return
     }
-    const perWord = tp.hlIdx !== undefined || anim !== 'none'
+    const perWord = tp.hlIdx !== undefined || anim !== 'none' || !!tp.kwIdx?.length
     const allWords = lines.flatMap((l) => l.split(' ').filter(Boolean))
     const totalWords = Math.max(1, allWords.length)
     const totalChars = allWords.reduce((n, wd) => n + wd.length, 0)
@@ -1488,17 +1488,32 @@ class Engine {
             dy = Math.sin(lt * 6 - wordNo * 0.7) * fontPx * 0.12
           }
           const hot = tp.hlIdx !== undefined && wordNo === tp.hlIdx
+          const kw = !!tp.kwIdx?.includes(wordNo)
           if (shown && alpha > 0) {
             ctx.save()
             ctx.globalAlpha *= alpha
             ctx.translate(cx + widths[k] / 2, y + dy)
+            if (hot && tp.hlStyle === 'big') {
+              // current word grows with a little bounce
+              const p = Math.min(1, Math.max(0, lt / 0.16))
+              sc *= 1 + 0.22 * (p >= 1 ? 1 : easeOutBack(p))
+            }
             ctx.scale(sc, sc)
-            if (tp.strokeW > 0) {
+            if (hot && tp.hlStyle === 'box') {
+              ctx.save()
+              ctx.shadowColor = 'transparent'
+              ctx.fillStyle = tp.hlColor ?? '#a855f7'
+              ctx.beginPath()
+              ctx.roundRect(-widths[k] / 2 - fontPx * 0.18, -fontPx * 0.62, widths[k] + fontPx * 0.36, fontPx * 1.2, fontPx * 0.22)
+              ctx.fill()
+              ctx.restore()
+            }
+            if (tp.strokeW > 0 && !(hot && tp.hlStyle === 'box')) {
               ctx.lineWidth = fontPx * tp.strokeW
               ctx.strokeStyle = tp.stroke
               ctx.strokeText(shown, -widths[k] / 2, 0)
             }
-            ctx.fillStyle = hot ? tp.hlColor ?? '#ffe500' : fillAt(0)
+            ctx.fillStyle = hot && tp.hlStyle === 'box' ? '#ffffff' : hot ? tp.hlColor ?? '#ffe500' : kw ? tp.kwColor ?? '#22c55e' : fillAt(0)
             ctx.fillText(shown, -widths[k] / 2, 0)
             ctx.restore()
           }
@@ -1518,6 +1533,18 @@ class Engine {
       }
       ctx.shadowColor = 'transparent'
     })
+    if (tp.emoji) {
+      // emoji pops in above the caption
+      const p = Math.min(1, Math.max(0, lt / 0.3))
+      const es = (p >= 1 ? 1 : easeOutBack(p)) * fontPx * 1.25
+      ctx.save()
+      ctx.shadowColor = 'transparent'
+      ctx.font = `${es}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(tp.emoji, 0, -((lines.length - 1) / 2) * lineH - fontPx * 1.35 + Math.sin(lt * 5) * fontPx * 0.06)
+      ctx.restore()
+    }
   }
 
   /** Letter-by-letter text: curved baselines and per-letter animations. */

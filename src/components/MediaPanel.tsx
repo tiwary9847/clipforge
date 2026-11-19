@@ -31,9 +31,11 @@ import { addShape } from '../store'
 import { ShapeId } from '../types'
 import { Icon } from './Icon'
 import { devanagariToRoman, emojiFor } from '../tools2'
+import { contentWords } from '../chapters'
 import { OnlineMemes } from './OnlineMemes'
 import { FaceStickers } from './FacePanels'
 import { Slideshow, VideoTemplates } from './CreativePanels'
+import { MusicMaker } from './AutoPanels'
 import { SPEAKER_COLORS, clipHasSpeakers, findSpeakers, speakerDuring } from '../speakers'
 import { MEMES, MEME_CATS, MemeCat, applyMeme, previewSound } from '../memes'
 import { CapMode, Word, buildLines, transcribe } from '../captions'
@@ -450,6 +452,8 @@ function AudioTab() {
   }
   return (
     <>
+      <div className="group-h" style={{ marginTop: 0 }}>🎵 Music maker (no copyright)</div>
+      <MusicMaker />
       <Voiceover />
       <div className="hint">Sound effects are generated in your browser. ▶ to preview, ＋ to drop one at the playhead.</div>
       <div className="sfx-list">
@@ -472,7 +476,7 @@ function AudioTab() {
   )
 }
 
-const CAPTION_STYLES: { id: string; name: string; make: (size: number) => TextProps }[] = [
+const CAPTION_STYLES: { id: string; name: string; make: (size: number) => TextProps; kw?: boolean; emoji?: boolean }[] = [
   {
     id: 'classic',
     name: 'Classic',
@@ -488,7 +492,48 @@ const CAPTION_STYLES: { id: string; name: string; make: (size: number) => TextPr
     name: 'Boxed',
     make: (size) => ({ text: '', font: 'Arial, sans-serif', size, color: '#ffffff', stroke: '#000', strokeW: 0, bg: '#000000', bgOpacity: 0.72, bold: true, italic: false, upper: false, align: 'center', shadow: false, maxW: 0.8 }),
   },
+  {
+    id: 'beast',
+    name: '🔥 Big bounce',
+    make: (size) => ({ text: '', font: 'Impact, "Arial Narrow Bold", sans-serif', size: size * 1.5, color: '#ffffff', stroke: '#000000', strokeW: 0.22, bg: '#000000', bgOpacity: 0, bold: false, italic: false, upper: true, align: 'center', shadow: true, maxW: 0.86, hlColor: '#ffe500', hlStyle: 'big' }),
+  },
+  {
+    id: 'hormozi',
+    name: '💚 Keyword colour',
+    kw: true,
+    make: (size) => ({ text: '', font: '"Arial Black", "Arial Bold", sans-serif', size: size * 1.2, color: '#ffffff', stroke: '#000000', strokeW: 0.18, bg: '#000000', bgOpacity: 0, bold: false, italic: false, upper: true, align: 'center', shadow: true, maxW: 0.86, hlColor: '#ffe500', kwColor: '#22e05a' }),
+  },
+  {
+    id: 'boxhl',
+    name: '🟪 Highlight box',
+    make: (size) => ({ text: '', font: '"Arial Black", "Arial Bold", sans-serif', size: size * 1.15, color: '#ffffff', stroke: '#000000', strokeW: 0.14, bg: '#000000', bgOpacity: 0, bold: false, italic: false, upper: false, align: 'center', shadow: true, maxW: 0.86, hlColor: '#8b5cf6', hlStyle: 'box' }),
+  },
+  {
+    id: 'emoji',
+    name: '😂 Emoji pop',
+    kw: true,
+    emoji: true,
+    make: (size) => ({ text: '', font: 'Impact, "Arial Narrow Bold", sans-serif', size: size * 1.35, color: '#ffffff', stroke: '#000000', strokeW: 0.2, bg: '#000000', bgOpacity: 0, bold: false, italic: false, upper: true, align: 'center', shadow: true, maxW: 0.86, hlColor: '#ffe500', kwColor: '#ff5ca8', hlStyle: 'big' }),
+  },
 ]
+
+/** Keyword of a caption line (the word that carries the meaning) and an emoji for it. */
+function lineKeyword(text: string): { idx: number[]; emoji?: string } {
+  const ws = text.split(' ').filter(Boolean)
+  let best = -1
+  let score = 0
+  ws.forEach((w, i) => {
+    const c = contentWords(w)[0]
+    if (!c) return
+    const sc = c.length + (/\d|₹/.test(w) ? 6 : 0) + (emojiFor(w) ? 4 : 0)
+    if (sc > score) {
+      score = sc
+      best = i
+    }
+  })
+  if (best < 0) return { idx: [] }
+  return { idx: [best], emoji: emojiFor(ws[best]) ?? undefined }
+}
 
 function parseTs(s: string) {
   const m = s.trim().match(/(?:(\d+):)?(\d+):(\d+)[,.](\d+)/)
@@ -612,13 +657,18 @@ function AutoCaptions({ styleId }: { styleId: string }) {
       const size = portrait ? 0.036 : 0.055
       const y = preset.safe ? 0.68 : portrait ? 0.8 : 0.86
       const st = CAPTION_STYLES.find((s) => s.id === styleId)!.make(size)
-      st.hlColor = styleId === 'box' ? '#ffd400' : '#ffe500'
+      const def = CAPTION_STYLES.find((s) => s.id === styleId)!
+      if (!st.hlColor) st.hlColor = styleId === 'box' ? '#ffd400' : '#ffe500'
       if (styleId === 'pop' && mode === 'karaoke') st.color = '#ffffff'
       if (bySpk && !(whole ? speaking : [source]).every(clipHasSpeakers)) await findSpeakers(whole ? speaking : [source], 0, setStatus)
       const lines = parts
         .flatMap((p) => {
           const c = getClip(p.clip.id) ?? p.clip
           return buildLines(p.words, c, mode, maxWords).map((l) => {
+            if (def.kw) {
+              const k = lineKeyword(l.text)
+              ;(l as any).extra = { kwIdx: k.idx, ...(def.emoji && k.emoji ? { emoji: k.emoji } : {}) }
+            }
             if (!bySpk) return l
             const spk = speakerDuring(c.assetId, c.srcIn + (l.start - c.start) * c.speed, c.srcIn + (l.start + l.dur - c.start) * c.speed)
             return spk >= 0 ? { ...l, color: SPEAKER_COLORS[spk % 4] === '#ffe500' && st.hlColor === '#ffe500' ? '#ffffff' : SPEAKER_COLORS[spk % 4] } : l
