@@ -5,7 +5,7 @@
 **A free, in-browser video editor for YouTube Shorts, Instagram Reels, Facebook and YouTube.**
 Memes with sound, auto-edit, Hinglish captions, multicam, colour grading and more – everything runs on your device. Nothing is uploaded.
 
-**Live app:** https://tiwary9847.github.io/clipforge/
+**Live app:** https://tiwary9847.github.io/clipforge/ · **User guide (PDF):** [docs/ClipForge-User-Guide.pdf](docs/ClipForge-User-Guide.pdf)
 
 </div>
 
