@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { addMapClip, setUi, useStore } from '../store'
-import { MODES, MapData, Stop, TravelMode, findPlace, km, suggest } from '../travelmap'
+import { Found, MODES, MapData, Stop, TravelMode, findPlace, km, rememberPlace, searchOnline, suggest } from '../travelmap'
 import { Chapter, Sentence, TitlePack, aiTitles, applyChapters, makeTitles, spokenFromCaptions, suggestChapters } from '../chapters'
 import { wordsOnTimeline } from '../dub'
 import { EnhanceOpts, enhanceAsset } from '../enhance'
@@ -20,24 +20,67 @@ export function TravelMapSection() {
   const [theme, setTheme] = useState<MapData['theme']>('light')
   const [title, setTitle] = useState('')
   const [dur, setDur] = useState(5)
-  const sug = suggest(q)
-  const add = (s: Stop | null) => {
-    if (!s) return toast(`Couldn’t find “${q}”. Type a city, or “Name, latitude, longitude” (from Google Maps).`)
-    setStops((x) => [...x, s])
+  const local = suggest(q)
+  const [online, setOnline] = useState<Found[]>([])
+  const [looking, setLooking] = useState(false)
+  const timer = useRef<number>()
+  const seq = useRef(0)
+  const lookUp = async (text: string, auto: boolean) => {
+    const my = ++seq.current
+    setLooking(true)
+    try {
+      const r = await searchOnline(text)
+      if (my !== seq.current) return
+      setOnline(r)
+      if (!auto && !r.length) toast(`Couldn’t find “${text}” on the map. Check the spelling, add the state (e.g. “Muzaffarpur, Bihar”), or type “Name, latitude, longitude” from Google Maps.`)
+      if (!auto && r.length === 1) add(r[0])
+    } catch {
+      if (!auto) toast('Couldn’t search online (no internet?). Type “Name, latitude, longitude” – copy the numbers from Google Maps by long-pressing a spot.')
+    } finally {
+      if (my === seq.current) setLooking(false)
+    }
+  }
+  const onType = (v: string) => {
+    setQ(v)
+    setOnline([])
+    clearTimeout(timer.current)
+    // not in the built-in list? look it up online after a short pause
+    if (v.trim().length >= 3 && !findPlace(v) && suggest(v).length < 2) timer.current = window.setTimeout(() => void lookUp(v, true), 600)
+  }
+  const add = (s: Stop | Found) => {
+    const { n, lat, lon } = s
+    setStops((x) => [...x, { n, lat, lon }])
+    if ('sub' in s) rememberPlace({ n, lat, lon })
     setQ('')
+    setOnline([])
+  }
+  const submit = () => {
+    const f = findPlace(q)
+    if (f) return add(f)
+    if (online.length === 1) return add(online[0])
+    if (online.length > 1) return toast('Pick the right place from the list below.')
+    if (q.trim()) void lookUp(q, false)
   }
   const dist = stops.slice(1).reduce((s, p, i) => s + km(stops[i], p), 0)
   return (
     <>
-      <div className="hint">An animated route for your travel vlog intro – the line draws itself and a {MODES.find((m) => m.id === mode)?.icon} rides along.</div>
+      <div className="hint">An animated route for your travel vlog intro – the line draws itself and a {MODES.find((m) => m.id === mode)?.icon} rides along. Type any town or village: 580 places work offline, everything else is found online.</div>
       <div className="osearch">
-        <input placeholder={stops.length ? 'Next stop…' : 'Start (e.g. Noida)'} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add(findPlace(q))} list="cf-places" />
-        <button className="btn sm" onClick={() => add(findPlace(q))}>Add</button>
+        <input placeholder={stops.length ? 'Next stop…' : 'Start (e.g. Noida)'} value={q} onChange={(e) => onType(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && submit()} />
+        <button className="btn sm" disabled={looking && !online.length} onClick={submit}>{looking ? '…' : 'Add'}</button>
       </div>
-      {sug.length > 0 && (
+      {local.length > 0 && (
         <div className="chips">
-          {sug.map((p) => (
+          {local.map((p) => (
             <button key={p.n} className="chip" onClick={() => add(p)}>{p.n}</button>
+          ))}
+        </div>
+      )}
+      {looking && !online.length && <div className="hint">Searching the map…</div>}
+      {online.length > 0 && (
+        <div className="chips">
+          {online.map((p, i) => (
+            <button key={i} className="chip" onClick={() => add(p)} title={`${p.lat}, ${p.lon}`}>📍 {p.n}{p.sub ? <small style={{ opacity: 0.7 }}> · {p.sub}</small> : null}</button>
           ))}
         </div>
       )}
