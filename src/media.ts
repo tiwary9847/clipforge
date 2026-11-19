@@ -187,21 +187,54 @@ export function mixProjectAudio(clips: Clip[], getAsset: (id?: string) => Asset 
 }
 
 /** Decodes the audio of a clip's source range to 16 kHz mono floats (what Whisper wants). */
-export async function extractMono16k(c: Clip, a: Asset): Promise<Float32Array | null> {
+/** Decodes [from, to) of an asset's sound as mono at `sr` Hz, straight into one array.
+ *  (Scheduling every ~20 ms decoded chunk as its own node in an OfflineAudioContext
+ *  took minutes for a 10-minute video; this takes seconds.) */
+export async function decodeMono(a: Asset, from: number, to: number, sr: number): Promise<Float32Array | null> {
   const track = await getInput(a).getPrimaryAudioTrack()
   if (!track) return null
-  const from = c.srcIn
-  const to = c.srcIn + c.dur * c.speed
-  const sr = 16000
-  const ctx = new OfflineAudioContext(1, Math.max(1, Math.ceil((to - from) * sr)), sr)
+  const n = Math.max(1, Math.ceil((to - from) * sr))
+  const out = new Float32Array(n)
   const sink = new AudioBufferSink(track)
   for await (const w of sink.buffers(from, to)) {
-    const src = ctx.createBufferSource()
-    src.buffer = w.buffer
-    src.connect(ctx.destination)
-    const at = Math.max(0, w.timestamp - from)
-    src.start(at, Math.max(0, from - w.timestamp))
+    const b = w.buffer
+    const inSr = b.sampleRate
+    const len = b.length
+    const chs = b.numberOfChannels
+    // mono mix of this chunk
+    const mono = new Float32Array(len)
+    for (let ch = 0; ch < chs; ch++) {
+      const d = b.getChannelData(ch)
+      for (let i = 0; i < len; i++) mono[i] += d[i]
+    }
+    if (chs > 1) for (let i = 0; i < len; i++) mono[i] /= chs
+    const r = inSr / sr // input samples per output sample
+    const j0 = Math.max(0, Math.ceil((w.timestamp - from) * sr - 1e-6))
+    const j1 = Math.min(n, Math.ceil((w.timestamp + len / inSr - from) * sr - 1e-6))
+    if (r >= 1.5) {
+      // average the input samples that fall into each output sample (simple anti-alias low-pass)
+      const ps = new Float64Array(len + 1)
+      for (let i = 0; i < len; i++) ps[i + 1] = ps[i] + mono[i]
+      for (let j = j0; j < j1; j++) {
+        const c = (from + j / sr - w.timestamp) * inSr
+        const lo = Math.max(0, Math.floor(c - r / 2))
+        const hi = Math.min(len, Math.max(lo + 1, Math.floor(c + r / 2)))
+        out[j] = (ps[hi] - ps[lo]) / (hi - lo)
+      }
+    } else {
+      for (let j = j0; j < j1; j++) {
+        const pos = (from + j / sr - w.timestamp) * inSr
+        const i = Math.floor(pos)
+        const f = pos - i
+        const x0 = mono[Math.min(len - 1, Math.max(0, i))]
+        const x1 = mono[Math.min(len - 1, Math.max(0, i + 1))]
+        out[j] = x0 + (x1 - x0) * f
+      }
+    }
   }
-  const out = await ctx.startRendering()
-  return out.getChannelData(0).slice()
+  return out
+}
+
+export function extractMono16k(c: Clip, a: Asset): Promise<Float32Array | null> {
+  return decodeMono(a, c.srcIn, c.srcIn + c.dur * c.speed, 16000)
 }

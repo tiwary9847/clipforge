@@ -20,7 +20,7 @@ import {
 } from '../store'
 import { engine } from '../engine'
 import { SFX_LIST, STICKER_GROUPS, TEXT_PRESETS } from '../library'
-import { Asset, TextProps } from '../types'
+import { Asset, Clip, TextProps } from '../types'
 import { fmtTime } from './Fields'
 import { extractMono16k } from '../media'
 import { startVoiceover } from '../processing'
@@ -33,7 +33,7 @@ import { Icon } from './Icon'
 import { devanagariToRoman, emojiFor } from '../tools2'
 import { OnlineMemes } from './OnlineMemes'
 import { MEMES, MEME_CATS, MemeCat, applyMeme, previewSound } from '../memes'
-import { CapMode, buildLines, transcribe } from '../captions'
+import { CapMode, Word, buildLines, transcribe } from '../captions'
 
 type Tab = 'media' | 'tools' | 'memes' | 'templates' | 'text' | 'stickers' | 'audio' | 'captions'
 const TABS: { id: Tab; icon: string; name: string }[] = [
@@ -54,7 +54,8 @@ export async function importFiles(files: FileList | File[], setMsg?: (m: string)
       if (a) addAsset(a)
       else setMsg?.(`"${f.name}" isn't a video, image or audio file.`)
     } catch (e) {
-      setMsg?.(`Couldn't import "${f.name}" – ${(e as Error).message}. Try an MP4 (H.264) or WebM file.`)
+      const m = (e as Error).message
+      setMsg?.(`Couldn't import "${f.name}" – ${m}.${/HEVC|Fix:/.test(m) ? '' : ' Try an MP4 (H.264) or WebM file.'}`)
     }
   }
 }
@@ -527,10 +528,56 @@ function AutoCaptions({ styleId }: { styleId: string }) {
   const sig = useRef({ cancelled: false })
 
   const selClip = clips.find((c) => c.id === sel)
+  const speaking = clips.filter((c) => c.kind === 'video' && c.volume > 0 && !c.freeze && getAsset(c.assetId))
+  const [scope, setScope] = useState<'all' | 'one'>('all')
   const source =
     selClip && (selClip.kind === 'video' || selClip.kind === 'audio')
       ? selClip
       : clips.find((c) => c.kind === 'video') ?? clips.find((c) => c.kind === 'audio')
+  const whole = scope === 'all' && speaking.length > 1
+
+  /** transcribes each source file once (only the parts used), then places words on every clip */
+  const transcribeClips = async (list: Clip[]) => {
+    const out: { clip: Clip; words: Word[] }[] = []
+    const byAsset = new Map<string, Clip[]>()
+    for (const c of list) byAsset.set(c.assetId!, [...(byAsset.get(c.assetId!) ?? []), c])
+    // merge the source ranges of each file (gaps under 15 s are transcribed through)
+    const jobs: { asset: Asset; from: number; to: number; clips: Clip[] }[] = []
+    for (const [aid, cs] of byAsset) {
+      const asset = getAsset(aid)!
+      const rs = cs.map((c) => ({ c, a: c.srcIn, b: c.srcIn + c.dur * c.speed })).sort((x, y) => x.a - y.a)
+      let cur: (typeof jobs)[0] | null = null
+      for (const r of rs) {
+        if (cur && r.a - cur.to < 15) {
+          cur.to = Math.max(cur.to, r.b)
+          cur.clips.push(r.c)
+        } else {
+          cur = { asset, from: r.a, to: r.b, clips: [r.c] }
+          jobs.push(cur)
+        }
+      }
+    }
+    for (let j = 0; j < jobs.length; j++) {
+      const job = jobs[j]
+      if (sig.current.cancelled) throw new Error('Cancelled.')
+      const tag = jobs.length > 1 ? `Part ${j + 1}/${jobs.length}: ` : ''
+      setStatus(tag + 'Reading the audio…')
+      const fake = { ...job.clips[0], srcIn: job.from, dur: job.to - job.from, speed: 1 }
+      const audio = await extractMono16k(fake, job.asset)
+      if (!audio || audio.length < 1600) continue
+      const words = await transcribe(audio, { model, language: lang, gpu, translate }, (m, p) => {
+        setStatus(tag + m)
+        setPct(p)
+      }, sig.current)
+      for (const c of job.clips) {
+        const a = c.srcIn - job.from
+        const b = a + c.dur * c.speed
+        const ws = words.filter((w) => w.end > a + 0.05 && w.start < b - 0.05).map((w) => ({ ...w, start: w.start - a, end: w.end - a }))
+        if (ws.length) out.push({ clip: c, words: ws })
+      }
+    }
+    return out
+  }
 
   const run = async () => {
     if (!source) return
@@ -542,13 +589,9 @@ function AutoCaptions({ styleId }: { styleId: string }) {
     setPct(undefined)
     try {
       setStatus('Reading the audio…')
-      const audio = await extractMono16k(source, asset)
-      if (!audio || audio.length < 1600) throw new Error('This clip has no audio to transcribe.')
-      const words = await transcribe(audio, { model, language: lang, gpu, translate }, (m, p) => {
-        setStatus(m)
-        setPct(p)
-      }, sig.current)
-      if (!words.length) throw new Error('No speech was found in this clip.')
+      const parts = whole ? await transcribeClips(speaking) : await transcribeClips([source])
+      const words = parts.flatMap((p) => p.words)
+      if (!words.length) throw new Error(whole ? 'No speech was found in the video.' : 'No speech was found in this clip.')
       for (const w of words) {
         if (roman && /[\u0900-\u097F]/.test(w.text)) w.text = devanagariToRoman(w.text)
         if (emoji) {
@@ -563,9 +606,9 @@ function AutoCaptions({ styleId }: { styleId: string }) {
       const st = CAPTION_STYLES.find((s) => s.id === styleId)!.make(size)
       st.hlColor = styleId === 'box' ? '#ffd400' : '#ffe500'
       if (styleId === 'pop' && mode === 'karaoke') st.color = '#ffffff'
-      const lines = buildLines(words, getClip(source.id) ?? source, mode, maxWords)
+      const lines = parts.flatMap((p) => buildLines(p.words, getClip(p.clip.id) ?? p.clip, mode, maxWords)).sort((a, b) => a.start - b.start)
       addCaptionClips(lines, st, y)
-      setMsg(`Added ${lines.length} caption clips from ${words.length} words. Click any caption on the timeline to fix a typo.`)
+      setMsg(`Added ${lines.length} caption clips from ${words.length} words${whole ? ` across ${parts.length} clips` : ''}. Click any caption on the timeline to fix a typo.`)
       setPhase('done')
     } catch (e) {
       setMsg((e as Error).message)
@@ -578,11 +621,21 @@ function AutoCaptions({ styleId }: { styleId: string }) {
       <div className="group-h" style={{ marginTop: 0 }}>✨ Auto-captions</div>
       <div className="hint">
         {source ? (
-          <>Transcribes <b>{source.label}</b>{selClip === source ? '' : ' (select another clip to change)'}. Runs on your device; the speech model downloads once and is cached.</>
+          whole ? (
+            <>Captions the <b>whole video</b> ({speaking.length} clips). Runs on your device; the speech model downloads once and is cached.</>
+          ) : (
+            <>Transcribes <b>{source.label}</b>{selClip === source ? '' : ' (select another clip to change)'}. Runs on your device; the speech model downloads once and is cached.</>
+          )
         ) : (
           'Add a video or audio clip to the timeline first.'
         )}
       </div>
+      {speaking.length > 1 && (
+        <div className="chips">
+          <button className={'chip' + (scope === 'all' ? ' on' : '')} onClick={() => setScope('all')} disabled={phase === 'run'}>Whole video</button>
+          <button className={'chip' + (scope === 'one' ? ' on' : '')} onClick={() => setScope('one')} disabled={phase === 'run'}>Selected clip only</button>
+        </div>
+      )}
       <select className="full" value={model} onChange={(e) => setModel(e.target.value)} disabled={phase === 'run'}>
         {MODELS.map((m) => (
           <option key={m.id} value={m.id}>{m.name}</option>

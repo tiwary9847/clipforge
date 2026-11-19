@@ -80,7 +80,7 @@ export default function App() {
   }, [])
   useEffect(() => {
     if (!toast) return
-    const t = setTimeout(() => setUi({ toast: '' }), 3500)
+    const t = setTimeout(() => setUi({ toast: '' }), Math.min(15000, Math.max(3500, toast.length * 55)))
     return () => clearTimeout(t)
   }, [toast])
   const assets = useStore((s) => s.assets)
@@ -157,7 +157,7 @@ export default function App() {
         setDropping(false)
         if (e.dataTransfer.files.length) {
           e.preventDefault()
-          void importFiles(e.dataTransfer.files)
+          void importFiles(e.dataTransfer.files, (m) => setUi({ toast: m }))
         }
       }}
     >
@@ -240,7 +240,7 @@ export default function App() {
           </div>
         </div>
       )}
-      {toast && <div className="toast">{toast}</div>}
+      {toast && <div className="toast" onClick={() => setUi({ toast: '' })} title="Click to close">{toast}</div>}
       {dropping && <div className="drop-overlay">Drop videos, images or audio to import</div>}
     </div>
   )

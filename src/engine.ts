@@ -1658,6 +1658,22 @@ class Engine {
         v.onloadedmetadata = () => res()
         v.onerror = () => rej(new Error('Cannot read this video'))
       })
+      if (!v.videoWidth) {
+        // the browser can't show the picture – usually iPhone/Samsung "High Efficiency" (HEVC) video
+        let codec = ''
+        try {
+          const { Input, BlobSource, ALL_FORMATS } = await import('mediabunny')
+          const tr = await new Input({ source: new BlobSource(file), formats: ALL_FORMATS }).getPrimaryVideoTrack()
+          codec = tr?.codec ?? ''
+        } catch {}
+        URL.revokeObjectURL(url)
+        if (codec === 'hevc')
+          throw new Error(
+            'it is HEVC / “High Efficiency” video, which this browser can’t play. Fix: on iPhone set Settings → Camera → Formats → “Most Compatible” (on Samsung turn off “High efficiency video”), or open ClipForge in Chrome/Edge on Windows 11, Mac or Android – those can play HEVC',
+          )
+        if (v.duration > 0 && isFinite(v.duration) && !codec) throw new Error('only its sound could be read, the picture format isn’t supported by this browser')
+        throw new Error(`its video format${codec ? ` (${codec.toUpperCase()})` : ''} isn’t supported by this browser`)
+      }
       let dur = v.duration
       if (!isFinite(dur)) {
         v.currentTime = 1e6

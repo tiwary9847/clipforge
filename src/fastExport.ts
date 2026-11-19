@@ -3,6 +3,7 @@ import {
   BufferTarget,
   StreamTarget,
   CanvasSink,
+  WrappedCanvas,
   CanvasSource,
   Mp4OutputFormat,
   Output,
@@ -23,6 +24,87 @@ async function pickAudioCodec(): Promise<'aac' | 'opus' | null> {
   if (await canEncodeAudio('aac', o)) return 'aac'
   if (await canEncodeAudio('opus', o)) return 'opus'
   throw new Error('This browser cannot encode audio.')
+}
+
+/** Reads one clip's frames in order with a single running decoder.
+ *  (getCanvas() per frame restarts decoding at the previous keyframe every time –
+ *  with phone videos that was ~30× slower.) */
+class ClipFrames {
+  private it: AsyncGenerator<WrappedCanvas, void, unknown> | null = null
+  private cur: WrappedCanvas | null = null
+  private nxt: WrappedCanvas | null = null
+  private done = false
+  private last = -1
+  constructor(private sink: CanvasSink) {}
+  async at(st: number): Promise<WrappedCanvas | null> {
+    const jumpBack = st < this.last - 1e-4
+    const jumpFar = this.cur && st - this.cur.timestamp > 2.5
+    if (!this.it || jumpBack || jumpFar) {
+      await this.close()
+      this.it = this.sink.canvases(st)
+      this.cur = this.nxt = null
+      this.done = false
+    }
+    this.last = st
+    if (!this.cur) {
+      const r = await this.it!.next()
+      if (r.done) return null
+      this.cur = r.value
+    }
+    while (!this.done) {
+      if (!this.nxt) {
+        const r = await this.it!.next()
+        if (r.done) {
+          this.done = true
+          break
+        }
+        this.nxt = r.value
+      }
+      if (this.nxt.timestamp <= st + 1e-6) {
+        this.cur = this.nxt
+        this.nxt = null
+      } else break
+    }
+    return this.cur
+  }
+  async close() {
+    const it = this.it
+    this.it = null
+    if (it) await it.return(undefined).catch(() => {})
+  }
+}
+
+/** Keeps one ClipFrames per video clip that is on screen; closes them when the clip ends. */
+class FrameReaders {
+  private m = new Map<string, ClipFrames>()
+  async frame(c: Clip, t: number): Promise<CanvasImageSource | null> {
+    const a = getAsset(c.assetId)
+    if (!a) return null
+    let r = this.m.get(c.id)
+    if (!r) {
+      const track = await getInput(a).getPrimaryVideoTrack()
+      if (!track) return null
+      if (!(await track.canDecode())) throw new Error(`“${a.name}” can’t be decoded by this browser (${track.codec?.toUpperCase() ?? 'unknown'} video). Use Real-time export, or convert the clip to H.264 MP4.`)
+      r = new ClipFrames(new CanvasSink(track, { poolSize: 4 }))
+      this.m.set(c.id, r)
+    }
+    const st = Math.min(Math.max(0, c.freeze ? c.srcIn : c.srcIn + (t - c.start) * c.speed), Math.max(0, a.duration - 0.001))
+    return (await r.at(st))?.canvas ?? null
+  }
+  /** close readers of clips that are no longer on screen at time t */
+  async sweep(clips: Clip[], t: number) {
+    for (const [id, r] of this.m) {
+      const c = clips.find((x) => x.id === id)
+      if (!c || t >= c.start + c.dur || t < c.start - 0.5) {
+        await r.close()
+        this.m.delete(id)
+      }
+    }
+  }
+  async closeAll() {
+    for (const r of this.m.values()) await r.close()
+    this.m.clear()
+  }
 }
 
 export async function fastExportSupport(): Promise<{ ok: boolean; reason?: string }> {
@@ -95,21 +177,8 @@ export async function fastExport(onProgress: (p: number, label: string) => void,
   }
   await output.start()
 
-  const sinks = new Map<string, CanvasSink>()
+  const readers = new FrameReaders()
   const frames = new Map<string, CanvasImageSource>()
-  // one decoder per source file (not per clip) – heavily cut long videos stay light
-  const sinkFor = async (c: Clip) => {
-    const key = c.assetId ?? c.id
-    let s = sinks.get(key)
-    if (!s) {
-      const a = getAsset(c.assetId)
-      const track = a ? await getInput(a).getPrimaryVideoTrack() : null
-      if (!track) return null
-      s = new CanvasSink(track, { poolSize: 4 })
-      sinks.set(key, s)
-    }
-    return s
-  }
 
   try {
     const total = Math.max(1, Math.ceil(dur * FPS))
@@ -132,13 +201,10 @@ export async function fastExport(onProgress: (p: number, label: string) => void,
       }
       for (const c of clips) {
         if (c.kind !== 'video' || t < c.start || t >= c.start + c.dur) continue
-        const a = getAsset(c.assetId)
-        const s = await sinkFor(c)
-        if (!s || !a) continue
-        const st = Math.min(Math.max(0, c.freeze ? c.srcIn : c.srcIn + (t - c.start) * c.speed), Math.max(0, a.duration - 0.001))
-        const w = await s.getCanvas(st)
-        if (w) frames.set(c.id, w.canvas)
+        const w = await readers.frame(c, t)
+        if (w) frames.set(c.id, w)
       }
+      if (i % 15 === 0) await readers.sweep(clips, t)
       engine.paint(ctx, W, H, t, (c, lt) => (c.kind === 'video' ? frames.get(c.id) ?? null : engine.imageSource(c, lt)))
       opts.overlay?.(ctx, W, H, t)
       await vsrc.add(i / FPS, 1 / FPS)
@@ -161,6 +227,7 @@ export async function fastExport(onProgress: (p: number, label: string) => void,
     await sink.discard()
     throw e
   } finally {
+    await readers.closeAll()
     disposeInputs()
     engine.requestRender()
   }
@@ -233,32 +300,27 @@ async function renderFrames(from: number, to: number, fps: number, W: number, H:
   canvas.width = W
   canvas.height = H
   const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: true })!
-  const sinks = new Map<string, CanvasSink>()
+  const readers = new FrameReaders()
   const frames = new Map<string, CanvasImageSource>()
   const n = Math.max(1, Math.ceil((to - from) * fps))
+  try {
   for (let i = 0; i < n; i++) {
     if (ctl.cancelled) return false
     const t = from + i / fps
     for (const c of clips) {
       if (c.kind !== 'video' || t < c.start || t >= c.start + c.dur) continue
-      const a = getAsset(c.assetId)
-      if (!a) continue
-      let sk = sinks.get(a.id)
-      if (!sk) {
-        const tr = await getInput(a).getPrimaryVideoTrack()
-        if (!tr) continue
-        sk = new CanvasSink(tr, { poolSize: 4 })
-        sinks.set(a.id, sk)
-      }
-      const st = Math.min(Math.max(0, c.freeze ? c.srcIn : c.srcIn + (t - c.start) * c.speed), Math.max(0, a.duration - 0.001))
-      const w = await sk.getCanvas(st)
-      if (w) frames.set(c.id, w.canvas)
+      const w = await readers.frame(c, t)
+      if (w) frames.set(c.id, w)
     }
+    if (i % 15 === 0) await readers.sweep(clips, t)
     engine.paint(ctx, W, H, t, (c, lt) => (c.kind === 'video' ? frames.get(c.id) ?? null : engine.imageSource(c, lt)))
     await onFrame(ctx, i, n)
     if (i % 3 === 0) await new Promise((r) => setTimeout(r, 0))
   }
   return true
+  } finally {
+    await readers.closeAll()
+  }
 }
 
 export async function exportGif(onProgress: (p: number, label: string) => void, ctl: Ctl, opts: { from?: number; to?: number; fps?: number; maxSide?: number } = {}): Promise<{ blob: Blob; ext: string; codec: string } | null> {

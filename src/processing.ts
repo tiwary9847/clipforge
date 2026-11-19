@@ -12,7 +12,7 @@ import {
   canEncodeAudio,
 } from 'mediabunny'
 import { engine } from './engine'
-import { getInput } from './media'
+import { decodeMono, getInput } from './media'
 import { mixProjectAudio } from './media'
 import { restructureClip, addAsset, addAssetClip, addMarkers, checkpoint, getAsset, getState, patchClip, projectDuration, updateAsset } from './store'
 import { detectSilences, denoise, detectBeats, duckCurve, encodeWav, frameShift, neededZoom, rmsEnvelope } from './dsp'
@@ -78,18 +78,8 @@ export async function enrichAsset(a: Asset) {
 
 /* ---------- decoding helpers ---------- */
 
-export async function decodeMonoRange(a: Asset, from: number, to: number, sr: number): Promise<Float32Array | null> {
-  const track = await getInput(a).getPrimaryAudioTrack()
-  if (!track) return null
-  const ctx = new OfflineAudioContext(1, Math.max(1, Math.ceil((to - from) * sr)), sr)
-  const sink = new AudioBufferSink(track)
-  for await (const w of sink.buffers(from, to)) {
-    const src = ctx.createBufferSource()
-    src.buffer = w.buffer
-    src.connect(ctx.destination)
-    src.start(Math.max(0, w.timestamp - from), Math.max(0, from - w.timestamp))
-  }
-  return (await ctx.startRendering()).getChannelData(0).slice()
+export function decodeMonoRange(a: Asset, from: number, to: number, sr: number): Promise<Float32Array | null> {
+  return decodeMono(a, from, to, sr)
 }
 
 function srcRange(c: Clip) {

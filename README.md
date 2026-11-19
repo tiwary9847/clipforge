@@ -175,3 +175,10 @@ Line-icon set replacing emoji controls (tabs, header, transport, timeline toolba
 - **Free stock**: Pexels & Pixabay search (bring your own free API key).
 - **More export**: GIF, sound only (.m4a/.wav), only part of the video, YouTube chapters from markers.
 - **Version history**: auto snapshot every 5 min + named versions, restore with undo.
+
+## v16.1 – real-world test fixes
+- **Export ~7–14× faster**: video frames are now read in order with one running decoder per clip, instead of re-seeking from the last keyframe for every frame (a 22 s Short went from 266 s to 42 s on a no-GPU test machine; 10-min 1080p exports at ~1.6× real time with <20 MB memory). Frame-exact – verified on 240 frames with trims, 0.5×/1.5× speed and jumps.
+- **Long video → Shorts and captions ~40× faster** on long videos: sound is decoded straight into one array (10-min analysis 412 s → 10 s), matches ffmpeg (0.998 correlation, 0 ms offset).
+- **Captions for the whole video**: after an auto-edit or any multi-clip edit, captions cover every clip (each source file transcribed once); "Selected clip only" still available.
+- **iPhone/Samsung HEVC videos**: clear message with the fix instead of silently importing a broken clip; fast export names any clip the browser can't decode.
+- Drag-and-drop import now shows its errors; long messages stay on screen longer and can be clicked away.
