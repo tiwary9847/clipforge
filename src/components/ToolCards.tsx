@@ -1,4 +1,5 @@
-import { Children, isValidElement, ReactElement, ReactNode, useMemo, useState } from 'react'
+import { Children, isValidElement, ReactElement, ReactNode, useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { getSettings, togglePin, useSettings } from '../settings'
 import { Icon } from './Icon'
 
@@ -92,6 +93,13 @@ export function ToolCards({ children }: { children: ReactNode }) {
   const [q, setQ] = useState('')
   const [cat, setCat] = useState<'all' | 'pinned' | Cat>('all')
   const [open, setOpen] = useState<Set<string>>(loadOpen)
+  const [active, setActive] = useState('')
+  useEffect(() => {
+    if (!active) return
+    const k = (e: KeyboardEvent) => e.key === 'Escape' && !document.querySelector('.modal-bg') && setActive('')
+    window.addEventListener('keydown', k)
+    return () => window.removeEventListener('keydown', k)
+  }, [active])
   const toggle = (id: string) =>
     setOpen((o) => {
       const n = new Set(o)
@@ -155,32 +163,117 @@ export function ToolCards({ children }: { children: ReactNode }) {
     )
   }
 
-  // one flat list (same parent) so a tool keeps its state – results, typed text – when filters change
-  const nodes: ReactNode[] = []
-  sections.forEach((s, i) => {
-    if (s.label) nodes.push(<div key={'g' + i + s.label} className="tc-group">{s.label}</div>)
-    s.list.forEach((t) => nodes.push(card(t)))
-  })
-  for (const t of visible) if (!shownIds.has(t.id)) nodes.push(card(t, false))
+  const pinBtn = (t: Tool, cls = 'tc-pin') => {
+    const pinned = pins.includes(t.id)
+    return (
+      <button
+        className={cls + (pinned ? ' on' : '')}
+        title={pinned ? 'Unpin' : 'Pin to the top'}
+        aria-label={pinned ? `Unpin ${t.title}` : `Pin ${t.title}`}
+        onClick={(e) => {
+          e.stopPropagation()
+          togglePin(t.id)
+        }}
+      >
+        <Icon name="star" size={15} />
+      </button>
+    )
+  }
+
+  const top = (
+    <div className="tc-top">
+      <div className="tc-search">
+        <Icon name="search" size={15} />
+        <input placeholder={`Search ${visible.length} tools… (music, zoom, captions)`} value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search tools" />
+      </div>
+      <div className="tc-cats">
+        <button className={'chip' + (cat === 'all' ? ' on' : '')} onClick={() => setCat('all')}>All</button>
+        <button className={'chip' + (cat === 'pinned' ? ' on' : '')} onClick={() => setCat('pinned')} title="Pinned tools">★</button>
+        {CATS.map((c) => (
+          <button key={c.id} className={'chip' + (cat === c.id ? ' on' : '')} onClick={() => setCat(c.id)} title={c.name}>{c.short}</button>
+        ))}
+      </div>
+    </div>
+  )
+  const empty = shownIds.size === 0 && <div className="tc-empty">{words.length ? `No tool matches “${q}”.` : cat === 'pinned' ? 'Tap ☆ on any tool to pin it here.' : 'Nothing here.'}</div>
+  const hiddenNote = hidden.length > 0 && !words.length && cat === 'all' && <div className="hint" style={{ textAlign: 'center' }}>{hidden.length} tool{hidden.length > 1 ? 's' : ''} hidden in ⚙️ Settings</div>
+
+  // classic mode: every tool open, one long list
+  if (allOpen) {
+    const nodes: ReactNode[] = []
+    sections.forEach((s, i) => {
+      if (s.label) nodes.push(<div key={'g' + i + s.label} className="tc-group">{s.label}</div>)
+      s.list.forEach((t) => nodes.push(card(t)))
+    })
+    for (const t of visible) if (!shownIds.has(t.id)) nodes.push(card(t, false))
+    return (
+      <>
+        {lead}
+        {top}
+        {nodes}
+        {empty}
+        {hiddenNote}
+      </>
+    )
+  }
+
+  // tiles: see every tool at a glance; a tool opens in a big panel
+  const cur = visible.find((t) => t.id === active)
   return (
     <>
       {lead}
-      <div className="tc-top">
-        <div className="tc-search">
-          <Icon name="search" size={15} />
-          <input placeholder={`Search ${visible.length} tools… (music, zoom, captions)`} value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search tools" />
+      {top}
+      {sections.map((s, i) => (
+        <div key={'s' + i + s.label} className="tsec">
+          {s.label && <div className="tc-group">{s.label}</div>}
+          <div className="tgrid">
+            {s.list.map((t) => (
+              <div
+                key={t.id}
+                className={'ttile' + (active === t.id ? ' on' : '')}
+                data-tool={t.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => setActive(active === t.id ? '' : t.id)}
+                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setActive(t.id))}
+              >
+                <span className="tt-ic">{t.emoji}</span>
+                <b>{t.title}</b>
+                {t.desc && <small>{t.desc}</small>}
+                {pinBtn(t, 'tt-pin')}
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="tc-cats">
-          <button className={'chip' + (cat === 'all' ? ' on' : '')} onClick={() => setCat('all')}>All</button>
-          <button className={'chip' + (cat === 'pinned' ? ' on' : '')} onClick={() => setCat('pinned')} title="Pinned tools">★</button>
-          {CATS.map((c) => (
-            <button key={c.id} className={'chip' + (cat === c.id ? ' on' : '')} onClick={() => setCat(c.id)} title={c.name}>{c.short}</button>
-          ))}
-        </div>
-      </div>
-      {nodes}
-      {shownIds.size === 0 && <div className="tc-empty">{words.length ? `No tool matches “${q}”.` : cat === 'pinned' ? 'Tap ☆ on any tool to pin it here.' : 'Nothing here.'}</div>}
-      {hidden.length > 0 && !words.length && cat === 'all' && <div className="hint" style={{ textAlign: 'center' }}>{hidden.length} tool{hidden.length > 1 ? 's' : ''} hidden in ⚙️ Settings</div>}
+      ))}
+      {empty}
+      {hiddenNote}
+      {createPortal(
+        <div className={'tdrawer' + (cur ? ' open' : '')} aria-hidden={!cur} role="dialog" aria-label={cur?.title}>
+          {cur && (
+            <div className="td-h">
+              <button className="ico" onClick={() => setActive('')} aria-label="Back to all tools" title="Back to all tools (Esc)"><Icon name="left" size={17} /></button>
+              <span className="td-ic">{cur.emoji}</span>
+              <div className="td-t">
+                <b>{cur.title}</b>
+                {cur.desc && <small>{cur.desc}</small>}
+              </div>
+              {pinBtn(cur, 'tc-pin td-pin')}
+              <button className="ico" onClick={() => setActive('')} aria-label="Close"><Icon name="x" size={16} /></button>
+            </div>
+          )}
+          <div className="td-body">
+            {/* every tool stays mounted here, so results and typed text survive switching tools */}
+            {visible.map((t) => (
+              <div key={t.id} className="td-tool" data-tool={t.id} hidden={t.id !== active}>
+                {t.body}
+              </div>
+            ))}
+          </div>
+        </div>,
+        document.body,
+      )}
+      {cur && createPortal(<div className="td-scrim" onClick={() => setActive('')} />, document.body)}
     </>
   )
 }

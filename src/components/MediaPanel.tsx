@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { getSettings, setSettings } from '../settings'
 import {
   addAsset,
   addAssetClip,
@@ -82,6 +83,7 @@ export function MediaPanel() {
   }, [])
   return (
     <div className="left">
+      <LeftResize />
       <div className="tabs">
         {TABS.map((t) => (
           <button key={t.id} className={'tab' + (tab === t.id ? ' on' : '')} onClick={() => setTab(t.id)}>
@@ -849,3 +851,30 @@ function CaptionTab() {
     </>
   )
 }
+
+/** Drag the right edge of the side panel to make it wider (remembered). */
+function LeftResize() {
+  const [on, setOn] = useState(false)
+  return (
+    <div
+      className={'left-resize' + (on ? ' on' : '')}
+      title="Drag to make this panel wider or narrower"
+      onPointerDown={(e) => {
+        e.preventDefault()
+        const x0 = e.clientX
+        const w0 = getSettings().leftW
+        setOn(true)
+        const mv = (ev: PointerEvent) => setSettings({ leftW: Math.min(Math.max(280, w0 + ev.clientX - x0), Math.min(640, window.innerWidth - 700)) })
+        const up = () => {
+          setOn(false)
+          window.removeEventListener('pointermove', mv)
+          window.removeEventListener('pointerup', up)
+          window.dispatchEvent(new Event('resize'))
+        }
+        window.addEventListener('pointermove', mv)
+        window.addEventListener('pointerup', up)
+      }}
+    />
+  )
+}
+

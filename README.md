@@ -240,3 +240,10 @@ Line-icon set replacing emoji controls (tabs, header, transport, timeline toolba
 - **Timeline:** drag-to-resize, bigger tracks, zoom −/+ buttons, and per-track **👁 hide** (left out of preview and export), **🔇 mute** (silent in preview and export) and **🔒 lock** (no accidental moves or drops). On phones: tap a track's icon for the same menu.
 - **Phones:** header with a ⋯ menu (Settings, light/dark, tour, new project) so nothing is cut off; icon-only timeline toolbar; narrow track headers so clips get the width; taller default timeline that shows all six tracks.
 
+### v21.1 – roomier tools
+- **Tools tab is a grid of big tiles** (icon, name, two-line description), grouped by category with pins on top – all tools visible at a glance.
+- **A tool opens in a big panel** beside the tiles that runs the full screen height (about twice the old width, larger text and buttons). Click another tile to switch – each tool keeps its results and typed text. ← / ✕ / Esc closes it. On phones it opens full screen.
+- **Tall side panels** (new default on computers): Tools and the Inspector use the full height, the timeline sits under the preview. Turn off in ⚙️ Settings → Layout.
+- **Drag the side panel's right edge** to make it wider.
+- The old fold-up list is still there: ⚙️ Settings → Tools → Open every tool.
+

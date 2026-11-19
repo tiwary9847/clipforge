@@ -88,6 +88,13 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
               </div>
               <div className="set-row">
                 <div>
+                  <b>Tall side panels</b>
+                  <small>Tools and the Inspector use the full screen height; the timeline sits under the preview only (computer)</small>
+                </div>
+                <Switch label="Tall side panels" on={s.tall} onChange={(v) => setSettings({ tall: v })} />
+              </div>
+              <div className="set-row">
+                <div>
                   <b>Track height</b>
                   <small>Taller tracks show bigger thumbnails and waveforms</small>
                 </div>

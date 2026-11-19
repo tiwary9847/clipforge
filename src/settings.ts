@@ -14,6 +14,8 @@ export interface Settings {
   trackH: Size
   tlH: number // desktop timeline height (px)
   tlHm: number // phone timeline height (px)
+  leftW: number // width of the left panel (px)
+  tall: boolean // side panels run the full height (timeline only under the preview)
   hints: boolean
   toolsOpen: boolean // show every tool expanded (classic long list)
   pins: string[]
@@ -53,6 +55,8 @@ const DEFAULTS: Settings = {
   trackH: 'md',
   tlH: 312,
   tlHm: 290,
+  leftW: 340,
+  tall: true,
   hints: true,
   toolsOpen: false,
   pins: ['ready', 'music', 'badtakes'],
@@ -124,6 +128,7 @@ export function applySettings() {
   root.dataset.ui = state.uiSize
   root.dataset.hints = state.hints ? 'on' : 'off'
   root.dataset.motion = state.motion ? 'on' : 'off'
+  root.dataset.tall = state.tall ? 'on' : 'off'
   const A = ACCENTS.find((a) => a.id === state.accent) ?? ACCENTS[0]
   // pure black looks best with a softer accent ring; light skins use the deeper shade for text
   const st = root.style
@@ -140,6 +145,7 @@ export function applySettings() {
   const phone = typeof matchMedia !== 'undefined' && matchMedia('(max-width: 820px)').matches
   st.setProperty('--tl-h', `${Math.round(state.tlH)}px`)
   st.setProperty('--tl-hm', `${Math.round(state.tlHm)}px`)
+  st.setProperty('--left-w', `${Math.round(state.leftW)}px`)
   st.setProperty('--row-h', `${TRACK_PX[state.trackH][phone ? 1 : 0]}px`)
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', sk.dark ? sk.sw[1] : '#ffffff')
   window.dispatchEvent(new Event('cf:theme'))
