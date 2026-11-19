@@ -181,6 +181,12 @@ export interface Clip {
   beauty?: Beauty
   follow?: Follow
   map?: import('./travelmap').MapData
+  cutoutOf?: string // this clip is the cut-out person of that clip
+  echoOf?: string
+  glow?: { color: string; size: number } // glowing outline around a cut-out
+  depth3d?: { amt: number; dir: 'in' | 'out' | 'left' | 'right' | 'orbit' } // 3D photo zoom
+  sky?: { id: string; amt: number } // sky replacement
+  cartoon?: { style: 'toon' | 'sketch' | 'comic'; amt: number }
 }
 
 export interface TrackDef {

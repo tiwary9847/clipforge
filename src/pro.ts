@@ -541,7 +541,7 @@ export async function speak(text: string, voice: string, status: Status): Promis
 
 /* ---------- AI background removal ---------- */
 
-export async function removeBackground(clipId: string, status: Status, signal: { cancelled: boolean }, mode: 'remove' | 'blur' = 'remove'): Promise<string> {
+export async function removeBackground(clipId: string, status: Status, signal: { cancelled: boolean }, mode: 'remove' | 'blur' = 'remove', cp = true): Promise<string> {
   const c = getClip(clipId)
   const a = c && getAsset(c.assetId)
   if (!c || !a || (c.kind !== 'video' && c.kind !== 'image')) throw new Error('Select a video or photo clip.')
@@ -613,7 +613,7 @@ export async function removeBackground(clipId: string, status: Status, signal: {
     const na = await engine.importFile(new File([blob], `${base(a)} (${mode === 'blur' ? 'portrait' : 'cut out'}).${mode === 'blur' ? 'jpg' : 'png'}`, { type }))
     if (!na) throw new Error('Could not load the cut-out image.')
     addAsset(na)
-    checkpoint()
+    if (cp) checkpoint()
     patchClip(c.id, { assetId: na.id, label: `${c.label} (${mode === 'blur' ? 'portrait' : 'cut out'})` })
     return mode === 'blur' ? 'Background blurred.' : 'Background removed.'
   }
@@ -643,7 +643,7 @@ export async function removeBackground(clipId: string, status: Status, signal: {
     }
   }
   const na = await wr.finish(`${base(a)} (${mode === 'blur' ? 'portrait' : 'no background'}).mp4`)
-  checkpoint()
+  if (cp) checkpoint()
   if (mode === 'blur') {
     patchClip(c.id, { assetId: na.id, srcIn: 0, label: `${c.label} (portrait)` })
     return 'Background blurred – you stay sharp, the background is soft like portrait mode.'

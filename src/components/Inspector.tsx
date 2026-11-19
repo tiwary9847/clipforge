@@ -27,6 +27,7 @@ import { FILTER_PRESETS, FONTS, FX_LIST, TRANS_LIST, mkFilters } from '../librar
 import { Clip, DEFAULT_FILTERS, Ease, KfProp, PRESETS } from '../types'
 import { Motion, evalProp, hasKeys, kfTimes } from '../anim'
 import { BeautySection } from './FacePanels'
+import { PersonSection } from './CreativePanels'
 import { EnhanceSection } from './MorePanels'
 import { EqSection, GradeSection, LookSection, ProVideo, SceneSplit, TrackSection, VoiceSection } from './ProPanels2'
 import { AudioTools, ChromaSection, CropMaskBlend, MultiPanel, SaveStyle, SpeedRamps, TextAnimSection, VideoTools } from './ProPanels'
@@ -317,6 +318,7 @@ function ClipPanel({ clip: c }: { clip: Clip }) {
         </Section>
       )}
       <BeautySection c={c} />
+      <PersonSection c={c} />
       {c.kind === 'image' && !getAsset(c.assetId)?.animated && (
         <Section title="Photo enhance & upscale">
           <EnhanceSection c={c} />

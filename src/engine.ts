@@ -908,6 +908,16 @@ class Engine {
         if (r) ctx.drawImage(s2, r[0], r[1], r[2], r[3], -bw / 2, -bh / 2, bw, bh)
         else ctx.drawImage(s2, -bw / 2, -bh / 2, bw, bh)
       }
+      if (c.glow) {
+        // glowing outline: the cut-out's own shape casts a coloured glow (strong + wide pass)
+        ctx.save()
+        ctx.shadowColor = c.glow.color
+        ctx.shadowBlur = Math.max(2, c.glow.size * W * 0.5)
+        draw()
+        ctx.shadowBlur = Math.max(4, c.glow.size * W * 1.4)
+        draw()
+        ctx.restore()
+      }
       draw()
       if (c.beauty && (c.beauty.smooth > 0 || c.beauty.bright > 0 || c.beauty.tone > 0)) this.applyBeauty(ctx, c, lt, src, srcRect, bw, bh, sc)
       if (c.look && c.look.amt > 0) {

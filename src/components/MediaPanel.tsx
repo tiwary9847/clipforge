@@ -33,6 +33,7 @@ import { Icon } from './Icon'
 import { devanagariToRoman, emojiFor } from '../tools2'
 import { OnlineMemes } from './OnlineMemes'
 import { FaceStickers } from './FacePanels'
+import { Slideshow, VideoTemplates } from './CreativePanels'
 import { SPEAKER_COLORS, clipHasSpeakers, findSpeakers, speakerDuring } from '../speakers'
 import { MEMES, MEME_CATS, MemeCat, applyMeme, previewSound } from '../memes'
 import { CapMode, Word, buildLines, transcribe } from '../captions'
@@ -240,6 +241,9 @@ function MemeTab() {
 function TemplateTab() {
   return (
     <>
+      <VideoTemplates />
+      <Slideshow />
+      <div className="group-h">🧩 Layout templates</div>
       <div className="hint">One-click layouts for Shorts, Reels and YouTube. They add editable text, stickers and sounds around your clips.</div>
       <div className="tmpls">
         {TEMPLATES.map((t) => (
