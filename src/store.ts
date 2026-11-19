@@ -616,6 +616,16 @@ export function splitMany(ids: string[], at: number) {
 }
 
 /* ---------- markers ---------- */
+/** Hide / mute / lock a whole track (one undo step). */
+export function toggleTrack(id: string, flag: 'hide' | 'mute' | 'lock') {
+  const all = { ...(getState().project.tracks ?? {}) }
+  const cur = { ...(all[id] ?? {}) }
+  cur[flag] = !cur[flag]
+  all[id] = cur
+  setProject({ tracks: all })
+}
+export const trackFlag = (id: string, flag: 'hide' | 'mute' | 'lock') => !!getState().project.tracks?.[id]?.[flag]
+
 export function addMarker(t: number) {
   if (state.project.markers.some((m) => Math.abs(m - t) < 0.03)) return
   checkpoint()
@@ -811,6 +821,10 @@ export function insertSilent(clips: Clip[]) {
 /** Replace the clip list without an undo step of its own (caller already checkpointed). */
 export function setClipsSilent(clips: Clip[]) {
   set({ project: { ...state.project, clips } })
+}
+/** Change project fields without an undo step of its own (caller already checkpointed). */
+export function patchProjectSilent(patch: Partial<Project>) {
+  set({ project: { ...state.project, ...patch } })
 }
 
 /** Brings back an earlier version of the project (undoable). Clips whose media is gone are skipped. */

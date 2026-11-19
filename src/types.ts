@@ -268,6 +268,7 @@ export interface Project {
   speakerNames?: string[]
   markerNames?: Record<string, string> // marker time (fixed 2 decimals) → chapter title
   depths?: Record<string, string> // per photo asset: depth map (PNG data URL) for 3D zoom
+  tracks?: Record<string, { hide?: boolean; mute?: boolean; lock?: boolean }> // per track: hidden in the video, muted, locked
 }
 
 export interface FaceTrack {

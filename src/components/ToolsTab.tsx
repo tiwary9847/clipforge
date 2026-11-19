@@ -10,6 +10,7 @@ import { RecMode, Recording, canRecordCamera, canRecordScreen, startRecording } 
 import { LAYOUTS, addAdjustmentLayer, applyLayout } from '../looks'
 import { DubSection, SpeakersSection } from './VoicePanels'
 import { ScriptToVideo } from './ScriptPanel'
+import { ToolCards } from './ToolCards'
 import { BadTakes, ChatStory, HookWriter, ReadyCheck, ReplySticker } from './PostPanels'
 import { AutoSfxSection, AutoZoomSection, BrollSection, MusicMaker } from './AutoPanels'
 import { ChaptersSection, EnhanceSection, TitlesSection, TravelMapSection } from './MorePanels'
@@ -61,6 +62,7 @@ export function ToolsTab() {
           <small>Screen, webcam or both (face bubble)</small>
         </button>
       </div>
+      <ToolCards>
       <div className="group-h">✅ Ready to post?</div>
       <ReadyCheck />
       <div className="group-h">🔁 Bad-take remover</div>
@@ -131,6 +133,7 @@ export function ToolsTab() {
       <Versions />
       <div className="group-h">💾 Backup & restore</div>
       <Backup />
+      </ToolCards>
       {dlg === 'thumb' && <ThumbDialog onClose={() => setDlg('')} />}
       {dlg === 'prompter' && <Teleprompter onClose={() => setDlg('')} />}
       {dlg === 'text' && <TextEditDialog onClose={() => setDlg('')} />}

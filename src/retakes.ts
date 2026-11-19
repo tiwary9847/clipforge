@@ -2,7 +2,7 @@
 // Also a timeline-wide ripple cut used by the "Ready to post?" fixes.
 import { spokenFromCaptions } from './chapters'
 import { norm } from './textedit'
-import { checkpoint, getState, setClipsSilent, setProject, uid } from './store'
+import { checkpoint, getState, patchProjectSilent, setClipsSilent, uid } from './store'
 import { engine } from './engine'
 import { Clip, KfMap } from './types'
 
@@ -52,7 +52,7 @@ export function cutTimeline(ranges: [number, number][], cp = true): number {
     removed += d
   }
   setClipsSilent(clips)
-  setProject({ markers })
+  patchProjectSilent({ markers })
   engine.requestRender()
   return removed
 }

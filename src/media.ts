@@ -136,6 +136,8 @@ export async function scheduleClipAudio(ctx: BaseAudioContext, dest: AudioNode, 
 
 /** Mixes timeline [t0, t1] into a stereo 48 kHz buffer. Null if nothing in that window makes sound. */
 export async function mixRange(clips: Clip[], getAsset: (id?: string) => Asset | undefined, t0: number, t1: number): Promise<AudioBuffer | null> {
+  const tk = getState().project.tracks
+  if (tk) clips = clips.filter((c) => !tk[c.track]?.mute) // muted tracks are silent in exports too
   const sr = 48000
   const n = Math.max(1, Math.round((t1 - t0) * sr))
   // Pre-roll: compressors/limiters have a look-ahead delay and need to settle, so each chunk starts

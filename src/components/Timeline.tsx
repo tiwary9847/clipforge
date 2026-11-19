@@ -25,7 +25,9 @@ import {
   groupClips,
   ungroupClips,
   trimGroupTo,
+  toggleTrack,
 } from '../store'
+import { getSettings, rowHeight, setSettings, useSettings } from '../settings'
 import { Clip, TRACKS } from '../types'
 import { kfTimes, shiftKeyframes } from '../anim'
 import { fmtTime } from './Fields'
@@ -35,8 +37,10 @@ import { Icon } from './Icon'
 const TRACK_SHORT: Record<string, string> = { v4: 'Layer 3', v3: 'Layer 2', v2: 'Layer 1' }
 const TRACK_ICON: Record<string, string> = { v4: 'layers', v3: 'layers', v2: 'layers', v1: 'film', a1: 'volume', a2: 'music' }
 
-const LABEL_W = 78
-const ROW_H = typeof matchMedia !== 'undefined' && matchMedia('(max-width: 820px)').matches ? 30 : 40
+// set on every render from the user's settings (track height) and screen size
+let LABEL_W = 112
+let ROW_H = 40
+const isPhone = () => typeof matchMedia !== 'undefined' && matchMedia('(max-width: 820px)').matches
 
 function Wave({ peaks, from, to, w, h, low }: { peaks: number[]; from: number; to: number; w: number; h: number; low?: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null)
@@ -89,7 +93,41 @@ function Film({ strip, from, to, w, h }: { strip: { url: string; n: number }; fr
   return <canvas ref={ref} className="film" width={Math.max(1, Math.floor(w))} height={h} />
 }
 
+/** Drag the top edge of the timeline to make it taller or shorter (remembered). */
+function ResizeEdge() {
+  const [on, setOn] = useState(false)
+  const start = (e: React.PointerEvent) => {
+    e.preventDefault()
+    const phone = isPhone()
+    const y0 = e.clientY
+    const h0 = phone ? getSettings().tlHm : getSettings().tlH
+    setOn(true)
+    const mv = (ev: PointerEvent) => {
+      const max = window.innerHeight - (phone ? 230 : 260)
+      const h = Math.min(max, Math.max(phone ? 140 : 170, h0 + (y0 - ev.clientY)))
+      setSettings(phone ? { tlHm: h } : { tlH: h })
+    }
+    const up = () => {
+      setOn(false)
+      window.removeEventListener('pointermove', mv)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', up)
+      setTimeout(() => window.dispatchEvent(new Event('resize')), 0)
+    }
+    window.addEventListener('pointermove', mv)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', up)
+  }
+  return <div className={'tl-resize' + (on ? ' on' : '')} onPointerDown={start} title="Drag to make the timeline taller or shorter" />
+}
+
 export function Timeline() {
+  useSettings((s) => s.trackH)
+  const phone = useSettings(() => isPhone())
+  ROW_H = rowHeight()
+  LABEL_W = phone ? 34 : 112
+  const tflags = useStore((s) => s.project.tracks) ?? {}
+  const [trkMenu, setTrkMenu] = useState('')
   const clips = useStore((s) => s.project.clips)
   const selectedId = useStore((s) => s.selectedId)
   const selIds = useStore((s) => s.selIds)
@@ -136,7 +174,7 @@ export function Timeline() {
     const r = lanes.current!.getBoundingClientRect()
     const idx = Math.floor((clientY - r.top - 26) / ROW_H)
     const tr = TRACKS[idx]
-    if (!tr) return null
+    if (!tr || getState().project.tracks?.[tr.id]?.lock) return null
     const want = kind === 'audio' || kind === 'sfx' ? 'audio' : 'video'
     return tr.type === want ? tr.id : null
   }
@@ -146,6 +184,11 @@ export function Timeline() {
     e.preventDefault()
     if (e.shiftKey || e.ctrlKey || e.metaKey) {
       if (mode === 'move') select(c.id, 'toggle')
+      return
+    }
+    if (getState().project.tracks?.[c.track]?.lock) {
+      select(c.id)
+      setUi({ toast: 'This track is locked – click 🔒 next to its name to unlock it.' })
       return
     }
     if (!(mode === 'move' && getState().selIds.length > 1 && getState().selIds.includes(c.id))) select(c.id)
@@ -312,6 +355,7 @@ export function Timeline() {
     if (!a) return
     const want = a.kind === 'audio' ? 'audio' : 'video'
     const tr = trackType(trackId) === want ? trackId : want === 'audio' ? 'a2' : 'v1'
+    if (getState().project.tracks?.[tr]?.lock) return setUi({ toast: 'That track is locked – unlock it first (🔒).' })
     const r = lanes.current!.getBoundingClientRect()
     const t = Math.max(0, (e.clientX - r.left - LABEL_W) / pps)
     addAssetClip(id, tr, t)
@@ -329,21 +373,23 @@ export function Timeline() {
 
   return (
     <div className="timeline">
+      <ResizeEdge />
       <div className="tl-bar">
-        <button className="btn sm" disabled={!hasSel} onClick={() => { checkpoint(); splitMany(ids, engine.time) }} title="Split at playhead (S)"><Icon name="scissors" size={14} /> Split</button>
-        <button className="btn sm" disabled={!hasSel} onClick={() => duplicateMany(ids)} title="Duplicate (Ctrl+D)"><Icon name="copy" size={14} /> Duplicate</button>
-        <button className="btn sm danger" disabled={!hasSel} onClick={() => deleteMany(ids)} title="Delete (Del)"><Icon name="trash" size={14} /> Delete</button>
-        <button className="btn sm" disabled={!hasSel} onClick={() => rippleDelete(ids)} title="Delete and close the gap (Shift+Del)"><Icon name="ripple" size={14} /> Ripple</button>
-        <button className="btn sm" disabled={ids.length < 2} onClick={() => groupClips(ids)} title="Group selected clips (Ctrl+G)"><Icon name="link" size={14} /> Group</button>
-        {getState().project.clips.some((x) => ids.includes(x.id) && x.group) && <button className="btn sm" onClick={() => ungroupClips(ids)} title="Ungroup (Ctrl+Shift+G)"><Icon name="unlink" size={14} /> Ungroup</button>}
-        <button className="btn sm" onClick={() => addMarker(engine.time)} title="Add a marker at the playhead (M)"><Icon name="flag" size={14} /> Marker</button>
+        <button className="btn sm" disabled={!hasSel} onClick={() => { checkpoint(); splitMany(ids, engine.time) }} title="Split at playhead (S)"><Icon name="scissors" size={14} /><span className="tb-txt">Split</span></button>
+        <button className="btn sm" disabled={!hasSel} onClick={() => duplicateMany(ids)} title="Duplicate (Ctrl+D)"><Icon name="copy" size={14} /><span className="tb-txt">Duplicate</span></button>
+        <button className="btn sm danger" disabled={!hasSel} onClick={() => deleteMany(ids)} title="Delete (Del)"><Icon name="trash" size={14} /><span className="tb-txt">Delete</span></button>
+        <button className="btn sm" disabled={!hasSel} onClick={() => rippleDelete(ids)} title="Delete and close the gap (Shift+Del)"><Icon name="ripple" size={14} /><span className="tb-txt">Ripple</span></button>
+        <button className="btn sm" disabled={ids.length < 2} onClick={() => groupClips(ids)} title="Group selected clips (Ctrl+G)"><Icon name="link" size={14} /><span className="tb-txt">Group</span></button>
+        {getState().project.clips.some((x) => ids.includes(x.id) && x.group) && <button className="btn sm" onClick={() => ungroupClips(ids)} title="Ungroup (Ctrl+Shift+G)"><Icon name="unlink" size={14} /><span className="tb-txt">Ungroup</span></button>}
+        <button className="btn sm" onClick={() => addMarker(engine.time)} title="Add a marker at the playhead (M)"><Icon name="flag" size={14} /><span className="tb-txt">Marker</span></button>
         {markers.length > 0 && <button className="btn sm" onClick={() => clearMarkers()} title="Remove all markers">Clear {markers.length}</button>}
         <label className="check inline">
           <input type="checkbox" checked={snap} onChange={(e) => setUi({ snap: e.target.checked })} />
           <span>Snap</span>
         </label>
         <div className="spacer" />
-        <span className="muted small">Zoom</span>
+        <span className="muted small zlbl">Zoom</span>
+        <button className="btn sm zbtn" onClick={() => setPps((p) => Math.max(15, p / 1.35))} title="Zoom out"><Icon name="zoomOut" size={14} /></button>
         <input
           className="zoom"
           type="range"
@@ -352,20 +398,22 @@ export function Timeline() {
           value={pps}
           onChange={(e) => setPps(+e.target.value)}
         />
+        <button className="btn sm zbtn" onClick={() => setPps((p) => Math.min(300, p * 1.35))} title="Zoom in"><Icon name="zoomIn" size={14} /></button>
         <button
           className="btn sm"
+          title="Fit the whole video in view"
           onClick={() => {
             const w = (scroll.current?.clientWidth ?? 800) - LABEL_W - 40
             setPps(Math.min(300, Math.max(15, w / Math.max(dur, 2))))
           }}
         >
-          Fit
+          <Icon name="fit" size={14} /><span className="tb-txt">Fit</span>
         </button>
       </div>
       <div className="tl-scroll" ref={scroll}>
         <div className="tl-inner" ref={lanes} style={{ width: LABEL_W + totalW }}>
           <div className="tl-ruler" onPointerDown={scrub}>
-            <div className="tl-corner" />
+            <div className="tl-corner" style={{ width: LABEL_W }} />
             {ticks.map((t) => (
               <div key={t} className="tick" style={{ left: LABEL_W + t * pps }}>
                 <span>{fmtTime(t).replace(/\.00$/, '')}</span>
@@ -388,7 +436,7 @@ export function Timeline() {
           {TRACKS.map((tr) => (
             <div
               key={tr.id}
-              className={'tl-row ' + tr.type}
+              className={'tl-row ' + tr.type + (tflags[tr.id]?.hide ? ' t-hide' : '') + (tflags[tr.id]?.mute ? ' t-mute' : '') + (tflags[tr.id]?.lock ? ' t-lock' : '')}
               style={{ height: ROW_H }}
               onPointerDown={(e) => {
                 if (!(e.target as HTMLElement).classList.contains('tl-lane')) return
@@ -397,7 +445,33 @@ export function Timeline() {
               onDragOver={(e) => e.dataTransfer.types.includes('text/clipforge-asset') && e.preventDefault()}
               onDrop={(e) => onDrop(e, tr.id)}
             >
-              <div className={`tl-label t-${tr.id}`}><Icon name={TRACK_ICON[tr.id] ?? 'layers'} size={13} /><span title={tr.name}>{TRACK_SHORT[tr.id] ?? tr.name}</span></div>
+              <div
+                className={`tl-label t-${tr.id}` + (tflags[tr.id]?.hide || tflags[tr.id]?.mute || tflags[tr.id]?.lock ? ' flagged' : '')}
+                style={{ width: LABEL_W }}
+                onClick={() => phone && setTrkMenu(trkMenu === tr.id ? '' : tr.id)}
+              >
+                {phone && trkMenu === tr.id && (
+                  <div className="trk-menu" onClick={(e) => e.stopPropagation()}>
+                    <b>{tr.name}</b>
+                    {tr.type === 'video' && <button onClick={() => { toggleTrack(tr.id, 'hide'); setTrkMenu('') }}><Icon name={tflags[tr.id]?.hide ? 'eye' : 'eyeOff'} size={16} />{tflags[tr.id]?.hide ? 'Show track' : 'Hide track'}</button>}
+                    <button onClick={() => { toggleTrack(tr.id, 'mute'); setTrkMenu('') }}><Icon name={tflags[tr.id]?.mute ? 'volume' : 'mute'} size={16} />{tflags[tr.id]?.mute ? 'Unmute' : 'Mute'}</button>
+                    <button onClick={() => { toggleTrack(tr.id, 'lock'); setTrkMenu('') }}><Icon name={tflags[tr.id]?.lock ? 'unlock' : 'lock'} size={16} />{tflags[tr.id]?.lock ? 'Unlock' : 'Lock'}</button>
+                  </div>
+                )}
+                <Icon name={TRACK_ICON[tr.id] ?? 'layers'} size={13} />
+                <span className="tn" title={tr.name}>{TRACK_SHORT[tr.id] ?? tr.name}</span>
+                {tr.type === 'video' && (
+                  <button className={'tk-b' + (tflags[tr.id]?.hide ? ' on' : '')} onClick={() => toggleTrack(tr.id, 'hide')} title={tflags[tr.id]?.hide ? 'Show this track' : 'Hide this track (not in the video)'}>
+                    <Icon name={tflags[tr.id]?.hide ? 'eyeOff' : 'eye'} size={13} />
+                  </button>
+                )}
+                <button className={'tk-b' + (tflags[tr.id]?.mute ? ' on' : '')} onClick={() => toggleTrack(tr.id, 'mute')} title={tflags[tr.id]?.mute ? 'Unmute this track' : 'Mute this track'}>
+                  <Icon name={tflags[tr.id]?.mute ? 'mute' : 'volume'} size={13} />
+                </button>
+                <button className={'tk-b' + (tflags[tr.id]?.lock ? ' on' : '')} onClick={() => toggleTrack(tr.id, 'lock')} title={tflags[tr.id]?.lock ? 'Unlock this track' : 'Lock this track (no accidental moves)'}>
+                  <Icon name={tflags[tr.id]?.lock ? 'lock' : 'unlock'} size={13} />
+                </button>
+              </div>
               <div className="tl-lane" style={{ width: totalW }}>
                 {clips
                   .filter((c) => c.track === tr.id)
@@ -427,7 +501,7 @@ export function Timeline() {
                         title={`${c.label} · ${c.dur.toFixed(2)}s${c.speed !== 1 ? ` · ${c.speed}×` : ''}`}
                       >
                         {film && <Film strip={film} from={from} to={to} w={w} h={ROW_H - 8} />}
-                        {peaks && <Wave peaks={peaks} from={from} to={to} w={w} h={c.kind === 'video' ? 12 : ROW_H - 8} low={c.kind === 'video'} />}
+                        {peaks && <Wave peaks={peaks} from={from} to={to} w={w} h={c.kind === 'video' ? Math.max(12, Math.round(ROW_H * 0.3)) : ROW_H - 8} low={c.kind === 'video'} />}
                         {c.duck && <i className="duckm" title="Auto-ducked" />}
                         {selIds.includes(c.id) && selIds.length === 1 && (c.kind === 'audio' || c.kind === 'sfx' || (c.kind === 'video' && !c.freeze)) && (
                           <AudioOverlay c={c} pps={pps} h={ROW_H - 8} />

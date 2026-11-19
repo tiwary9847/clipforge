@@ -228,3 +228,15 @@ Line-icon set replacing emoji controls (tabs, header, transport, timeline toolba
 - **🎨 Colour match – all clips**: “Make all other clips match this one” (gentle, camera-level correction). Test: a blue-tinted copy of a photo went from mean RGB 139/154/55 to 167/164/24 vs the original 168/164/17.
 - **Progress bar** sticker: top or bottom, Thin bar / Rounded (with a dot) / Chapters (split at your markers).
 
+## v21 – your editor, your way (UI customisation + redesign)
+- **⚙️ Settings** (header gear; ⋯ menu on phones), saved in this browser:
+  - **Themes:** Aurora, Midnight (navy), Pure black (OLED), Light, Warm paper – or follow the device's light/dark setting.
+  - **7 accent colours** (violet, blue, teal, green, orange, pink, red) recolour buttons, tabs, sliders, playhead and highlights.
+  - **Text & button size** (Small → Extra large) for panels, timeline toolbar and windows; animations on/off.
+  - **Track height** (4 sizes) and **timeline height** – or drag the timeline's top edge.
+  - **Tools:** show/hide the grey explanations, open every tool (classic list), choose which tools appear.
+- **Tools tab:** fold-up cards with a one-line description, **search** (English + Hinglish words like “gaana”), category filters (Fixes, AI, Audio, Create, Publish), **★ pin** favourites to the top. A tool keeps its results and typed text while you switch filters.
+- **Inspector:** click any section heading to fold it (remembered), plus **Fold all / Open all**.
+- **Timeline:** drag-to-resize, bigger tracks, zoom −/+ buttons, and per-track **👁 hide** (left out of preview and export), **🔇 mute** (silent in preview and export) and **🔒 lock** (no accidental moves or drops). On phones: tap a track's icon for the same menu.
+- **Phones:** header with a ⋯ menu (Settings, light/dark, tour, new project) so nothing is cut off; icon-only timeline toolbar; narrow track headers so clips get the width; taller default timeline that shows all six tracks.
+

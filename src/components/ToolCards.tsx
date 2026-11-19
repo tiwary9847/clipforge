@@ -1,0 +1,189 @@
+import { Children, isValidElement, ReactElement, ReactNode, useMemo, useState } from 'react'
+import { getSettings, togglePin, useSettings } from '../settings'
+import { Icon } from './Icon'
+
+export type Cat = 'fix' | 'ai' | 'audio' | 'create' | 'publish'
+export const CATS: { id: Cat; name: string; short: string }[] = [
+  { id: 'fix', name: '⚡ Quick fixes', short: '⚡ Fixes' },
+  { id: 'ai', name: '🤖 AI magic', short: '🤖 AI' },
+  { id: 'audio', name: '🎵 Audio', short: '🎵 Audio' },
+  { id: 'create', name: '🎨 Create', short: '🎨 Create' },
+  { id: 'publish', name: '📤 Publish', short: '📤 Publish' },
+]
+
+// title prefix → id, categories, one-line description, extra search words
+export const TOOL_META: [string, string, Cat[], string, string][] = [
+  ['Ready to post', 'ready', ['fix', 'publish'], 'Score your video and fix problems in one tap', 'check score viral hook safe zone loudness'],
+  ['Bad-take', 'badtakes', ['fix', 'ai'], 'Cut repeated lines, keep your last try', 'retake mistake repeat galti'],
+  ['Music maker', 'music', ['audio', 'create'], 'Original background music – no copyright', 'song bgm gaana background'],
+  ['Auto punch-in', 'zooms', ['ai'], 'Zoom on your face at key moments', 'zoom jump cut'],
+  ['Auto sound effects', 'sfx', ['ai', 'audio'], 'Whoosh on cuts, pops on key words', 'sound effect whoosh'],
+  ['Auto b-roll', 'broll', ['ai', 'create'], 'Stock clips that match what you say', 'stock pexels pixabay footage'],
+  ['Chat story', 'chat', ['create'], 'A made-up chat that pops in message by message', 'whatsapp message text story imessage'],
+  ['Reply to a comment', 'reply', ['create', 'publish'], '“Replying to @name” comment bubble', 'comment reply bubble'],
+  ['Script to video', 'script', ['ai', 'create'], 'Type a script – get voice, stock clips and captions', 'faceless narration'],
+  ['Travel map', 'map', ['create'], 'Animated route map between places', 'route travel location'],
+  ['Auto chapters', 'chapters', ['ai', 'publish'], 'YouTube chapters from what you say', 'timestamps'],
+  ['Title, description', 'titles', ['ai', 'publish'], 'Titles, description and hashtags written for you', 'seo hashtag caption'],
+  ['Photo enhance', 'enhance', ['fix'], 'Sharpen, fix and upscale photos', 'upscale hd photo'],
+  ['Long video', 'shorts', ['ai', 'publish'], 'Find the best moments and make Shorts', 'reels clips highlights'],
+  ['Split-screen', 'layouts', ['create'], 'Two or more videos side by side', 'split screen grid collage'],
+  ['Adjustment layer', 'adjust', ['create'], 'Filters and grade on everything below it', 'filter grade colour'],
+  ['WhatsApp status', 'wa', ['publish'], 'Split into 30-second status parts', 'status 30 seconds'],
+  ['Multicam', 'multicam', ['create'], 'Switch between camera angles', 'angles camera sync'],
+  ['Speakers', 'speakers', ['ai'], 'Who talks when – a caption colour per person', 'podcast people interview'],
+  ['Dub into English', 'dub', ['ai', 'audio'], 'Translate Hindi and re-voice it in English', 'translate dubbing'],
+  ['AI voice', 'tts', ['ai', 'audio'], 'Text-to-speech voice-over', 'tts narration voiceover'],
+  ['Loudness', 'loud', ['fix', 'audio'], 'Right volume for YouTube and Instagram', 'volume lufs normalise'],
+  ['Hook lines', 'hooklines', ['ai', 'publish'], 'AI writes your opening text', 'hook intro opening'],
+  ['Hook finder', 'hookfinder', ['ai'], 'Copy your best moment to the start', 'hook intro teaser'],
+  ['Thumbnail', 'thumb', ['publish', 'create'], 'Thumbnail maker and teleprompter', 'thumbnail prompter script'],
+  ['Brand kit', 'brand', ['create'], 'Your logo, colours and fonts in one tap', 'logo watermark intro outro'],
+  ['All formats', 'formats', ['publish'], 'Export 16:9, 9:16 and 1:1 together', 'export multiple sizes'],
+  ['Version history', 'versions', ['fix'], 'Go back to an earlier version', 'history restore undo'],
+  ['Backup', 'backup', ['fix'], 'Save or load the whole project as a file', 'save file export project'],
+]
+
+interface Tool {
+  id: string
+  emoji: string
+  title: string
+  cats: Cat[]
+  desc: string
+  kw: string
+  body: ReactNode[]
+}
+
+const textOf = (n: ReactNode): string => (typeof n === 'string' ? n : Array.isArray(n) ? n.map(textOf).join('') : '')
+
+/** Splits the old long list (heading, content, heading, content…) into tools. */
+function parse(children: ReactNode): { lead: ReactNode[]; tools: Tool[] } {
+  const lead: ReactNode[] = []
+  const tools: Tool[] = []
+  Children.toArray(children).forEach((ch) => {
+    const el = ch as ReactElement<{ className?: string; children?: ReactNode }>
+    if (isValidElement(el) && el.type === 'div' && el.props.className === 'group-h') {
+      const full = textOf(el.props.children).trim()
+      const m = full.match(/^(\S+)\s+(.*)$/)
+      const emoji = m && /\p{Extended_Pictographic}/u.test(m[1]) ? m[1] : '🛠'
+      const title = m && emoji !== '🛠' ? m[2] : full
+      const meta = TOOL_META.find(([p]) => title.startsWith(p))
+      tools.push({ id: meta?.[1] ?? title.toLowerCase().replace(/\W+/g, '-'), emoji, title: title.replace(/ \(.*\)$/, ''), cats: meta?.[2] ?? ['create'], desc: meta?.[3] ?? '', kw: meta?.[4] ?? '', body: [] })
+    } else if (tools.length) tools[tools.length - 1].body.push(ch)
+    else lead.push(ch)
+  })
+  return { lead, tools }
+}
+
+const OPEN_KEY = 'clipforge-open-tools'
+const loadOpen = (): Set<string> => {
+  try {
+    return new Set(JSON.parse(sessionStorage.getItem(OPEN_KEY) ?? '[]'))
+  } catch {
+    return new Set()
+  }
+}
+
+export function ToolCards({ children }: { children: ReactNode }) {
+  const { lead, tools } = useMemo(() => parse(children), [children])
+  const pins = useSettings((s) => s.pins)
+  const hidden = useSettings((s) => s.hidden)
+  const allOpen = useSettings((s) => s.toolsOpen)
+  const [q, setQ] = useState('')
+  const [cat, setCat] = useState<'all' | 'pinned' | Cat>('all')
+  const [open, setOpen] = useState<Set<string>>(loadOpen)
+  const toggle = (id: string) =>
+    setOpen((o) => {
+      const n = new Set(o)
+      if (n.has(id)) n.delete(id)
+      else n.add(id)
+      try {
+        sessionStorage.setItem(OPEN_KEY, JSON.stringify([...n]))
+      } catch {}
+      return n
+    })
+
+  const visible = tools.filter((t) => !hidden.includes(t.id))
+  const words = q.toLowerCase().split(/\s+/).filter(Boolean)
+  const match = (t: Tool) => words.every((w) => `${t.title} ${t.desc} ${t.kw} ${t.cats.join(' ')}`.toLowerCase().includes(w))
+
+  // what to show, in order, with group labels
+  const sections: { label: string; list: Tool[] }[] = []
+  if (words.length) sections.push({ label: '', list: visible.filter(match) })
+  else if (cat === 'pinned') sections.push({ label: '', list: pins.map((p) => visible.find((t) => t.id === p)).filter(Boolean) as Tool[] })
+  else if (cat !== 'all') sections.push({ label: '', list: visible.filter((t) => t.cats.includes(cat)) })
+  else {
+    const pinned = pins.map((p) => visible.find((t) => t.id === p)).filter(Boolean) as Tool[]
+    if (pinned.length) sections.push({ label: '★ Pinned', list: pinned })
+    const used = new Set(pinned.map((t) => t.id))
+    for (const c of CATS) {
+      const list = visible.filter((t) => t.cats[0] === c.id && !used.has(t.id))
+      if (list.length) sections.push({ label: c.name, list })
+    }
+  }
+  const shownIds = new Set(sections.flatMap((s) => s.list.map((t) => t.id)))
+  const single = words.length > 0 && shownIds.size === 1
+
+  const card = (t: Tool, shown = true) => {
+    const isOpen = shown && (allOpen || single || open.has(t.id))
+    const pinned = pins.includes(t.id)
+    return (
+      <div key={t.id} className={'tcard' + (isOpen ? ' open' : '')} data-tool={t.id} hidden={!shown}>
+        <div className="tc-h" role="button" tabIndex={0} onClick={() => toggle(t.id)} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), toggle(t.id))} aria-expanded={isOpen}>
+          <span className="tc-ic">{t.emoji}</span>
+          <span className="tc-t">
+            <b>{t.title}</b>
+            {t.desc && <span className="tc-desc">{t.desc}</span>}
+          </span>
+          <button
+            className={'tc-pin' + (pinned ? ' on' : '')}
+            title={pinned ? 'Unpin' : 'Pin to the top'}
+            aria-label={pinned ? `Unpin ${t.title}` : `Pin ${t.title}`}
+            onClick={(e) => {
+              e.stopPropagation()
+              togglePin(t.id)
+            }}
+          >
+            <Icon name="star" size={15} />
+          </button>
+          <Icon name="chevron" size={16} className="tc-chev" />
+        </div>
+        <div className="tc-body" hidden={!isOpen}>
+          {t.body}
+        </div>
+      </div>
+    )
+  }
+
+  // one flat list (same parent) so a tool keeps its state – results, typed text – when filters change
+  const nodes: ReactNode[] = []
+  sections.forEach((s, i) => {
+    if (s.label) nodes.push(<div key={'g' + i + s.label} className="tc-group">{s.label}</div>)
+    s.list.forEach((t) => nodes.push(card(t)))
+  })
+  for (const t of visible) if (!shownIds.has(t.id)) nodes.push(card(t, false))
+  return (
+    <>
+      {lead}
+      <div className="tc-top">
+        <div className="tc-search">
+          <Icon name="search" size={15} />
+          <input placeholder={`Search ${visible.length} tools… (music, zoom, captions)`} value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search tools" />
+        </div>
+        <div className="tc-cats">
+          <button className={'chip' + (cat === 'all' ? ' on' : '')} onClick={() => setCat('all')}>All</button>
+          <button className={'chip' + (cat === 'pinned' ? ' on' : '')} onClick={() => setCat('pinned')} title="Pinned tools">★</button>
+          {CATS.map((c) => (
+            <button key={c.id} className={'chip' + (cat === c.id ? ' on' : '')} onClick={() => setCat(c.id)} title={c.name}>{c.short}</button>
+          ))}
+        </div>
+      </div>
+      {nodes}
+      {shownIds.size === 0 && <div className="tc-empty">{words.length ? `No tool matches “${q}”.` : cat === 'pinned' ? 'Tap ☆ on any tool to pin it here.' : 'Nothing here.'}</div>}
+      {hidden.length > 0 && !words.length && cat === 'all' && <div className="hint" style={{ textAlign: 'center' }}>{hidden.length} tool{hidden.length > 1 ? 's' : ''} hidden in ⚙️ Settings</div>}
+    </>
+  )
+}
+
+export const toolIds = () => TOOL_META.map(([p, id]) => ({ id, name: p }))
+export const pinsNow = () => getSettings().pins

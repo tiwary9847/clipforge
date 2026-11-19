@@ -12,8 +12,13 @@
     <meta name="description" content="Free in-browser video editor for YouTube Shorts, Instagram Reels and Facebook – memes with sound, auto-captions, auto-edit and more." />
     <script>
       try {
-        var t = localStorage.getItem('clipforge-theme') || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
-        document.documentElement.dataset.theme = t
+        // apply the saved look before the app loads, so there is no flash
+        var s = JSON.parse(localStorage.getItem('clipforge-settings') || '{}')
+        var old = localStorage.getItem('clipforge-theme')
+        var light = matchMedia('(prefers-color-scheme: light)').matches
+        var sk = s.skin || (old ? (old === 'light' ? 'light' : 'aurora') : light ? s.lastLight || 'light' : s.lastDark || 'aurora')
+        document.documentElement.dataset.theme = sk === 'light' || sk === 'paper' ? 'light' : 'dark'
+        document.documentElement.dataset.skin = sk
       } catch (e) {}
     </script>
     <title>ClipForge – Video Editor for Shorts, Reels & YouTube</title>

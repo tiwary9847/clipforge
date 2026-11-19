@@ -1,5 +1,5 @@
 // Auto chapters + title / description / hashtag helper, from what is said in the video.
-import { getState, projectDuration, setProject, checkpoint, getPreset } from './store'
+import { getState, projectDuration, setProject, checkpoint, getPreset, patchProjectSilent } from './store'
 import { PLACES } from './travelmap'
 
 export interface Sentence {
@@ -131,7 +131,7 @@ export function applyChapters(ch: Chapter[]) {
   const markers = ch.filter((c) => c.t > 0.5).map((c) => c.t)
   const markerNames: Record<string, string> = {}
   for (const c of ch) markerNames[c.t.toFixed(2)] = c.name
-  setProject({ markers, markerNames })
+  patchProjectSilent({ markers, markerNames })
 }
 
 function placeIn(text: string): string | null {

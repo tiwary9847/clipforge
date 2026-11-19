@@ -1,6 +1,6 @@
 // Tap an object in a video once: blur/pixelate it through the whole clip, or cut it out as its own video.
 import { followPoint, objectMask, removeBackground } from './pro'
-import { checkpoint, getAsset, getClip, getState, insertSilent, patchClip, setProject, uid } from './store'
+import { checkpoint, getAsset, getClip, getState, insertSilent, patchClip, setClipsSilent, uid } from './store'
 import { engine } from './engine'
 import { Clip, Keyframe } from './types'
 
@@ -88,7 +88,7 @@ export async function cutObjectInVideo(clipId: string, box: ObjBox, status: (m: 
       return objectMask(d, w, h, [[(px / a.width) * w, (py / a.height) * h]], [1])
     })
   } catch (e) {
-    setProject({ clips: getState().project.clips.filter((x) => x.id !== dup.id) })
+    setClipsSilent(getState().project.clips.filter((x) => x.id !== dup.id))
     throw e
   }
   engine.requestRender()

@@ -5,7 +5,7 @@ import { engine } from './engine'
 import { getInput, mixRange } from './media'
 import { evalProp } from './anim'
 import { encodeWav } from './dsp'
-import { addAsset, addAssetClip, checkpoint, clipEnd, getAsset, getClip, getPreset, getState, patchClip, projectDuration, setProject } from './store'
+import { addAsset, addAssetClip, checkpoint, clipEnd, getAsset, getClip, getPreset, getState, patchClip, projectDuration, setProject, patchProjectSilent } from './store'
 import { Asset, Clip, Keyframe } from './types'
 
 const tick = () => new Promise((r) => setTimeout(r, 0))
@@ -421,7 +421,7 @@ export async function normaliseLoudness(target: number): Promise<string> {
   if (l === null) throw new Error('The project has no sound to measure.')
   const db = Math.max(-20, Math.min(20, target - l))
   checkpoint()
-  setProject({ loudDb: +db.toFixed(2) })
+  patchProjectSilent({ loudDb: +db.toFixed(2) })
   return `Measured ${l.toFixed(1)} LUFS → set to ${target} LUFS (${db >= 0 ? '+' : ''}${db.toFixed(1)} dB, with a peak limiter).`
 }
 

@@ -1,3 +1,4 @@
+import { toggleSec, useSettings } from '../settings'
 import { ReactNode, useEffect, useState } from 'react'
 import { checkpoint } from '../store'
 
@@ -9,11 +10,20 @@ export const fmtTime = (t: number) => {
 }
 
 export function Section({ title, children, right }: { title: string; children: ReactNode; right?: ReactNode }) {
+  // click the heading to fold a section away; remembered in this browser
+  const closed = useSettings((s) => s.closedSecs.includes(title))
   return (
-    <div className="sec">
-      <div className="sec-h">
-        <span>{title}</span>
-        {right}
+    <div className={'sec' + (closed ? ' closed' : '')}>
+      <div
+        className="sec-h"
+        role="button"
+        tabIndex={0}
+        aria-expanded={!closed}
+        onClick={(e) => !(e.target as HTMLElement).closest('button, a, input, select') && toggleSec(title)}
+        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget && (e.preventDefault(), toggleSec(title))}
+      >
+        <span><svg className="sec-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m6 9 6 6 6-6" /></svg>{title}</span>
+        {!closed && right}
       </div>
       {children}
     </div>

@@ -7,6 +7,7 @@ import { ExportDialog } from './components/ExportDialog'
 import { AutoEditDialog } from './components/AutoEditDialog'
 import { Icon } from './components/Icon'
 import { Tour, startTour } from './components/Tour'
+import { SettingsDialog } from './components/SettingsDialog'
 import { currentTheme, setTheme } from './themeMode'
 import { engine, FPS } from './engine'
 import {
@@ -47,6 +48,13 @@ export default function App() {
   }, [])
   const [dropping, setDropping] = useState(false)
   const [confirmNew, setConfirmNew] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [more, setMore] = useState(false)
+  useEffect(() => {
+    const on = () => setSettingsOpen(true)
+    window.addEventListener('cf:settings', on)
+    return () => window.removeEventListener('cf:settings', on)
+  }, [])
   const [compat, setCompat] = useState<string[]>([])
   useEffect(() => {
     const w = window as any
@@ -176,7 +184,7 @@ export default function App() {
         </span>
         <div className="spacer" />
         <button className="btn sm ae-btn" onClick={() => setAutoOpen(true)} title="Upload clips, set the order – we edit it for you"><Icon name="sparkles" size={15} /> Auto-edit</button>
-        <button className="btn sm" onClick={() => setConfirmNew(true)} title="Start a new project"><Icon name="plus" size={15} /> New</button>
+        <button className="btn sm hide-phone" onClick={() => setConfirmNew(true)} title="Start a new project"><Icon name="plus" size={15} /> New</button>
         <select
           className="preset-sel"
           value={presetId}
@@ -192,13 +200,29 @@ export default function App() {
             </option>
           ))}
         </select>
-        <button className="ico theme-btn" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'} aria-label="Toggle light / dark mode">
+        <button className="ico hide-phone" onClick={() => setSettingsOpen(true)} title="Settings – theme, colours, sizes, tools" aria-label="Settings"><Icon name="gear" size={16} /></button>
+        <button className="ico theme-btn hide-phone" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'} aria-label="Toggle light / dark mode">
           <Icon name={theme === 'light' ? 'moon' : 'sun'} size={16} />
         </button>
         <button className="ico tour-btn" onClick={startTour} title="Quick tour"><Icon name="help" size={16} /></button>
         <button className="ico" disabled={!canUndo} onClick={undo} title="Undo (Ctrl+Z)"><Icon name="undo" size={16} /></button>
         <button className="ico" disabled={!canRedo} onClick={redo} title="Redo (Ctrl+Shift+Z)"><Icon name="redo" size={16} /></button>
         <button className="btn primary" onClick={() => setExporting(true)}><Icon name="upload" size={15} /> Export</button>
+        <div className="more-wrap">
+          <button className="ico" onClick={() => setMore(!more)} aria-label="More" aria-expanded={more}><Icon name="more" size={18} /></button>
+          {more && (
+            <>
+              <div className="more-scrim" onClick={() => setMore(false)} />
+              <div className="more-menu" onClick={() => setMore(false)}>
+                <button onClick={() => setSettingsOpen(true)}><Icon name="gear" size={17} /> Settings</button>
+                <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}><Icon name={theme === 'light' ? 'moon' : 'sun'} size={17} /> {theme === 'light' ? 'Dark mode' : 'Light mode'}</button>
+                <button onClick={startTour}><Icon name="help" size={17} /> Quick tour</button>
+                <hr />
+                <button onClick={() => setConfirmNew(true)}><Icon name="plus" size={17} /> New project</button>
+              </div>
+            </>
+          )}
+        </div>
       </header>
       <div className="mid">
         <MediaPanel />
@@ -215,6 +239,7 @@ export default function App() {
         <button onClick={() => setExporting(true)}><Icon name="upload" size={20} /><span>Export</span></button>
       </nav>
       {sheet && <button className="sheet-x" onClick={() => setSheet(null)} aria-label="Close panel"><i />Close</button>}
+      {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
       {exporting && <ExportDialog onClose={() => setExporting(false)} />}
       {autoOpen && <AutoEditDialog onClose={() => setAutoOpen(false)} />}
       <Tour />

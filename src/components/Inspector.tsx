@@ -1,3 +1,4 @@
+import { getSettings, setSettings } from '../settings'
 import { useEffect, useState } from 'react'
 import { Chips, NumField, Section, Slider } from './Fields'
 import {
@@ -163,6 +164,7 @@ function ClipPanel({ clip: c }: { clip: Clip }) {
           <button className="ico danger" title="Delete (Del)" onClick={() => deleteClip(c.id)}>🗑</button>
         </div>
       </div>
+      <FoldAll />
 
       <Section title="Timing">
         <div className="grid2">
@@ -430,3 +432,14 @@ const EASES: { id: Ease; name: string }[] = [
 ]
 
 export { getState }
+
+/** Fold every section to just its heading, or open them all again. */
+function FoldAll() {
+  const titles = () => [...document.querySelectorAll('.right .sec-h > span')].map((e) => e.textContent ?? '').filter(Boolean)
+  return (
+    <div className="insp-fold">
+      <button onClick={() => setSettings({ closedSecs: [...new Set([...getSettings().closedSecs, ...titles()])].filter((t) => t !== 'Timing') })}>Fold all</button>
+      <button onClick={() => { const t = new Set(titles()); setSettings({ closedSecs: getSettings().closedSecs.filter((x) => !t.has(x)) }) }}>Open all</button>
+    </div>
+  )
+}

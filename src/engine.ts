@@ -509,6 +509,7 @@ class Engine {
   }
 
   private fadeGain(c: Clip, lt: number) {
+    if (getState().project.tracks?.[c.track]?.mute) return 0
     let g = c.volume * duckAt(c, lt) * volAt(c, lt)
     if (c.fadeIn > 0 && lt < c.fadeIn) g *= lt / c.fadeIn
     const rem = c.dur - lt
@@ -628,6 +629,7 @@ class Engine {
     ctx.restore()
     const order = TRACKS.filter((x) => x.type === 'video').map((x) => x.id).reverse()
     for (const tid of order) {
+      if (project.tracks?.[tid]?.hide) continue
       const list = project.clips
         .filter((c) => c.track === tid && t >= c.start && t < c.start + c.dur)
         .sort((a, b) => a.start - b.start)
