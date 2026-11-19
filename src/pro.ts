@@ -183,6 +183,17 @@ export async function trackMask(clipId: string, onProgress?: (p: number) => void
   return lostMsg(r.lost, n, clipEnd(c) - t0) + ' The mask now follows it.'
 }
 
+/** Follows a point (source pixels at timeline time t0) through a video clip. Times are clip-local seconds. */
+export async function followPoint(clipId: string, sx0: number, sy0: number, t0: number, onProgress?: (p: number) => void, backward = false): Promise<{ t: number[]; pts: [number, number][]; lost: number }> {
+  const c = getClip(clipId)
+  const a = c && getAsset(c.assetId)
+  if (!c || !a || c.kind !== 'video') throw new Error('Pick a video clip.')
+  const n = Math.max(2, Math.floor((backward ? t0 - c.start : clipEnd(c) - t0) * FPS_T))
+  const times = Array.from({ length: n }, (_, i) => (backward ? Math.max(c.start, t0 - i / FPS_T) : t0 + i / FPS_T))
+  const r = await trackPoint(a, times.map((t) => Math.min(a.duration - 0.01, c.srcIn + (t - c.start) * c.speed)), sx0, sy0, onProgress)
+  return { t: times.map((t) => t - c.start), pts: r.pts as [number, number][], lost: r.lost }
+}
+
 /* ================= shared encoder for rebuilt clips ================= */
 
 async function stereoRange(a: Asset, from: number, to: number, rate = 1): Promise<AudioBuffer | null> {
@@ -590,7 +601,7 @@ export async function speak(text: string, voice: string, status: Status): Promis
 
 /* ---------- AI background removal ---------- */
 
-export async function removeBackground(clipId: string, status: Status, signal: { cancelled: boolean }, mode: 'remove' | 'blur' = 'remove', cp = true): Promise<string> {
+export async function removeBackground(clipId: string, status: Status, signal: { cancelled: boolean }, mode: 'remove' | 'blur' = 'remove', cp = true, maskFn?: (d: Uint8ClampedArray, w: number, h: number, srcT: number) => Promise<Uint8Array>): Promise<string> {
   const c = getClip(clipId)
   const a = c && getAsset(c.assetId)
   if (!c || !a || (c.kind !== 'video' && c.kind !== 'image')) throw new Error('Select a video or photo clip.')
@@ -606,10 +617,10 @@ export async function removeBackground(clipId: string, status: Status, signal: {
   mcv.height = sh
   const mg = mcv.getContext('2d')!
   let reqId = 0
-  const maskOf = async (img: CanvasImageSource): Promise<HTMLCanvasElement> => {
+  const maskOf = async (img: CanvasImageSource, srcT = 0): Promise<HTMLCanvasElement> => {
     sg.drawImage(img, 0, 0, SW, sh)
     const d = sg.getImageData(0, 0, SW, sh)
-    const m = mock ? mock(d.data, SW, sh) : (await ask<{ mask: Uint8Array }>({ task: 'seg', id: ++reqId, data: d.data, w: SW, h: sh }, 'mask', status, [d.data.buffer])).mask
+    const m = maskFn ? await maskFn(d.data, SW, sh, srcT) : mock ? mock(d.data, SW, sh) : (await ask<{ mask: Uint8Array }>({ task: 'seg', id: ++reqId, data: d.data, w: SW, h: sh }, 'mask', status, [d.data.buffer])).mask
     const md = mg.createImageData(SW, sh)
     for (let i = 0; i < m.length; i++) {
       md.data[i * 4 + 3] = m[i]
@@ -681,7 +692,7 @@ export async function removeBackground(clipId: string, status: Status, signal: {
   for await (const f of sink.canvases(from, to)) {
     if (signal.cancelled) throw new Error('Cancelled')
     if (!mask || f.timestamp - lastMaskT >= 1 / 12) {
-      mask = await maskOf(f.canvas as HTMLCanvasElement)
+      mask = await maskOf(f.canvas as HTMLCanvasElement, f.timestamp)
       lastMaskT = f.timestamp
     }
     composite(wr.ctx, f.canvas as HTMLCanvasElement, mask)

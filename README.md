@@ -210,3 +210,12 @@ Line-icon set replacing emoji controls (tabs, header, transport, timeline toolba
 - **Tap to cut out anything** (SlimSAM, on-device): sticker / blur / erase / keep only it; video uses the current frame.
 - **3D photo zoom**: Depth Anything depth map → Otsu near/far split → filled background plate + near layers with parallax; zoom in/out, slide, orbit.
 - **Script to video**: AI-written or pasted script → scenes with keywords → TTS voice-over → Pexels/Pixabay clips (or colour backgrounds) → captions.
+
+## v19 – auto-editor pack
+- **Music maker** (Tools tab, and top of the Audio tab): original, copyright-free background music made in the browser – 8 moods (Vlog, Chill, Lo-fi, Hype, Cinematic, Sad, Desi with dholak + sitar, Festive), any length or exactly the video's length, "Another version" for a new tune. Goes on the Music track, turned down under talking.
+- **Auto punch-in zooms**: zooms on the face at the start of each phrase and on loud moments; Subtle / Punchy / Crazy.
+- **Auto sound effects**: whoosh on every cut, and pops/dings/cash/boom on words like "wow", "paisa", "finally" (from your captions).
+- **Trending caption styles**: 🔥 Big bounce, 💚 Keyword colour, 🟪 Highlight box, 😂 Emoji pop (one keyword per line picked automatically, with a matching emoji).
+- **Auto b-roll** (Tools tab): reads your captions, finds lines that name something you can film (places from the 580-place list, Hinglish words like khana/pahad/bazaar translated to English, common English nouns), searches Pexels/Pixabay and lays 2–3 s clips over your talking on V2/V3, full screen or small corner; the opening stays on your face. Test (mocked stock): "Goa", "mountains", "market" picked from 6 lines; "subscribe kar dena guys" correctly skipped.
+- **Object through a whole video** (video clip → ✂️ Tap to cut out anything): tap it once, then **Blur it in the whole clip**, **Pixelate it**, or **Cut it out** (its own transparent layer). The tap is tracked forwards and backwards from the frame you tapped. Test: a moving face (345–626 px travel) tracked within ~20 px on most frames over 6 s; cut-out follows it.
+

@@ -10,7 +10,7 @@ import { RecMode, Recording, canRecordCamera, canRecordScreen, startRecording } 
 import { LAYOUTS, addAdjustmentLayer, applyLayout } from '../looks'
 import { DubSection, SpeakersSection } from './VoicePanels'
 import { ScriptToVideo } from './ScriptPanel'
-import { AutoSfxSection, AutoZoomSection, MusicMaker } from './AutoPanels'
+import { AutoSfxSection, AutoZoomSection, BrollSection, MusicMaker } from './AutoPanels'
 import { ChaptersSection, EnhanceSection, TitlesSection, TravelMapSection } from './MorePanels'
 import { Moment, exportMoments, findMoments, openMoment } from '../shorts'
 import { Version, deleteVersion, listVersions, saveVersion } from '../db'
@@ -66,6 +66,8 @@ export function ToolsTab() {
       <AutoZoomSection />
       <div className="group-h">🔊 Auto sound effects</div>
       <AutoSfxSection />
+      <div className="group-h">🎬 Auto b-roll</div>
+      <BrollSection />
       <div className="group-h">📝 Script to video</div>
       <ScriptToVideo />
       <div className="group-h">🗺 Travel map</div>

@@ -59,7 +59,7 @@ export function ObjectCutSection({ c }: { c: Clip }) {
   if (c.kind !== 'image' && c.kind !== 'video') return null
   return (
     <Section title="✂️ Tap to cut out anything">
-      <div className="hint">Tap any object – a bike, a dog, a dish, a person – to cut it out as a sticker, blur it, erase it or remove everything else. {c.kind === 'video' ? 'On a video it uses the frame under the playhead.' : ''}</div>
+      <div className="hint">Tap any object – a bike, a dog, a dish, a person – to cut it out as a sticker, blur it, erase it or remove everything else. {c.kind === 'video' ? 'On a video: tap it on the frame under the playhead, then blur, pixelate or cut it out through the whole clip.' : ''}</div>
       <button className="btn full" onClick={() => setOpen(true)}>✂️ Open cut-out</button>
       {open && <CutDialog clip={c} onClose={() => setOpen(false)} />}
     </Section>
@@ -74,6 +74,8 @@ function CutDialog({ clip, onClose }: { clip: Clip; onClose: () => void }) {
   const [mode, setMode] = useState(1)
   const [busy, setBusy] = useState('')
   const [ready, setReady] = useState(false)
+  const srcScale = useRef(1) // working image px → source px
+  const sig = useRef({ cancelled: false })
   const name = (getAsset(clip.assetId)?.name ?? 'frame').replace(/\.[^.]+$/, '')
 
   const redraw = () => {
@@ -139,6 +141,7 @@ function CutDialog({ clip, onClose }: { clip: Clip; onClose: () => void }) {
       const W0 = (source as any).naturalWidth || source.width
       const H0 = (source as any).naturalHeight || source.height
       const k = Math.min(1, 1024 / Math.max(W0, H0))
+      srcScale.current = 1 / k
       const c = img.current
       c.width = Math.round(W0 * k)
       c.height = Math.round(H0 * k)
@@ -167,6 +170,40 @@ function CutDialog({ clip, onClose }: { clip: Clip; onClose: () => void }) {
       mask.current = await objectMask(d, c.width, c.height, next.map((p) => [p.x, p.y]), next.map((p) => p.l), setBusy)
     } catch (e2) {
       toast((e2 as Error).message)
+    }
+    setBusy('')
+  }
+
+  /** Box of the selection in source pixels. */
+  const box = () => {
+    const m = mask.current!
+    const W = img.current.width
+    let x0 = W
+    let y0 = 1e9
+    let x1 = 0
+    let y1 = 0
+    for (let i = 0; i < m.length; i++)
+      if (m[i]) {
+        const x = i % W
+        const y = (i / W) | 0
+        if (x < x0) x0 = x
+        if (x > x1) x1 = x
+        if (y < y0) y0 = y
+        if (y > y1) y1 = y
+      }
+    const k = srcScale.current
+    return { x0: x0 * k, y0: y0 * k, x1: x1 * k, y1: y1 * k }
+  }
+  const wholeClip = async (kind: 'blur' | 'pixelate' | 'cut') => {
+    if (!mask.current) return
+    sig.current = { cancelled: false }
+    setBusy('Following it through the clip…')
+    try {
+      const v = await import('../videoobj')
+      toast(kind === 'cut' ? await v.cutObjectInVideo(clip.id, box(), (m) => setBusy(m), sig.current) : await v.hideObjectInVideo(clip.id, box(), kind, (p) => setBusy(`Following it… ${Math.round(p * 100)}%`)))
+      onClose()
+    } catch (e) {
+      toast((e as Error).message)
     }
     setBusy('')
   }
@@ -261,10 +298,23 @@ function CutDialog({ clip, onClose }: { clip: Clip; onClose: () => void }) {
         <canvas ref={view} className="erase-cv" style={{ cursor: 'crosshair' }} onClick={tap} />
         <div className="hint">{busy || (mask.current ? 'Blue = selected. Tap more to add or leave out parts.' : 'Tap the object.')}</div>
         <div className="chips">
-          <button className="btn sm primary" disabled={!mask.current || !!busy} onClick={() => result('sticker')}>🏷 Cut out as sticker</button>
+          <button className={'btn sm' + (clip.kind === 'image' ? ' primary' : '')} disabled={!mask.current || !!busy} onClick={() => result('sticker')}>🏷 Cut out as sticker</button>
           <button className="btn sm" disabled={!mask.current || !!busy} onClick={() => result('blur')}>🌫 Blur it</button>
           <button className="btn sm" disabled={!mask.current || !!busy} onClick={() => result('erase')}>🧽 Erase it</button>
           {clip.kind === 'image' && <button className="btn sm" disabled={!mask.current || !!busy} onClick={() => result('keep')}>🖼 Keep only it</button>}
+        </div>
+        {clip.kind === 'video' && (
+          <>
+            <div className="hint">Through the whole video clip (follows it as it moves):</div>
+            <div className="chips">
+              <button className="btn sm primary" disabled={!mask.current || !!busy} onClick={() => wholeClip('blur')}>🎬🌫 Blur it in the whole clip</button>
+              <button className="btn sm" disabled={!mask.current || !!busy} onClick={() => wholeClip('pixelate')}>🎬▦ Pixelate it</button>
+              <button className="btn sm" disabled={!mask.current || !!busy} onClick={() => wholeClip('cut')}>🎬✂️ Cut it out (slow)</button>
+              {busy && <button className="btn sm" onClick={() => (sig.current.cancelled = true)}>Cancel</button>}
+            </div>
+          </>
+        )}
+        <div className="chips">
           <button className="btn sm" disabled={!!busy} onClick={onClose}>Cancel</button>
         </div>
       </div>

@@ -118,3 +118,50 @@ export function AutoSfxSection() {
     </>
   )
 }
+
+export function BrollSection() {
+  const [stock, setStock] = useState<'pexels' | 'pixabay'>('pexels')
+  const [every, setEvery] = useState(8)
+  const [style, setStyle] = useState<'full' | 'pip'>('full')
+  const [busy, setBusy] = useState('')
+  const sig = useRef({ cancelled: false })
+  return (
+    <>
+      <div className="hint">Reads your captions and drops matching stock clips over your talking – say “Goa beach” or “momos” and a beach or momos shot appears for a few seconds while your voice keeps playing. Hinglish words are understood too.</div>
+      <div className="chips">
+        <button className={'chip' + (stock === 'pexels' ? ' on' : '')} onClick={() => setStock('pexels')}>Pexels</button>
+        <button className={'chip' + (stock === 'pixabay' ? ' on' : '')} onClick={() => setStock('pixabay')}>Pixabay</button>
+        <button className={'chip' + (style === 'full' ? ' on' : '')} onClick={() => setStyle('full')}>Full screen</button>
+        <button className={'chip' + (style === 'pip' ? ' on' : '')} onClick={() => setStyle('pip')}>Small corner</button>
+      </div>
+      <div className="chips">
+        {[5, 8, 12].map((s) => (
+          <button key={s} className={'chip' + (every === s ? ' on' : '')} onClick={() => setEvery(s)}>Every {s}s</button>
+        ))}
+      </div>
+      {busy ? (
+        <>
+          <div className="hint">{busy}</div>
+          <button className="btn full" onClick={() => (sig.current.cancelled = true)}>Cancel</button>
+        </>
+      ) : (
+        <button
+          className="btn full"
+          onClick={async () => {
+            sig.current = { cancelled: false }
+            setBusy('Starting…')
+            try {
+              const { autoBroll } = await import('../broll')
+              toast(await autoBroll({ stock, every, len: 3, style }, (m) => setBusy(m), sig.current))
+            } catch (e) {
+              toast((e as Error).message)
+            }
+            setBusy('')
+          }}
+        >
+          🎬 Add b-roll
+        </button>
+      )}
+    </>
+  )
+}
