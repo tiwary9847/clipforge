@@ -20,10 +20,14 @@ import * as looks from './looks'
 import * as viz from './viz'
 import * as anim from './anim'
 import * as shorts from './shorts'
+import * as faces from './faces'
+import * as speakers from './speakers'
+import * as dub from './dub'
+import * as dspx from './dsp'
 import { setVizReady } from './viz'
 
 // Small handle for automated tests and for power users poking around in the console.
-;(window as any).__cf = { store, processing, dsp, engine, fastExport, library, tools2, pro, grade, multicam, media, looks, viz, anim, shorts }
+;(window as any).__cf = { store, processing, dsp, engine, fastExport, library, tools2, pro, grade, multicam, media, looks, viz, anim, shorts, faces, speakers, dub, dspx }
 
 createRoot(document.getElementById('root')!).render(<App />)
 

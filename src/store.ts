@@ -358,6 +358,46 @@ export function addShape(shape: ShapeId, label: string) {
   )
 }
 
+/** A sticker that sits on a face in a video clip and follows it. */
+export function addFaceSticker(shape: ShapeId, label: string, target: Clip, person = 0, emoji?: string) {
+  const t = timeGetter()
+  const start = t >= target.start && t < target.start + target.dur - 0.3 ? t : target.start
+  const dur = Math.max(0.5, target.start + target.dur - start)
+  const track = freeOverlayTrack(start, dur)
+  return insertClip(
+    baseClip('sticker', track, {
+      label,
+      shape,
+      emoji,
+      stickerSize: 0.12,
+      start,
+      dur,
+      follow: { clipId: target.id, person, anchor: 'face', size: 1 },
+      transIn: { type: 'none', dur: 0.2 },
+    }),
+  )
+}
+
+/** Animated travel map card (a sticker sized to fill the frame width). */
+export function addMapClip(map: import('./travelmap').MapData, dur: number) {
+  const t = timeGetter()
+  const P = getPreset()
+  const track = freeOverlayTrack(t, dur)
+  const fill = Math.min(P.w, P.h) / P.h // card is square: as wide as the shorter side
+  return insertClip(
+    baseClip('sticker', track, {
+      label: `Map: ${map.stops.map((s) => s.n).join(' → ')}`.slice(0, 60),
+      shape: 'map',
+      map,
+      stickerSize: (fill * 0.94) / 3.2,
+      start: t,
+      dur,
+      transIn: { type: 'fade', dur: 0.3 },
+      transOut: { type: 'fade', dur: 0.3 },
+    }),
+  )
+}
+
 export function addSfx(sfxId: string) {
   const def = SFX_LIST.find((s) => s.id === sfxId)
   if (!def) return
@@ -366,7 +406,7 @@ export function addSfx(sfxId: string) {
 }
 
 export function addCaptionClips(
-  lines: { text: string; start: number; dur: number; hlIdx?: number }[],
+  lines: { text: string; start: number; dur: number; hlIdx?: number; color?: string }[],
   textStyle: TextProps,
   y: number,
 ) {
@@ -377,7 +417,7 @@ export function addCaptionClips(
       start: l.start,
       dur: l.dur,
       y,
-      text: { ...textStyle, text: l.text, hlIdx: l.hlIdx },
+      text: { ...textStyle, ...(l.color ? { color: l.color } : {}), text: l.text, hlIdx: l.hlIdx },
     }),
   )
   set({ project: { ...state.project, clips: [...state.project.clips, ...made] }, selectedId: made[0]?.id ?? null, selIds: made[0] ? [made[0].id] : [] })

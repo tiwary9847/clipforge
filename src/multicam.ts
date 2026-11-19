@@ -92,7 +92,7 @@ export async function createMulticam(assetIds: string[], onStatus: (m: string) =
 }
 
 /** Switches the multicam edit to angle k from timeline time t onwards (until the next cut). */
-export function cutToAngle(k: number, t: number): string {
+export function cutToAngle(k: number, t: number, cp = true): string {
   const st = getState()
   const mc = st.project.multicam
   if (!mc) return 'No multicam edit in this project.'
@@ -105,7 +105,7 @@ export function cutToAngle(k: number, t: number): string {
   if (cur.assetId === ang.assetId) return `Already on ${ang.name}.`
   const tk = t - mc.start - ang.shift
   if (tk < 0 || tk > a.duration - 0.1) return `${ang.name} wasn’t recording at this moment.`
-  checkpoint()
+  if (cp) checkpoint()
   let right: Clip = cur
   if (t > cur.start + 0.04) {
     splitClip(cur.id, t, false)
@@ -123,4 +123,28 @@ export function cutToAngle(k: number, t: number): string {
 
 export function endMulticam() {
   setProject({ multicam: undefined })
+}
+
+/** Cuts the multicam edit to whoever is talking: map[speaker] = camera index. One undo step. */
+export function switchBySpeaker(turns: { s: number; e: number; spk: number }[], map: number[], minShot = 1.5): string {
+  const mc = getState().project.multicam
+  if (!mc) throw new Error('Make a multicam edit first (Tools → Multicam).')
+  if (!turns.length) throw new Error('No speaker turns found – run “Find speakers” first.')
+  checkpoint()
+  let last = -1
+  let lastT = -Infinity
+  let cuts = 0
+  for (const g of turns) {
+    const cam = map[g.spk] ?? -1
+    if (cam < 0 || cam === last) continue
+    const t = Math.max(g.s, lastT + minShot)
+    if (t >= g.e - 0.2) continue
+    const r = cutToAngle(cam, t, false)
+    if (r.startsWith('Cut to') || r.startsWith('Already')) {
+      last = cam
+      lastT = t
+      if (r.startsWith('Cut to')) cuts++
+    }
+  }
+  return `Made ${cuts} cut${cuts === 1 ? '' : 's'} – the camera now follows whoever is talking.`
 }

@@ -424,7 +424,8 @@ export function buildChapters(): { text: string; problems: string[] } {
   const texts = st.project.clips.filter((c) => c.kind === 'text' && c.text?.text)
   const lines = pts.map((t, i) => {
     const near = texts.filter((c) => Math.abs(c.start - t) < 3).sort((a, b) => Math.abs(a.start - t) - Math.abs(b.start - t))[0]
-    const name = near?.text?.text.replace(/\s+/g, ' ').trim().slice(0, 60) || (i === 0 ? 'Intro' : `Part ${i + 1}`)
+    const named = st.project.markerNames?.[t.toFixed(2)] ?? (i === 0 ? st.project.markerNames?.['0.00'] : undefined)
+    const name = named || near?.text?.text.replace(/\s+/g, ' ').trim().slice(0, 60) || (i === 0 ? 'Intro' : `Part ${i + 1}`)
     return `${fmt(t)} ${name}`
   })
   const problems: string[] = []

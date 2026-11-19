@@ -351,3 +351,47 @@ export function detectSilences(x: Float32Array, sr: number, minDur = 0.4, pad = 
   }
   return out
 }
+
+/** Pitch-preserving time stretch (WSOLA). rate > 1 = faster / shorter. */
+export function timeStretch(x: Float32Array, sr: number, rate: number): Float32Array {
+  if (Math.abs(rate - 1) < 0.01) return x
+  const N = Math.round(sr * 0.03) // 30 ms grains
+  const Ha = Math.round(N / 2) // output hop
+  const Hs = Math.round(Ha * rate) // input hop
+  const tol = Math.round(sr * 0.008)
+  const outLen = Math.ceil(x.length / rate) + N
+  const y = new Float32Array(outLen)
+  const wsum = new Float32Array(outLen)
+  const win = new Float32Array(N)
+  for (let i = 0; i < N; i++) win[i] = 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (N - 1))
+  let prev = 0 // input position of the previous grain
+  for (let o = 0, k = 0; o + N < outLen; o += Ha, k++) {
+    const nominal = k * Hs
+    if (nominal + N + tol >= x.length) break
+    let best = nominal
+    if (k > 0) {
+      // pick the offset whose start best continues the previous grain
+      let bc = -Infinity
+      const ref = prev + Ha
+      for (let d = -tol; d <= tol; d += 2) {
+        const p = nominal + d
+        if (p < 0) continue
+        let c = 0
+        for (let i = 0; i < Ha; i += 3) c += x[ref + i] * x[p + i]
+        if (c > bc) {
+          bc = c
+          best = p
+        }
+      }
+    }
+    for (let i = 0; i < N; i++) {
+      y[o + i] += x[best + i] * win[i]
+      wsum[o + i] += win[i]
+    }
+    prev = best
+  }
+  for (let i = 0; i < outLen; i++) if (wsum[i] > 1e-3) y[i] /= wsum[i]
+  let end = outLen
+  while (end > 0 && wsum[end - 1] < 1e-3) end--
+  return y.slice(0, end)
+}

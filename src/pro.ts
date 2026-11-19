@@ -419,7 +419,7 @@ export async function normaliseLoudness(target: number): Promise<string> {
 const AI_WORKER = `
 import { pipeline, env, AutoModel, AutoProcessor, RawImage } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3';
 env.allowLocalModels = false;
-let seg = null, tts = {}, kokoro = null;
+let seg = null, tts = {}, kokoro = null, upscaler = null;
 const prog = (p) => { if (p && p.status === 'progress') self.postMessage({ type: 'progress', p: p.progress }) };
 self.onmessage = async (e) => {
   const m = e.data;
@@ -436,6 +436,16 @@ self.onmessage = async (e) => {
       const { output } = await seg.model({ input: pixel_values });
       const mask = await RawImage.fromTensor(output[0].mul(255).to('uint8')).resize(m.w, m.h);
       self.postMessage({ type: 'mask', id: m.id, mask: mask.data }, [mask.data.buffer]);
+    } else if (m.task === 'upscale') {
+      if (!upscaler) {
+        self.postMessage({ type: 'status', msg: 'Downloading the AI upscaler (first time only)…' });
+        upscaler = await pipeline('image-to-image', 'Xenova/swin2SR-classical-sr-x2-64', { progress_callback: prog });
+      }
+      self.postMessage({ type: 'status', msg: 'Upscaling with AI…' });
+      const img = new RawImage(m.data, m.w, m.h, 4).rgb();
+      const out = await upscaler(img);
+      const rgba = out.rgba();
+      self.postMessage({ type: 'image', data: rgba.data, w: rgba.width, h: rgba.height }, [rgba.data.buffer]);
     } else if (m.task === 'tts') {
       self.postMessage({ type: 'status', msg: 'Loading voice (first time downloads it)…' });
       let audio, sr;
@@ -501,16 +511,27 @@ export const VOICES = [
   { id: 'mms:Xenova/mms-tts-eng', name: 'English · MMS (non-commercial licence)', commercial: false },
 ]
 
+/** 2× AI super-resolution (Swin2SR) of an RGBA image – for photos up to ~1000 px. */
+export async function aiUpscale2x(data: Uint8ClampedArray, w: number, h: number, status?: Status): Promise<{ data: Uint8ClampedArray; w: number; h: number }> {
+  const mock = (window as any).__cfMockUpscale as undefined | ((d: Uint8ClampedArray, w: number, h: number) => { data: Uint8ClampedArray; w: number; h: number })
+  if (mock) return mock(data, w, h)
+  const copy = new Uint8ClampedArray(data)
+  return ask<{ data: Uint8ClampedArray; w: number; h: number }>({ task: 'upscale', data: copy, w, h }, 'image', status, [copy.buffer])
+}
+
+/** Text → speech samples with one of the AI voices (runs on the device). */
+export async function synth(text: string, voice: string, status?: Status): Promise<{ audio: Float32Array; sr: number }> {
+  const t = text.trim()
+  const mock = (window as any).__cfMockTts as undefined | ((t: string, v?: string) => { audio: Float32Array; sr: number })
+  if (mock) return mock(t, voice)
+  const [eng, id] = voice.split(':')
+  return ask<{ audio: Float32Array; sr: number }>(eng === 'kokoro' ? { task: 'tts', engine: 'kokoro', voice: id, text: t } : { task: 'tts', engine: 'mms', model: id, text: t }, 'audio', status)
+}
+
 export async function speak(text: string, voice: string, status: Status): Promise<string> {
   const t = text.trim()
   if (!t) throw new Error('Type something to say.')
-  const mock = (window as any).__cfMockTts as undefined | ((t: string) => { audio: Float32Array; sr: number })
-  let res: { audio: Float32Array; sr: number }
-  if (mock) res = mock(t)
-  else {
-    const [eng, id] = voice.split(':')
-    res = await ask<{ audio: Float32Array; sr: number }>(eng === 'kokoro' ? { task: 'tts', engine: 'kokoro', voice: id, text: t } : { task: 'tts', engine: 'mms', model: id, text: t }, 'audio', status)
-  }
+  const res = await synth(t, voice, status)
   const na = await engine.importFile(new File([encodeWav(res.audio, res.sr)], `Voice – ${t.slice(0, 24)}.wav`, { type: 'audio/wav' }))
   if (!na) throw new Error('Could not load the generated voice.')
   addAsset(na)

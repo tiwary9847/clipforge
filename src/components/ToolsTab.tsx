@@ -8,6 +8,8 @@ import { TextEditDialog } from './TextEditDialog'
 import { Icon } from './Icon'
 import { RecMode, Recording, canRecordCamera, canRecordScreen, startRecording } from '../recorder'
 import { LAYOUTS, addAdjustmentLayer, applyLayout } from '../looks'
+import { DubSection, SpeakersSection } from './VoicePanels'
+import { ChaptersSection, EnhanceSection, TitlesSection, TravelMapSection } from './MorePanels'
 import { Moment, exportMoments, findMoments, openMoment } from '../shorts'
 import { Version, deleteVersion, listVersions, saveVersion } from '../db'
 import { checkpoint, restoreVersionProject } from '../store'
@@ -56,6 +58,14 @@ export function ToolsTab() {
           <small>Screen, webcam or both (face bubble)</small>
         </button>
       </div>
+      <div className="group-h">🗺 Travel map</div>
+      <TravelMapSection />
+      <div className="group-h">📑 Auto chapters</div>
+      <ChaptersSection />
+      <div className="group-h">✍️ Title, description & hashtags</div>
+      <TitlesSection />
+      <div className="group-h">📸 Photo enhance & upscale</div>
+      <EnhanceSection />
       <div className="group-h">✂️ Long video → Shorts</div>
       <LongToShorts />
       <div className="group-h">🔲 Split-screen layouts</div>
@@ -67,6 +77,10 @@ export function ToolsTab() {
       <WhatsAppSplit />
       <div className="group-h">🎥 Multicam</div>
       <Multicam />
+      <div className="group-h">👥 Speakers (who talks when)</div>
+      <SpeakersSection />
+      <div className="group-h">🌍 Dub into English</div>
+      <DubSection />
       <div className="group-h">🗣 AI voice (text-to-speech)</div>
       <AiVoice />
       <div className="group-h">📏 Loudness</div>

@@ -182,3 +182,13 @@ Line-icon set replacing emoji controls (tabs, header, transport, timeline toolba
 - **Captions for the whole video**: after an auto-edit or any multi-clip edit, captions cover every clip (each source file transcribed once); "Selected clip only" still available.
 - **iPhone/Samsung HEVC videos**: clear message with the fix instead of silently importing a broken clip; fast export names any clip the browser can't decode.
 - Drag-and-drop import now shows its errors; long messages stay on screen longer and can be clicked away.
+
+## v17 – creator AI pack
+- **Face retouch / beauty** (clip → Face retouch): finds and follows faces (bundled tiny face detector + 68-point landmarks, works offline), then smooths skin, brightens and evens skin tone on faces only – eyes and lips stay sharp. Natural / Glow / Smooth presets, per-person choice.
+- **Face-following stickers** (Stickers → Face stickers): deal-with-it glasses, heart/fire eyes, tears, crown, halo, horns, cap, moustache, clown nose, blush, emoji faces – stay on the face as it moves, tilts and changes size.
+- **Speaker detection** (Tools → Speakers): tells voices apart by pitch + timbre; rename speakers; captions can use a colour per speaker; multicam can cut to whoever is talking.
+- **Dub into English** (Tools): Whisper translates the speech, an English AI voice (one per speaker) reads each sentence at the moment it was said – sped up to 1.35× when needed with pitch kept (WSOLA) – and the original is turned down.
+- **Animated travel map** (Tools): route drawing itself with car/bike/bus/train/plane/walk, stops popping in, distance counter; 250+ Indian & popular places or any "Name, lat, lon"; light/dark/paper themes; Natural Earth outlines, no internet needed.
+- **Auto chapters** (Tools): from topic changes in what you say (plus pauses and cuts), named from each part's keywords; becomes markers and the Export → YouTube chapters list.
+- **Title, description & hashtags** (Tools): offline keyword ideas in Hinglish, or better ones with your own Gemini (free tier) / Claude key.
+- **Photo enhance & upscale** (Tools, or clip → Photo enhance): auto light & colour, low-light lift, grain removal, sharpening, 2×/4× enlarging, optional AI 2× upscaler (Swin2SR) for small photos.

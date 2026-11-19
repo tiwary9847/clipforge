@@ -7,6 +7,8 @@ import { getAsset, getPreset, getState, projectDuration, setTimeGetter, subscrib
 import { SFX_LIST } from './library'
 import { computePeaks, makeSfx } from './sfx'
 import { duckAt, evalProp, stabCorrection, volAt } from './anim'
+import { Face, faceAt, srcTime } from './faces'
+import { drawMap } from './travelmap'
 
 export const FPS = 30
 
@@ -141,7 +143,25 @@ function srcSize(s: CanvasImageSource): [number, number] {
 }
 
 const SHAPE_COLOR: Record<string, string> = { arrow: '#ffd400', circle: '#ff3b3b', box: '#ffd400', underline: '#ffe500', cross: '#ff3b3b', check: '#22c55e', subscribe: '#ff0000', like: '#1f6feb', progress: '#ff3b5c', callout: '#ffffff', 'viz-bars': '#b46cff', 'viz-wave': '#31d0ff', 'viz-circle': '#ff5c9a' }
-const SHAPE_BOX: Record<string, [number, number]> = { arrow: [1.5, 0.7], circle: [1.35, 1.05], box: [1.45, 1.05], underline: [1.6, 0.35], cross: [1, 1], check: [1.1, 0.9], subscribe: [2.6, 0.75], like: [1.6, 0.7], callout: [2.2, 1.0], progress: [1, 0.15], 'viz-bars': [2.5, 1.05], 'viz-wave': [2.5, 0.95], 'viz-circle': [1.35, 1.35] }
+const SHAPE_BOX: Record<string, [number, number]> = { arrow: [1.5, 0.7], circle: [1.35, 1.05], box: [1.45, 1.05], underline: [1.6, 0.35], cross: [1, 1], check: [1.1, 0.9], subscribe: [2.6, 0.75], like: [1.6, 0.7], callout: [2.2, 1.0], progress: [1, 0.15], 'viz-bars': [2.5, 1.05], 'viz-wave': [2.5, 0.95], 'viz-circle': [1.35, 1.35], map: [3.2, 3.2],
+  'face-shades': [2, 0.5], 'face-hearteyes': [2, 0.8], 'face-fireeyes': [2, 1], 'face-tears': [2, 1.3], 'face-mustache': [1.6, 0.5], 'face-halo': [1.6, 0.55], 'face-horns': [1.8, 0.8], 'face-blush': [2, 0.55],
+  'face-crown': [1.25, 1.25], 'face-cap': [1.25, 1.25], 'face-nose': [1.25, 1.25], 'face-emoji': [1.25, 1.25] }
+
+/** Where each face sticker sits: anchor, width (× the anchor's base size) and lift (× face height, up is negative). */
+export const FACE_FIT: Record<string, { a: 'eyes' | 'head' | 'nose' | 'mouth' | 'face' | 'cheeks'; w: number; dy: number }> = {
+  'face-shades': { a: 'eyes', w: 2.35, dy: 0 },
+  'face-hearteyes': { a: 'eyes', w: 2.4, dy: 0 },
+  'face-fireeyes': { a: 'eyes', w: 2.4, dy: -0.04 },
+  'face-tears': { a: 'eyes', w: 2.4, dy: 0.12 },
+  'face-mustache': { a: 'mouth', w: 0.55, dy: 0 },
+  'face-halo': { a: 'head', w: 0.95, dy: -0.75 },
+  'face-horns': { a: 'head', w: 1.05, dy: -0.62 },
+  'face-crown': { a: 'head', w: 0.85, dy: -0.8 },
+  'face-cap': { a: 'head', w: 1.25, dy: -0.6 },
+  'face-blush': { a: 'cheeks', w: 0.95, dy: 0.04 },
+  'face-nose': { a: 'nose', w: 0.3, dy: 0 },
+  'face-emoji': { a: 'face', w: 1.45, dy: 0 },
+}
 
 const hex2rgb = (h: string): [number, number, number] => {
   const m = h.replace('#', '')
@@ -611,7 +631,10 @@ class Engine {
         .sort((a, b) => a.start - b.start)
       for (const c of list) {
         if (c.kind === 'adjust') this.applyAdjust(ctx, c, t, W, H)
-        else this.drawClip(ctx, c, t, W, H, getSrc, boxes)
+        else if (c.follow) {
+          const fc = this.followed(c, t, W, H)
+          if (fc) this.drawClip(ctx, fc, t, W, H, getSrc, boxes)
+        } else this.drawClip(ctx, c, t, W, H, getSrc, boxes)
       }
     }
   }
@@ -886,6 +909,7 @@ class Engine {
         else ctx.drawImage(s2, -bw / 2, -bh / 2, bw, bh)
       }
       draw()
+      if (c.beauty && (c.beauty.smooth > 0 || c.beauty.bright > 0 || c.beauty.tone > 0)) this.applyBeauty(ctx, c, lt, src, srcRect, bw, bh, sc)
       if (c.look && c.look.amt > 0) {
         const s0 = src
         const r0 = srcRect
@@ -947,6 +971,191 @@ class Engine {
       ctx.fillRect(0, 0, W, H)
       ctx.restore()
     }
+  }
+
+  /* ---------------- faces: beauty filter + stickers that follow a face ---------------- */
+  private bA?: HTMLCanvasElement
+  private bB?: HTMLCanvasElement
+  private bM?: HTMLCanvasElement
+
+  /** clip-box size of a media clip on a W×H canvas (same maths as drawClip) */
+  private mediaBox(c: Clip, W: number, H: number): [number, number, number, number] | null {
+    const a = getAsset(c.assetId)
+    if (!a || !a.width) return null
+    const fw = Math.max(0.05, 1 - (c.crop?.l ?? 0) - (c.crop?.r ?? 0))
+    const fh = Math.max(0.05, 1 - (c.crop?.t ?? 0) - (c.crop?.b ?? 0))
+    const aw = a.width * fw
+    const ah = a.height * fh
+    const s = c.fit === 'cover' ? Math.max(W / aw, H / ah) : Math.min(W / aw, H / ah)
+    return [aw * s, ah * s, fw, fh]
+  }
+
+  /** source point (0..1 of the full frame) → clip-local coordinates */
+  private toLocal(c: Clip, u: number, v: number, bw: number, bh: number, fw: number, fh: number): [number, number] {
+    return [((u - (c.crop?.l ?? 0)) / fw - 0.5) * bw, ((v - (c.crop?.t ?? 0)) / fh - 0.5) * bh]
+  }
+
+  private applyBeauty(ctx: CanvasRenderingContext2D, c: Clip, lt: number, src: CanvasImageSource, srcRect: [number, number, number, number] | null, bw: number, bh: number, sc: number) {
+    const b = c.beauty!
+    const st = c.kind === 'video' ? (c.freeze ? c.srcIn : c.srcIn + lt * c.speed) : 0
+    const fw = Math.max(0.05, 1 - (c.crop?.l ?? 0) - (c.crop?.r ?? 0))
+    const fh = Math.max(0.05, 1 - (c.crop?.t ?? 0) - (c.crop?.b ?? 0))
+    const people = b.person !== undefined && b.person >= 0 ? [b.person] : [0, 1, 2, 3]
+    for (const p of people) {
+      const f = faceAt(c.assetId, st, p)
+      if (!f) continue
+      const roll = (f[13] * Math.PI) / 180
+      const [cx, cy] = this.toLocal(c, f[0], f[1] - f[3] * 0.1, bw, bh, fw, fh)
+      const lw = (f[2] / fw) * bw * 1.2
+      const lh = (f[3] / fh) * bh * 1.5
+      const x0 = cx - lw / 2
+      const y0 = cy - lh / 2
+      const pw = Math.max(16, Math.min(720, Math.round(lw * Math.abs(sc))))
+      const ph = Math.max(16, Math.round((pw * lh) / lw))
+      const kx = pw / lw
+      const ky = ph / lh
+      const mk = (cv: HTMLCanvasElement | undefined) => {
+        const x = cv ?? document.createElement('canvas')
+        if (x.width !== pw || x.height !== ph) {
+          x.width = pw
+          x.height = ph
+        }
+        const g = x.getContext('2d')!
+        g.setTransform(1, 0, 0, 1, 0, 0)
+        g.globalCompositeOperation = 'source-over'
+        g.globalAlpha = 1
+        g.filter = 'none'
+        g.clearRect(0, 0, pw, ph)
+        return [x, g] as const
+      }
+      // soft face mask with eyes and mouth cut out (they stay sharp)
+      const [mc, m] = mk(this.bM)
+      this.bM = mc
+      const P = (u: number, v: number) => {
+        const [x, y] = this.toLocal(c, u, v, bw, bh, fw, fh)
+        return [(x - x0) * kx, (y - y0) * ky]
+      }
+      const soft = (x: number, y: number, rx: number, ry: number, inner: number) => {
+        m.save()
+        m.translate(x, y)
+        m.rotate(roll)
+        m.scale(Math.max(1, rx), Math.max(1, ry))
+        const gr = m.createRadialGradient(0, 0, 0, 0, 0, 1)
+        gr.addColorStop(0, '#fff')
+        gr.addColorStop(inner, '#fff')
+        gr.addColorStop(1, 'rgba(255,255,255,0)')
+        m.fillStyle = gr
+        m.beginPath()
+        m.arc(0, 0, 1, 0, Math.PI * 2)
+        m.fill()
+        m.restore()
+      }
+      soft(pw / 2, ph / 2, pw * 0.46, ph * 0.47, 0.62)
+      m.globalCompositeOperation = 'destination-out'
+      const eL = P(f[4], f[5])
+      const eR = P(f[6], f[7])
+      const ed = Math.hypot(eR[0] - eL[0], eR[1] - eL[1])
+      soft(eL[0], eL[1], ed * 0.3, ed * 0.18, 0.55)
+      soft(eR[0], eR[1], ed * 0.3, ed * 0.18, 0.55)
+      const mo = P(f[8], f[9])
+      const mwp = Math.max(4, f[10] * (bw / fw) * kx)
+      soft(mo[0], mo[1], mwp * 0.62, mwp * 0.32, 0.5)
+      m.globalCompositeOperation = 'source-over'
+      const layer = (cv: HTMLCanvasElement | undefined, filter: string) => {
+        const [x, g] = mk(cv)
+        g.filter = filter
+        const dx = (-bw / 2 - x0) * kx
+        const dy = (-bh / 2 - y0) * ky
+        if (srcRect) g.drawImage(src, srcRect[0], srcRect[1], srcRect[2], srcRect[3], dx, dy, bw * kx, bh * ky)
+        else g.drawImage(src, dx, dy, bw * kx, bh * ky)
+        g.filter = 'none'
+        g.globalCompositeOperation = 'destination-in'
+        g.drawImage(mc, 0, 0)
+        return x
+      }
+      ctx.save()
+      ctx.filter = 'none'
+      const a0 = ctx.globalAlpha
+      if (b.smooth > 0) {
+        const r = Math.max(0.6, pw * (0.006 + 0.028 * b.smooth))
+        const A = layer(this.bA, `blur(${r.toFixed(1)}px)`)
+        this.bA = A
+        ctx.globalAlpha = a0 * Math.min(1, 0.35 + b.smooth * 0.65)
+        ctx.drawImage(A, x0, y0, lw, lh)
+      }
+      if (b.bright > 0 || b.tone > 0) {
+        const B = layer(this.bB, `brightness(${(1 + 0.22 * b.bright).toFixed(3)}) contrast(${(1 - 0.06 * b.bright).toFixed(3)}) saturate(${(1 - 0.28 * b.tone).toFixed(3)}) sepia(${(0.14 * b.tone).toFixed(3)})`)
+        this.bB = B
+        ctx.globalAlpha = a0 * 0.9
+        ctx.drawImage(B, x0, y0, lw, lh)
+      }
+      ctx.restore()
+    }
+  }
+
+  /** A sticker that follows a face: returns a copy placed on the face at time t, or null when there's no face. */
+  private followed(c: Clip, t: number, W: number, H: number): Clip | null {
+    const fl = c.follow!
+    const tgt = getState().project.clips.find((x) => x.id === fl.clipId)
+    if (!tgt || t < tgt.start || t >= tgt.start + tgt.dur) return null
+    const f: Face | null = faceAt(tgt.assetId, srcTime(tgt, t), fl.person)
+    const a = getAsset(tgt.assetId)
+    const box = this.mediaBox(tgt, W, H)
+    if (!f || !a || !box) return null
+    const [bw, bh, fw, fh] = box
+    const AW = a.width
+    const AH = a.height
+    const fit = FACE_FIT[c.shape ?? ''] ?? { a: fl.anchor, w: 1, dy: 0 }
+    const roll = f[13]
+    const eyeD = Math.hypot((f[6] - f[4]) * AW, (f[7] - f[5]) * AH)
+    const faceW = f[2] * AW
+    const faceH = f[3] * AH
+    let px = 0
+    let py = 0
+    let base = faceW
+    switch (fit.a) {
+      case 'eyes':
+        px = ((f[4] + f[6]) / 2) * AW
+        py = ((f[5] + f[7]) / 2) * AH
+        base = eyeD
+        break
+      case 'head':
+        px = ((f[4] + f[6]) / 2) * AW
+        py = ((f[5] + f[7]) / 2) * AH
+        break
+      case 'nose':
+        px = f[11] * AW
+        py = f[12] * AH
+        break
+      case 'mouth':
+        px = (f[11] * 0.42 + f[8] * 0.58) * AW
+        py = (f[12] * 0.42 + f[9] * 0.58) * AH
+        break
+      case 'cheeks':
+        px = f[11] * AW
+        py = f[12] * AH
+        break
+      default:
+        px = f[0] * AW
+        py = f[1] * AH
+    }
+    const rr = (roll * Math.PI) / 180
+    // lift along the face's own 'up' direction (dy < 0 = up)
+    px += -fit.dy * faceH * Math.sin(rr)
+    py += fit.dy * faceH * Math.cos(rr)
+    // source px → clip local → canvas
+    const [lx, ly] = this.toLocal(tgt, px / AW, py / AH, bw, bh, fw, fh)
+    const lt = t - tgt.start
+    const mod = this.modifiers(tgt, lt)
+    const sc = evalProp(tgt, 'scale', lt) * mod.sc
+    const rot = ((evalProp(tgt, 'rotation', lt) + mod.rot) * Math.PI) / 180
+    const sx = (tgt.flipX ? -sc : sc) * mod.sx
+    const X = (evalProp(tgt, 'x', lt) + mod.ox) * W + Math.cos(rot) * lx * sx - Math.sin(rot) * ly * sc
+    const Y = (evalProp(tgt, 'y', lt) + mod.oy) * H + Math.sin(rot) * lx * sx + Math.cos(rot) * ly * sc
+    const wantW = base * fit.w * (bw / (AW * fw)) * Math.abs(sc) * (fl.size || 1)
+    const dims = c.shape ? SHAPE_BOX[c.shape] ?? [1.25, 1.25] : [1.25, 1.25]
+    const natural = (c.stickerSize ?? 0.2) * H * dims[0]
+    return { ...c, kf: undefined, x: X / W, y: Y / H, scale: wantW / natural, rotation: (tgt.flipX ? -roll : roll) + (rot * 180) / Math.PI }
   }
 
   /* ---------------- look effects (film grain, VHS, light leaks …) ---------------- */
@@ -1370,6 +1579,128 @@ class Engine {
   }
 
   /* ---------------- vector shapes, callouts and audio visualizers ---------------- */
+  private drawFaceSticker(ctx: CanvasRenderingContext2D, c: Clip, lt: number, S: number) {
+    const [dw, dh] = SHAPE_BOX[c.shape!] ?? [1.25, 1.25]
+    const w = S * dw
+    const h = S * dh
+    const emoji = (e: string, x: number, y: number, size: number) => {
+      ctx.font = `${size}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(e, x, y)
+    }
+    const heart = (x: number, y: number, r: number) => {
+      ctx.beginPath()
+      ctx.moveTo(x, y + r * 0.9)
+      ctx.bezierCurveTo(x - r * 1.6, y - r * 0.2, x - r * 0.7, y - r * 1.4, x, y - r * 0.45)
+      ctx.bezierCurveTo(x + r * 0.7, y - r * 1.4, x + r * 1.6, y - r * 0.2, x, y + r * 0.9)
+      ctx.fill()
+    }
+    switch (c.shape) {
+      case 'face-shades': {
+        // classic pixel "deal with it" glasses
+        const rows = ['####################', '#WW######..#WW######', '#W#######..#W#######', '.#######....#######.', '..#####......#####..']
+        const u = w / 20
+        ctx.shadowColor = 'transparent'
+        rows.forEach((r, y) =>
+          [...r].forEach((ch, x) => {
+            if (ch === '.') return
+            ctx.fillStyle = ch === 'W' ? '#fff' : '#000'
+            ctx.fillRect(-w / 2 + x * u, -h / 2 + y * u, u + 0.5, u + 0.5)
+          }),
+        )
+        break
+      }
+      case 'face-hearteyes': {
+        const k = 1 + 0.1 * Math.sin(lt * 8)
+        ctx.fillStyle = '#ff2d55'
+        heart(-w * 0.25, 0, w * 0.13 * k)
+        heart(w * 0.25, 0, w * 0.13 * k)
+        break
+      }
+      case 'face-fireeyes': {
+        const k = 1 + 0.08 * Math.sin(lt * 12)
+        emoji('🔥', -w * 0.25, 0, w * 0.36 * k)
+        emoji('🔥', w * 0.25, 0, w * 0.36 * k)
+        break
+      }
+      case 'face-tears': {
+        ctx.fillStyle = 'rgba(80,170,255,0.9)'
+        for (const sx of [-1, 1])
+          for (let k = 0; k < 2; k++) {
+            const ph = (lt * 1.1 + k * 0.5 + (sx > 0 ? 0.25 : 0)) % 1
+            const x = sx * w * 0.26
+            const y = -h * 0.25 + ph * h * 0.8
+            const r = w * 0.035
+            ctx.globalAlpha = Math.min(1, (1 - ph) * 1.6)
+            ctx.beginPath()
+            ctx.moveTo(x, y - r * 2.2)
+            ctx.quadraticCurveTo(x + r * 1.2, y - r * 0.2, x, y + r)
+            ctx.quadraticCurveTo(x - r * 1.2, y - r * 0.2, x, y - r * 2.2)
+            ctx.fill()
+          }
+        ctx.globalAlpha = 1
+        break
+      }
+      case 'face-mustache': {
+        ctx.fillStyle = '#1b1210'
+        for (const sx of [-1, 1]) {
+          ctx.beginPath()
+          ctx.moveTo(0, -h * 0.2)
+          ctx.bezierCurveTo(sx * w * 0.18, -h * 0.55, sx * w * 0.42, -h * 0.25, sx * w * 0.5, -h * 0.45)
+          ctx.bezierCurveTo(sx * w * 0.47, h * 0.15, sx * w * 0.2, h * 0.35, 0, h * 0.05)
+          ctx.fill()
+        }
+        break
+      }
+      case 'face-halo': {
+        ctx.shadowColor = '#ffe066'
+        ctx.shadowBlur = w * 0.12
+        ctx.strokeStyle = '#ffd84d'
+        ctx.lineWidth = h * 0.22
+        ctx.beginPath()
+        ctx.ellipse(0, Math.sin(lt * 3) * h * 0.08, w * 0.42, h * 0.3, 0, 0, Math.PI * 2)
+        ctx.stroke()
+        break
+      }
+      case 'face-horns': {
+        ctx.fillStyle = '#e0172b'
+        for (const sx of [-1, 1]) {
+          ctx.beginPath()
+          ctx.moveTo(sx * w * 0.2, h * 0.5)
+          ctx.quadraticCurveTo(sx * w * 0.24, -h * 0.1, sx * w * 0.44, -h * 0.5)
+          ctx.quadraticCurveTo(sx * w * 0.42, h * 0.1, sx * w * 0.38, h * 0.5)
+          ctx.fill()
+        }
+        break
+      }
+      case 'face-blush': {
+        ctx.shadowColor = 'transparent'
+        for (const sx of [-1, 1]) {
+          const g = ctx.createRadialGradient(sx * w * 0.33, 0, 0, sx * w * 0.33, 0, w * 0.15)
+          g.addColorStop(0, 'rgba(255,90,130,0.55)')
+          g.addColorStop(1, 'rgba(255,90,130,0)')
+          ctx.fillStyle = g
+          ctx.beginPath()
+          ctx.ellipse(sx * w * 0.33, 0, w * 0.15, h * 0.42, 0, 0, Math.PI * 2)
+          ctx.fill()
+        }
+        break
+      }
+      case 'face-crown':
+        emoji('👑', 0, 0, w * 0.8)
+        break
+      case 'face-cap':
+        emoji('🧢', 0, 0, w * 0.8)
+        break
+      case 'face-nose':
+        emoji('🔴', 0, 0, w * 0.75)
+        break
+      default:
+        emoji(c.emoji ?? '😂', 0, 0, w * 0.8)
+    }
+  }
+
   private drawShape(ctx: CanvasRenderingContext2D, c: Clip, lt: number, t: number, W: number, H: number) {
     const S = (c.stickerSize ?? 0.2) * H
     const col = c.color ?? SHAPE_COLOR[c.shape!] ?? '#ffd400'
@@ -1565,6 +1896,24 @@ class Engine {
         ctx.fillRect(0, H - h, W * Math.min(1, t / dur), h)
         break
       }
+      case 'map':
+        ctx.shadowColor = 'transparent'
+        drawMap(ctx, c, lt, S)
+        break
+      case 'face-shades':
+      case 'face-hearteyes':
+      case 'face-fireeyes':
+      case 'face-tears':
+      case 'face-mustache':
+      case 'face-halo':
+      case 'face-horns':
+      case 'face-blush':
+      case 'face-crown':
+      case 'face-cap':
+      case 'face-nose':
+      case 'face-emoji':
+        this.drawFaceSticker(ctx, c, lt, S)
+        break
       case 'viz-bars':
       case 'viz-wave':
       case 'viz-circle': {

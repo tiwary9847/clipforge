@@ -93,7 +93,8 @@ export interface TextProps {
 
 export type TextAnim = 'none' | 'typewriter' | 'pop' | 'fade' | 'slide' | 'wave' | 'letters' | 'bounce' | 'glow' | 'rainbow'
 export type Ease = 'smooth' | 'linear' | 'in' | 'out' | 'bounce' | 'elastic' | 'hold'
-export type ShapeId = 'arrow' | 'circle' | 'box' | 'underline' | 'cross' | 'check' | 'subscribe' | 'like' | 'progress' | 'callout' | 'viz-bars' | 'viz-wave' | 'viz-circle'
+export type ShapeId = 'arrow' | 'circle' | 'box' | 'underline' | 'cross' | 'check' | 'subscribe' | 'like' | 'progress' | 'callout' | 'viz-bars' | 'viz-wave' | 'viz-circle' | 'map'
+  | 'face-shades' | 'face-hearteyes' | 'face-fireeyes' | 'face-tears' | 'face-mustache' | 'face-halo' | 'face-horns' | 'face-blush' | 'face-crown' | 'face-cap' | 'face-nose' | 'face-emoji'
 
 export type MaskMode = 'show' | 'hide' | 'blur' | 'pixelate' | 'spotlight'
 export type MaskShape = 'none' | 'circle' | 'ellipse' | 'rounded' | 'star' | 'heart' | 'diamond'
@@ -177,6 +178,9 @@ export interface Clip {
   color?: string
   shapeText?: string
   ease?: Ease // keyframe easing
+  beauty?: Beauty
+  follow?: Follow
+  map?: import('./travelmap').MapData
 }
 
 export interface TrackDef {
@@ -247,4 +251,33 @@ export interface Project {
   loudDb?: number
   transcripts?: Record<string, { text: string; start: number; end: number }[]> // per asset, source seconds
   multicam?: { start: number; angles: { assetId: string; shift: number; name: string }[] } // master gain from loudness normalisation
+  faces?: Record<string, FaceTrack> // per asset, found by the face tracker
+  speakers?: Record<string, SpeakerTrack> // per asset, who talks when (source seconds)
+  speakerNames?: string[]
+  markerNames?: Record<string, string> // marker time (fixed 2 decimals) → chapter title
+}
+
+export interface FaceTrack {
+  fps: number
+  t0: number // source seconds of frames[0]
+  frames: (number[] | null)[][] // [frame][person] → face (see faces.ts)
+}
+
+export interface SpeakerTrack {
+  segs: { s: number; e: number; spk: number }[]
+}
+
+export interface Beauty {
+  smooth: number // 0..1 skin smoothing
+  bright: number // 0..1 face light
+  tone: number // 0..1 even skin tone (less redness, a little warmth)
+  person?: number // -1 / undefined = every face
+}
+
+export type FaceAnchor = 'eyes' | 'head' | 'nose' | 'mouth' | 'face' | 'cheeks'
+export interface Follow {
+  clipId: string // the video clip whose face we follow
+  person: number
+  anchor: FaceAnchor
+  size: number // 1 = natural size for the anchor
 }

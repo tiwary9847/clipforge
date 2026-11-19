@@ -32,6 +32,8 @@ import { ShapeId } from '../types'
 import { Icon } from './Icon'
 import { devanagariToRoman, emojiFor } from '../tools2'
 import { OnlineMemes } from './OnlineMemes'
+import { FaceStickers } from './FacePanels'
+import { SPEAKER_COLORS, clipHasSpeakers, findSpeakers, speakerDuring } from '../speakers'
 import { MEMES, MEME_CATS, MemeCat, applyMeme, previewSound } from '../memes'
 import { CapMode, Word, buildLines, transcribe } from '../captions'
 
@@ -335,7 +337,8 @@ const VIZ: [ShapeId, string, string][] = [
 function StickerTab() {
   return (
     <>
-      <div className="group-h" style={{ marginTop: 0 }}>Callouts & shapes</div>
+      <FaceStickers />
+      <div className="group-h">Callouts & shapes</div>
       <div className="shape-grid">
         {SHAPES.map(([id, em, name]) => (
           <button key={id} className="shape-btn" onClick={() => addShape(id, name)} title={name}>
@@ -521,6 +524,7 @@ function AutoCaptions({ styleId }: { styleId: string }) {
   const [roman, setRoman] = useState(true)
   const [emoji, setEmoji] = useState(false)
   const [translate, setTranslate] = useState(false)
+  const [bySpk, setBySpk] = useState(false)
   const [phase, setPhase] = useState<'idle' | 'run' | 'done' | 'error'>('idle')
   const [status, setStatus] = useState('')
   const [pct, setPct] = useState<number | undefined>()
@@ -606,7 +610,17 @@ function AutoCaptions({ styleId }: { styleId: string }) {
       const st = CAPTION_STYLES.find((s) => s.id === styleId)!.make(size)
       st.hlColor = styleId === 'box' ? '#ffd400' : '#ffe500'
       if (styleId === 'pop' && mode === 'karaoke') st.color = '#ffffff'
-      const lines = parts.flatMap((p) => buildLines(p.words, getClip(p.clip.id) ?? p.clip, mode, maxWords)).sort((a, b) => a.start - b.start)
+      if (bySpk && !(whole ? speaking : [source]).every(clipHasSpeakers)) await findSpeakers(whole ? speaking : [source], 0, setStatus)
+      const lines = parts
+        .flatMap((p) => {
+          const c = getClip(p.clip.id) ?? p.clip
+          return buildLines(p.words, c, mode, maxWords).map((l) => {
+            if (!bySpk) return l
+            const spk = speakerDuring(c.assetId, c.srcIn + (l.start - c.start) * c.speed, c.srcIn + (l.start + l.dur - c.start) * c.speed)
+            return spk >= 0 ? { ...l, color: SPEAKER_COLORS[spk % 4] === '#ffe500' && st.hlColor === '#ffe500' ? '#ffffff' : SPEAKER_COLORS[spk % 4] } : l
+          })
+        })
+        .sort((a, b) => a.start - b.start)
       addCaptionClips(lines, st, y)
       setMsg(`Added ${lines.length} caption clips from ${words.length} words${whole ? ` across ${parts.length} clips` : ''}. Click any caption on the timeline to fix a typo.`)
       setPhase('done')
@@ -649,6 +663,7 @@ function AutoCaptions({ styleId }: { styleId: string }) {
       <label className="ochk"><input type="checkbox" checked={translate} onChange={(e) => setTranslate(e.target.checked)} /> Translate the speech into English captions</label>
       {!translate && <label className="ochk"><input type="checkbox" checked={roman} onChange={(e) => setRoman(e.target.checked)} /> Hindi in English letters (Hinglish) – otherwise देवनागरी</label>}
       <label className="ochk"><input type="checkbox" checked={emoji} onChange={(e) => setEmoji(e.target.checked)} /> Add emoji after key words 🔥💰❤️</label>
+      <label className="ochk"><input type="checkbox" checked={bySpk} onChange={(e) => setBySpk(e.target.checked)} /> A different colour for each speaker (couple vlogs, interviews)</label>
       {lang === 'hindi' && model !== MODELS[2].id && <div className="hint">Tip: pick the Accurate · Small model for Hindi – the smaller ones make more mistakes.</div>}
       <div className="chips">
         {([['karaoke', 'Word highlight'], ['phrase', 'Phrases'], ['single', 'One word at a time']] as [CapMode, string][]).map(([id, n]) => (
