@@ -10,6 +10,7 @@ import { duckAt, evalProp, stabCorrection, volAt } from './anim'
 import { Face, faceAt, srcTime } from './faces'
 import { drawMap } from './travelmap'
 import { cartoonize, drawSky } from './looks2'
+import { drawDepth } from './depth3d'
 
 export const FPS = 30
 
@@ -927,7 +928,7 @@ class Engine {
         draw()
         ctx.restore()
       }
-      draw()
+      if (!(c.depth3d && c.kind === 'image' && !c.cartoon && drawDepth(ctx, c, lt, bw, bh, srcRect, srcSize(src)[0]))) draw()
       if (c.sky && c.sky.amt > 0 && rawSrc) drawSky(ctx, rawSrc, rawRect, c.sky.id, c.sky.amt, bw, bh, c.id)
       if (c.beauty && (c.beauty.smooth > 0 || c.beauty.bright > 0 || c.beauty.tone > 0)) this.applyBeauty(ctx, c, lt, src, srcRect, bw, bh, sc)
       if (c.look && c.look.amt > 0) {

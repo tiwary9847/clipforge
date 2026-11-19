@@ -21,6 +21,7 @@ import * as viz from './viz'
 import * as anim from './anim'
 import * as shorts from './shorts'
 import { setTileReady } from './travelmap'
+import { setDepthReady } from './depth3d'
 import * as faces from './faces'
 import * as speakers from './speakers'
 import * as dub from './dub'
@@ -29,10 +30,12 @@ import * as creative from './creative'
 import * as studio from './studio'
 import * as inp from './inpaint'
 import * as looks2 from './looks2'
+import * as depth3d from './depth3d'
+import * as s2v from './script2video'
 import { setVizReady } from './viz'
 
 // Small handle for automated tests and for power users poking around in the console.
-;(window as any).__cf = { store, processing, dsp, engine, fastExport, library, tools2, pro, grade, multicam, media, looks, viz, anim, shorts, faces, speakers, dub, dspx, creative, studio, inp, looks2 }
+;(window as any).__cf = { store, processing, dsp, engine, fastExport, library, tools2, pro, grade, multicam, media, looks, viz, anim, shorts, faces, speakers, dub, dspx, creative, studio, inp, looks2, depth3d, s2v }
 
 createRoot(document.getElementById('root')!).render(<App />)
 
@@ -53,6 +56,7 @@ watchSystemTheme()
 
 setVizReady(() => engine.requestRender())
 setTileReady(() => engine.requestRender())
+setDepthReady(() => engine.requestRender())
 
 // automatic version snapshots
 import('./db').then((m) => m.startVersionTimer())

@@ -262,6 +262,7 @@ export interface Project {
   speakers?: Record<string, SpeakerTrack> // per asset, who talks when (source seconds)
   speakerNames?: string[]
   markerNames?: Record<string, string> // marker time (fixed 2 decimals) → chapter title
+  depths?: Record<string, string> // per photo asset: depth map (PNG data URL) for 3D zoom
 }
 
 export interface FaceTrack {

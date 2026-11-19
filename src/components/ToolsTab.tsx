@@ -9,6 +9,7 @@ import { Icon } from './Icon'
 import { RecMode, Recording, canRecordCamera, canRecordScreen, startRecording } from '../recorder'
 import { LAYOUTS, addAdjustmentLayer, applyLayout } from '../looks'
 import { DubSection, SpeakersSection } from './VoicePanels'
+import { ScriptToVideo } from './ScriptPanel'
 import { ChaptersSection, EnhanceSection, TitlesSection, TravelMapSection } from './MorePanels'
 import { Moment, exportMoments, findMoments, openMoment } from '../shorts'
 import { Version, deleteVersion, listVersions, saveVersion } from '../db'
@@ -58,6 +59,8 @@ export function ToolsTab() {
           <small>Screen, webcam or both (face bubble)</small>
         </button>
       </div>
+      <div className="group-h">📝 Script to video</div>
+      <ScriptToVideo />
       <div className="group-h">🗺 Travel map</div>
       <TravelMapSection />
       <div className="group-h">📑 Auto chapters</div>

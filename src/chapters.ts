@@ -215,28 +215,31 @@ export async function aiTitles(provider: 'gemini' | 'claude', key: string, spoke
   const said = spoken.map((s) => s.text).join(' ').slice(0, 7000)
   const fmtHint = getPreset().h > getPreset().w ? 'a YouTube Short / Instagram Reel' : 'a YouTube video'
   const prompt = `You write YouTube metadata for an Indian Hinglish vlog channel. This is ${fmtHint}. What is said in it:\n"""${said}"""\n${notes ? `Creator's notes: ${notes}\n` : ''}Reply with JSON only: {"titles": [6 catchy but honest titles in Hinglish (Roman script), max 70 characters, 0-2 emoji each], "description": "a 4-6 line Hinglish description with a hook first line and a call to like/subscribe", "hashtags": [10 relevant hashtags starting with #]}`
-  let text = ''
-  if (provider === 'gemini') {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0.9 } }),
-    })
-    if (!r.ok) throw new Error(`Gemini said ${r.status} – check the key.`)
-    const j = await r.json()
-    text = j.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-  } else {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({ model: 'claude-haiku-5-5', max_tokens: 1200, messages: [{ role: 'user', content: prompt }] }),
-    })
-    if (!r.ok) throw new Error(`Claude said ${r.status} – check the key.`)
-    const j = await r.json()
-    text = j.content?.[0]?.text ?? ''
-  }
+  const text = await askAI(provider, key, prompt)
   const m = text.match(/\{[\s\S]*\}/)
   if (!m) throw new Error('The AI reply wasn’t in the expected format – try again.')
   const o = JSON.parse(m[0])
   return { titles: (o.titles ?? []).slice(0, 8), description: String(o.description ?? ''), hashtags: (o.hashtags ?? []).slice(0, 15) }
+}
+
+/** Sends a prompt to Gemini or Claude with the user's own key; returns the reply text. */
+export async function askAI(provider: 'gemini' | 'claude', key: string, prompt: string, json = true): Promise<string> {
+  if (provider === 'gemini') {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { ...(json ? { responseMimeType: 'application/json' } : {}), temperature: 0.9 } }),
+    })
+    if (!r.ok) throw new Error(`Gemini said ${r.status} – check the key.`)
+    const j = await r.json()
+    return j.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+  }
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({ model: 'claude-haiku-5-5', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] }),
+  })
+  if (!r.ok) throw new Error(`Claude said ${r.status} – check the key.`)
+  const j = await r.json()
+  return j.content?.[0]?.text ?? ''
 }

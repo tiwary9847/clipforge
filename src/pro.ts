@@ -417,9 +417,9 @@ export async function normaliseLoudness(target: number): Promise<string> {
 /* ================= AI worker (transformers.js, downloaded on first use) ================= */
 
 const AI_WORKER = `
-import { pipeline, env, AutoModel, AutoProcessor, RawImage } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3';
+import { pipeline, env, AutoModel, AutoProcessor, RawImage, SamModel } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3';
 env.allowLocalModels = false;
-let seg = null, tts = {}, kokoro = null, upscaler = null;
+let seg = null, tts = {}, kokoro = null, upscaler = null, depth = null, sam = null;
 const prog = (p) => { if (p && p.status === 'progress') self.postMessage({ type: 'progress', p: p.progress }) };
 self.onmessage = async (e) => {
   const m = e.data;
@@ -436,6 +436,37 @@ self.onmessage = async (e) => {
       const { output } = await seg.model({ input: pixel_values });
       const mask = await RawImage.fromTensor(output[0].mul(255).to('uint8')).resize(m.w, m.h);
       self.postMessage({ type: 'mask', id: m.id, mask: mask.data }, [mask.data.buffer]);
+    } else if (m.task === 'depth') {
+      if (!depth) {
+        self.postMessage({ type: 'status', msg: 'Downloading the depth model (first time only)…' });
+        depth = await pipeline('depth-estimation', 'Xenova/depth-anything-small-hf', { progress_callback: prog });
+      }
+      self.postMessage({ type: 'status', msg: 'Measuring depth…' });
+      const img = new RawImage(m.data, m.w, m.h, 4).rgb();
+      const out = await depth(img);
+      const d = out.depth.resize(m.w, m.h);
+      const dd = await d;
+      self.postMessage({ type: 'depthmap', data: dd.data, w: dd.width, h: dd.height }, [dd.data.buffer]);
+    } else if (m.task === 'sam') {
+      if (!sam) {
+        self.postMessage({ type: 'status', msg: 'Downloading the cut-out model (first time only)…' });
+        const model = await SamModel.from_pretrained('Xenova/slimsam-77-uniform', { progress_callback: prog });
+        const processor = await AutoProcessor.from_pretrained('Xenova/slimsam-77-uniform');
+        sam = { model, processor };
+      }
+      self.postMessage({ type: 'status', msg: 'Finding the object…' });
+      const img = new RawImage(m.data, m.w, m.h, 4).rgb();
+      const inputs = await sam.processor(img, { input_points: [m.points], input_labels: [m.labels] });
+      const outputs = await sam.model(inputs);
+      const masks = await sam.processor.post_process_masks(outputs.pred_masks, inputs.original_sizes, inputs.reshaped_input_sizes);
+      const scores = outputs.iou_scores.data;
+      let best = 0;
+      for (let i = 1; i < scores.length; i++) if (scores[i] > scores[best]) best = i;
+      const t = masks[0][0][best];
+      const md = new Uint8Array(m.w * m.h);
+      const src = t.data;
+      for (let i = 0; i < md.length; i++) md[i] = src[i] ? 255 : 0;
+      self.postMessage({ type: 'objmask', mask: md, w: m.w, h: m.h }, [md.buffer]);
     } else if (m.task === 'upscale') {
       if (!upscaler) {
         self.postMessage({ type: 'status', msg: 'Downloading the AI upscaler (first time only)…' });
@@ -510,6 +541,24 @@ export const VOICES = [
   { id: 'mms:Xenova/mms-tts-hin', name: 'हिन्दी · Hindi (non-commercial licence)', commercial: false },
   { id: 'mms:Xenova/mms-tts-eng', name: 'English · MMS (non-commercial licence)', commercial: false },
 ]
+
+/** Depth map (0 = far, 255 = near) of an RGBA image. */
+export async function depthMap(data: Uint8ClampedArray, w: number, h: number, status?: Status): Promise<Uint8Array> {
+  const mock = (window as any).__cfMockDepth as undefined | ((d: Uint8ClampedArray, w: number, h: number) => Uint8Array)
+  if (mock) return mock(data, w, h)
+  const copy = new Uint8ClampedArray(data)
+  const r = await ask<{ data: Uint8Array; w: number; h: number }>({ task: 'depth', data: copy, w, h }, 'depthmap', status, [copy.buffer])
+  return r.data
+}
+
+/** Object mask (255 = object) for clicked points (label 1 = this, 0 = not this). */
+export async function objectMask(data: Uint8ClampedArray, w: number, h: number, points: [number, number][], labels: number[], status?: Status): Promise<Uint8Array> {
+  const mock = (window as any).__cfMockSam as undefined | ((d: Uint8ClampedArray, w: number, h: number, p: [number, number][], l: number[]) => Uint8Array)
+  if (mock) return mock(data, w, h, points, labels)
+  const copy = new Uint8ClampedArray(data)
+  const r = await ask<{ mask: Uint8Array }>({ task: 'sam', data: copy, w, h, points, labels }, 'objmask', status, [copy.buffer])
+  return r.mask
+}
 
 /** 2× AI super-resolution (Swin2SR) of an RGBA image – for photos up to ~1000 px. */
 export async function aiUpscale2x(data: Uint8ClampedArray, w: number, h: number, status?: Status): Promise<{ data: Uint8ClampedArray; w: number; h: number }> {

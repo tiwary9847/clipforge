@@ -28,6 +28,7 @@ import { Clip, DEFAULT_FILTERS, Ease, KfProp, PRESETS } from '../types'
 import { Motion, evalProp, hasKeys, kfTimes } from '../anim'
 import { BeautySection } from './FacePanels'
 import { PersonSection } from './CreativePanels'
+import { Depth3DSection, ObjectCutSection } from './ObjectPanels'
 import { CartoonSection, EraserSection, SkySection, StudioSection } from './LookPanels'
 import { EnhanceSection } from './MorePanels'
 import { EqSection, GradeSection, LookSection, ProVideo, SceneSplit, TrackSection, VoiceSection } from './ProPanels2'
@@ -320,7 +321,9 @@ function ClipPanel({ clip: c }: { clip: Clip }) {
       )}
       <BeautySection c={c} />
       <PersonSection c={c} />
+      <ObjectCutSection c={c} />
       <EraserSection c={c} />
+      <Depth3DSection c={c} />
       <SkySection c={c} />
       <CartoonSection c={c} />
       <StudioSection c={c} />

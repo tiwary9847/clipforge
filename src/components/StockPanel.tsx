@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { setUi } from '../store'
 import { addFromUrl } from './OnlineMemes'
 
-type Prov = 'pexels' | 'pixabay'
+export type Prov = 'pexels' | 'pixabay'
 type Kind = 'videos' | 'photos'
-interface Hit {
+export interface Hit {
   id: string
   thumb: string
   url: string
@@ -15,7 +15,7 @@ interface Hit {
 }
 
 const KEY = (p: Prov) => `clipforge-key-${p}`
-const getKey = (p: Prov) => {
+export const getKey = (p: Prov) => {
   try {
     return localStorage.getItem(KEY(p)) ?? ''
   } catch {
@@ -23,7 +23,7 @@ const getKey = (p: Prov) => {
   }
 }
 
-async function search(p: Prov, kind: Kind, q: string, key: string, portrait: boolean): Promise<Hit[]> {
+export async function search(p: Prov, kind: Kind, q: string, key: string, portrait: boolean): Promise<Hit[]> {
   if (p === 'pexels') {
     const u = new URL(kind === 'videos' ? 'https://api.pexels.com/videos/search' : 'https://api.pexels.com/v1/search')
     u.searchParams.set('query', q || 'nature')
