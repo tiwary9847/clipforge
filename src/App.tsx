@@ -8,6 +8,7 @@ import { AutoEditDialog } from './components/AutoEditDialog'
 import { Icon } from './components/Icon'
 import { Tour, startTour } from './components/Tour'
 import { SettingsDialog } from './components/SettingsDialog'
+import { GuideDialog, openGuide } from './components/GuideDialog'
 import { currentTheme, setTheme } from './themeMode'
 import { engine, FPS } from './engine'
 import {
@@ -50,6 +51,22 @@ export default function App() {
   const [confirmNew, setConfirmNew] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [more, setMore] = useState(false)
+  const [guide, setGuide] = useState<string | null>(null)
+  useEffect(() => {
+    const on = (e: Event) => setGuide((e as CustomEvent<string>).detail ?? '')
+    const key = (e: KeyboardEvent) => {
+      if (e.key === 'F1') {
+        e.preventDefault()
+        openGuide()
+      }
+    }
+    window.addEventListener('cf:guide', on)
+    window.addEventListener('keydown', key)
+    return () => {
+      window.removeEventListener('cf:guide', on)
+      window.removeEventListener('keydown', key)
+    }
+  }, [])
   useEffect(() => {
     const on = () => setSettingsOpen(true)
     window.addEventListener('cf:settings', on)
@@ -204,7 +221,7 @@ export default function App() {
         <button className="ico theme-btn hide-phone" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'} aria-label="Toggle light / dark mode">
           <Icon name={theme === 'light' ? 'moon' : 'sun'} size={16} />
         </button>
-        <button className="ico tour-btn" onClick={startTour} title="Quick tour"><Icon name="help" size={16} /></button>
+        <button className="ico tour-btn" onClick={() => openGuide()} title="Guide – how to use every feature (F1)" aria-label="Open the guide"><Icon name="help" size={16} /></button>
         <button className="ico" disabled={!canUndo} onClick={undo} title="Undo (Ctrl+Z)"><Icon name="undo" size={16} /></button>
         <button className="ico" disabled={!canRedo} onClick={redo} title="Redo (Ctrl+Shift+Z)"><Icon name="redo" size={16} /></button>
         <button className="btn primary" onClick={() => setExporting(true)}><Icon name="upload" size={15} /> Export</button>
@@ -216,6 +233,7 @@ export default function App() {
               <div className="more-menu" onClick={() => setMore(false)}>
                 <button onClick={() => setSettingsOpen(true)}><Icon name="gear" size={17} /> Settings</button>
                 <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}><Icon name={theme === 'light' ? 'moon' : 'sun'} size={17} /> {theme === 'light' ? 'Dark mode' : 'Light mode'}</button>
+                <button onClick={() => openGuide()}><Icon name="book" size={17} /> Guide</button>
                 <button onClick={startTour}><Icon name="help" size={17} /> Quick tour</button>
                 <hr />
                 <button onClick={() => setConfirmNew(true)}><Icon name="plus" size={17} /> New project</button>
@@ -239,6 +257,7 @@ export default function App() {
         <button onClick={() => setExporting(true)}><Icon name="upload" size={20} /><span>Export</span></button>
       </nav>
       {sheet && <button className="sheet-x" onClick={() => setSheet(null)} aria-label="Close panel"><i />Close</button>}
+      {guide !== null && <GuideDialog topic={guide} onClose={() => setGuide(null)} />}
       {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
       {exporting && <ExportDialog onClose={() => setExporting(false)} />}
       {autoOpen && <AutoEditDialog onClose={() => setAutoOpen(false)} />}

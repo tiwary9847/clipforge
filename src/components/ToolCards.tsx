@@ -2,6 +2,7 @@ import { Children, isValidElement, ReactElement, ReactNode, useEffect, useMemo, 
 import { createPortal } from 'react-dom'
 import { getSettings, togglePin, useSettings } from '../settings'
 import { Icon } from './Icon'
+import { openGuide } from './GuideDialog'
 
 export type Cat = 'fix' | 'ai' | 'audio' | 'create' | 'publish'
 export const CATS: { id: Cat; name: string; short: string }[] = [
@@ -258,6 +259,7 @@ export function ToolCards({ children }: { children: ReactNode }) {
                 <b>{cur.title}</b>
                 {cur.desc && <small>{cur.desc}</small>}
               </div>
+              <button className="btn sm td-help" onClick={() => openGuide(cur.title)} title="How to use this tool – opens the guide here"><Icon name="book" size={14} /><span>How to use</span></button>
               {pinBtn(cur, 'tc-pin td-pin')}
               <button className="ico" onClick={() => setActive('')} aria-label="Close"><Icon name="x" size={16} /></button>
             </div>

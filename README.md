@@ -247,3 +247,10 @@ Line-icon set replacing emoji controls (tabs, header, transport, timeline toolba
 - **Drag the side panel's right edge** to make it wider.
 - The old fold-up list is still there: ⚙️ Settings → Tools → Open every tool.
 
+## v22 – the guide inside the app
+- **📖 Guide window**: press **?** in the header, **F1**, or on phones ⋯ → Guide. The whole user guide (18 chapters, 67 sections, 34 screenshots) with a chapter list that follows where you are, **search** with highlighted matches, and **⬇ PDF** for the printable copy. Follows your theme and text size; full screen on phones.
+- **📖 How to use** button in every tool's panel jumps straight to that tool's section.
+- Works offline: the text is built into the app; pictures and the PDF are cached after the first view. Opened as a single `clipforge.html` file, pictures and the PDF load from the website when online and are simply left out offline.
+- Guide source now lives in the repo: `docs/guide/guide.html` (+ `img/`). After editing it run `python3 docs/guide/render.py` (PDF) and `python3 scripts/build-guide.py` (in-app copy: `src/guide/guide-body.html`, `public/guide/*.webp`, `public/ClipForge-User-Guide.pdf`).
+- Screenshots retaken with the new UI; new sections for AI voice-over, Settings and the tool tiles.
+
