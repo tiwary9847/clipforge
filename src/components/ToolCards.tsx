@@ -31,7 +31,7 @@ export const TOOL_META: [string, string, Cat[], string, string][] = [
   ['Long video', 'shorts', ['ai', 'publish'], 'Find the best moments and make Shorts', 'reels clips highlights'],
   ['Split-screen', 'layouts', ['create'], 'Two or more videos side by side', 'split screen grid collage'],
   ['Adjustment layer', 'adjust', ['create'], 'Filters and grade on everything below it', 'filter grade colour'],
-  ['WhatsApp status', 'wa', ['publish'], 'Split into 30-second status parts', 'status 30 seconds'],
+  ['WhatsApp status', 'wa', ['publish'], 'Split into 30, 60 or 90-second status parts', 'status 30 60 90 seconds'],
   ['Multicam', 'multicam', ['create'], 'Switch between camera angles', 'angles camera sync'],
   ['Speakers', 'speakers', ['ai'], 'Who talks when – a caption colour per person', 'podcast people interview'],
   ['Dub into English', 'dub', ['ai', 'audio'], 'Translate Hindi and re-voice it in English', 'translate dubbing'],
