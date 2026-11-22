@@ -137,11 +137,22 @@ export async function trackFaces(clipId: string, onProgress?: (p: number, m: str
   }
   const from = c.srcIn
   const to = Math.min(a.duration, c.srcIn + c.dur * c.speed)
-  const fps = to - from <= 120 ? 10 : to - from <= 600 ? 6 : 4
-  const n = Math.max(1, Math.ceil((to - from) * fps))
+  let fps = to - from <= 120 ? 10 : to - from <= 600 ? 6 : 4
   const track = await getInput(a).getPrimaryVideoTrack()
   if (!track) throw new Error('This clip has no picture.')
   const sink = new CanvasSink(track, { width: W, height: H, fit: 'fill', poolSize: 2 })
+  // slow device (no graphics acceleration)? check fewer frames – the motion is smoothed in between anyway
+  if (!(window as any).__cfMockFaces) {
+    const first = await sink.getCanvas(from)
+    if (first) {
+      await detectFaces(first.canvas as HTMLCanvasElement) // warm-up
+      const t0 = performance.now()
+      await detectFaces(first.canvas as HTMLCanvasElement)
+      const ms = performance.now() - t0
+      if (ms > 250) fps = Math.max(3, Math.round(fps / (ms > 700 ? 3 : 2)))
+    }
+  }
+  const n = Math.max(1, Math.ceil((to - from) * fps))
   const ts = Array.from({ length: n }, (_, i) => from + i / fps)
   const raw: Face[][] = []
   const seen: { f: Face; at: number }[] = [] // faces seen in the last second, for zoomed re-checks

@@ -67,7 +67,67 @@ function rng(seed: number) {
 }
 
 /** Composes and renders `seconds` of music. Returns stereo samples at 44.1 kHz. */
+/** Longer than this, the music is built from a ~75 s piece whose middle 16 bars repeat (much faster for long videos). */
+const LOOP_OVER = 150
+
 export async function compose(mood: Mood, seconds: number, seed: number): Promise<{ L: Float32Array; R: Float32Array; sr: number; bpm: number }> {
+  if (seconds <= LOOP_OVER) return composeFull(mood, seconds, seed)
+  // same tempo as composeFull will pick (first random draw)
+  const bpm0 = STYLES[mood].bpm + Math.round((rng(seed * 7919 + mood.length)() - 0.5) * 8)
+  const bar = 240 / bpm0
+  // 2 intro bars + two 16-bar cycles + 1 ending bar; the second cycle (bars 18–34) is the loop
+  const raw = await composeFull(mood, 35 * bar - 0.01, seed, true)
+  const { sr, bpm } = raw
+  const at = (b: number) => Math.round(b * bar * sr)
+  const N = Math.ceil(seconds * sr)
+  const L = new Float32Array(N)
+  const Rr = new Float32Array(N)
+  const xf = Math.round(sr * 0.04) // short crossfade at every join
+  const put = (from: number, to: number, pos: number) => {
+    for (let i = 0; i < to - from && pos + i < N; i++) {
+      const g = i < xf && pos > 0 ? i / xf : 1
+      L[pos + i] = L[pos + i] * (1 - g) + raw.L[from + i] * g
+      Rr[pos + i] = Rr[pos + i] * (1 - g) + raw.R[from + i] * g
+    }
+  }
+  const tailFrom = at(34)
+  const tailLen = raw.L.length - tailFrom
+  const tailPos = Math.max(at(18), N - tailLen)
+  put(0, at(18) + xf, 0)
+  let pos = at(18)
+  while (pos < tailPos) {
+    put(at(18), Math.min(at(34) + xf, at(18) + (tailPos - pos) + xf), pos)
+    pos += at(34) - at(18)
+  }
+  put(tailFrom, raw.L.length, tailPos)
+  finish(L, Rr, sr, Math.min(2, bar))
+  return { L, R: Rr, sr, bpm }
+}
+
+function finish(L: Float32Array, Rr: Float32Array, sr: number, fadeIn: number) {
+  const fo = Math.min(L.length, Math.round(sr * 2.5))
+  const fi = Math.round(sr * Math.min(fadeIn, 0.6))
+  for (let i = 0; i < fi; i++) {
+    const g = i / fi
+    L[i] *= g
+    Rr[i] *= g
+  }
+  for (let i = 0; i < fo; i++) {
+    const g = i / fo
+    L[L.length - 1 - i] *= g
+    Rr[Rr.length - 1 - i] *= g
+  }
+  // normalise to about −1 dBFS peak
+  let pk = 0
+  for (let i = 0; i < L.length; i++) pk = Math.max(pk, Math.abs(L[i]), Math.abs(Rr[i]))
+  const k = pk > 0 ? 0.89 / pk : 1
+  for (let i = 0; i < L.length; i++) {
+    L[i] *= k
+    Rr[i] *= k
+  }
+}
+
+async function composeFull(mood: Mood, seconds: number, seed: number, raw = false): Promise<{ L: Float32Array; R: Float32Array; sr: number; bpm: number }> {
   const st = STYLES[mood]
   const R = rng(seed * 7919 + mood.length)
   const sr = 44100
@@ -397,29 +457,10 @@ export async function compose(mood: Mood, seconds: number, seed: number): Promis
     }
   }
   const buf = await ctx.startRendering()
-  // fades in/out
+  if (raw) return { L: buf.getChannelData(0), R: buf.getChannelData(1), sr, bpm }
   const L = buf.getChannelData(0).slice(0, Math.ceil(seconds * sr))
   const Rr = buf.getChannelData(1).slice(0, Math.ceil(seconds * sr))
-  const fo = Math.min(L.length, Math.round(sr * 2.5))
-  const fi = Math.round(sr * Math.min(fadeIn, 0.6))
-  for (let i = 0; i < fi; i++) {
-    const g = i / fi
-    L[i] *= g
-    Rr[i] *= g
-  }
-  for (let i = 0; i < fo; i++) {
-    const g = i / fo
-    L[L.length - 1 - i] *= g
-    Rr[Rr.length - 1 - i] *= g
-  }
-  // normalise to about −1 dBFS peak
-  let pk = 0
-  for (let i = 0; i < L.length; i++) pk = Math.max(pk, Math.abs(L[i]), Math.abs(Rr[i]))
-  const k = pk > 0 ? 0.89 / pk : 1
-  for (let i = 0; i < L.length; i++) {
-    L[i] *= k
-    Rr[i] *= k
-  }
+  finish(L, Rr, sr, fadeIn)
   return { L, R: Rr, sr, bpm }
 }
 
