@@ -2103,6 +2103,12 @@ class Engine {
           codec = tr?.codec ?? ''
         } catch {}
         URL.revokeObjectURL(url)
+        if (codec && codec !== 'unknown') {
+          // ClipForge can convert it in the app: the import code opens the converter
+          const er = new Error(`its picture format (${codec === 'hevc' ? 'HEVC / “High Efficiency”' : codec.toUpperCase()}) can’t be played by this browser`) as Error & { convertible?: boolean }
+          er.convertible = true
+          throw er
+        }
         if (codec === 'hevc')
           throw new Error(
             'it is HEVC / “High Efficiency” video, which this browser can’t play. Fix: on iPhone set Settings → Camera → Formats → “Most Compatible” (on Samsung turn off “High efficiency video”), or open ClipForge in Chrome/Edge on Windows 11, Mac or Android – those can play HEVC',

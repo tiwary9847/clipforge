@@ -1,3 +1,4 @@
+import { probe, requestConvert } from '../convert'
 import { useEffect, useRef, useState } from 'react'
 import { getSettings, setSettings } from '../settings'
 import {
@@ -62,6 +63,10 @@ export async function importFiles(files: FileList | File[], setMsg?: (m: string)
       else setMsg?.(`"${f.name}" isn't a video, image or audio file.`)
     } catch (e) {
       const m = (e as Error).message
+      if ((e as { convertible?: boolean }).convertible) {
+        requestConvert(f, await probe(f))
+        continue
+      }
       setMsg?.(`Couldn't import "${f.name}" – ${m}.${/HEVC|Fix:/.test(m) ? '' : ' Try an MP4 (H.264) or WebM file.'}`)
     }
   }

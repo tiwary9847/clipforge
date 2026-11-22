@@ -466,3 +466,8 @@ body:has(.tdrawer.open) .sheet-x { display: none !important; }
 .warn-box a.btn { text-decoration: none; }
 .fps-row { display: flex; flex-direction: column; gap: 6px; padding: 4px 2px; }
 .fps-row > span { font-weight: 650; font-size: 13px; }
+.modal.convert { max-width: 520px; }
+.modal.convert p { margin: 6px 0 12px; line-height: 1.45; }
+.conv-q { margin: 4px 0 8px; }
+.modal.convert .progress-in { transition: width .3s; }
+.modal.convert details { margin-top: 10px; }

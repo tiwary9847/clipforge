@@ -9,6 +9,7 @@ import { Icon } from './components/Icon'
 import { Tour, startTour } from './components/Tour'
 import { SettingsDialog } from './components/SettingsDialog'
 import { GuideDialog, openGuide } from './components/GuideDialog'
+import { ConvertDialog } from './components/ConvertDialog'
 import { currentTheme, setTheme } from './themeMode'
 import { engine, FPS } from './engine'
 import {
@@ -257,6 +258,7 @@ export default function App() {
         <button onClick={() => setExporting(true)}><Icon name="upload" size={20} /><span>Export</span></button>
       </nav>
       {sheet && <button className="sheet-x" onClick={() => setSheet(null)} aria-label="Close panel"><i />Close</button>}
+      <ConvertDialog />
       {guide !== null && <GuideDialog topic={guide} onClose={() => setGuide(null)} />}
       {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
       {exporting && <ExportDialog onClose={() => setExporting(false)} />}
