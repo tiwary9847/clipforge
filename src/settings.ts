@@ -63,7 +63,7 @@ const DEFAULTS: Settings = {
   lang: 'en',
   nextSteps: true,
   toolsOpen: false,
-  pins: ['ready', 'music', 'badtakes'],
+  pins: ['assistant', 'retention', 'ready', 'music'],
   hidden: [],
   closedSecs: [],
   motion: true,

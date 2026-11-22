@@ -16,6 +16,9 @@ export const CATS: { id: Cat; name: string; short: string }[] = [
 
 // title prefix → id, categories, one-line description, extra search words
 export const TOOL_META: [string, string, Cat[], string, string][] = [
+  ['AI assistant', 'assistant', ['ai'], 'Say what you want – it edits for you', 'ai chat ask help karo bana do edit karo voice'],
+  ['Retention coach', 'retention', ['ai', 'fix'], 'Where viewers swipe away – and one-tap fixes', 'retention boring drop off swipe watch time viewers'],
+  ['Blur strangers', 'blur', ['ai', 'fix'], 'Blur faces of people around you, keep yours', 'privacy face blur pixelate crowd market strangers'],
   ['Ready to post', 'ready', ['fix', 'publish'], 'Score your video and fix problems in one tap', 'check score viral hook safe zone loudness'],
   ['Bad-take', 'badtakes', ['fix', 'ai'], 'Cut repeated lines, keep your last try', 'retake mistake repeat galti'],
   ['Music maker', 'music', ['audio', 'create'], 'Original background music – no copyright', 'song bgm gaana background'],

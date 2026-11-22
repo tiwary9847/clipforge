@@ -7,6 +7,7 @@ import { PRESETS } from '../types'
 import { TextEditDialog } from './TextEditDialog'
 import { Icon } from './Icon'
 import { useT } from '../i18n'
+import { AssistantCard, BlurStrangers, RetentionCoach } from './AIPanels'
 import { RecMode, Recording, canRecordCamera, canRecordScreen, startRecording } from '../recorder'
 import { LAYOUTS, addAdjustmentLayer, applyLayout } from '../looks'
 import { DubSection, SpeakersSection } from './VoicePanels'
@@ -66,6 +67,10 @@ export function ToolsTab() {
         </button>
       </div>
       <ToolCards>
+      <div className="group-h">🤖 AI assistant</div>
+      <AssistantCard />
+      <div className="group-h">📈 Retention coach</div>
+      <RetentionCoach />
       <div className="group-h">✅ Ready to post?</div>
       <ReadyCheck />
       <div className="group-h">🔁 Bad-take remover</div>
@@ -74,6 +79,8 @@ export function ToolsTab() {
       <MusicMaker />
       <div className="group-h">🎧 Free music library</div>
       <MusicLibrary />
+      <div className="group-h">🙈 Blur strangers</div>
+      <BlurStrangers />
       <div className="group-h">🎯 Auto punch-in zooms</div>
       <AutoZoomSection />
       <div className="group-h">🔊 Auto sound effects</div>

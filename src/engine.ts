@@ -933,6 +933,7 @@ class Engine {
       if (!(c.depth3d && c.kind === 'image' && !c.cartoon && drawDepth(ctx, c, lt, bw, bh, srcRect, srcSize(src)[0]))) draw()
       if (c.sky && c.sky.amt > 0 && rawSrc) drawSky(ctx, rawSrc, rawRect, c.sky.id, c.sky.amt, bw, bh, c.id)
       if (c.beauty && (c.beauty.smooth > 0 || c.beauty.bright > 0 || c.beauty.tone > 0)) this.applyBeauty(ctx, c, lt, src, srcRect, bw, bh, sc)
+      if (c.privacy && c.kind === 'video') this.applyFaceBlur(ctx, c, lt, src, srcRect, bw, bh)
       if (c.look && c.look.amt > 0) {
         const s0 = src
         const r0 = srcRect
@@ -1016,6 +1017,53 @@ class Engine {
   /** source point (0..1 of the full frame) → clip-local coordinates */
   private toLocal(c: Clip, u: number, v: number, bw: number, bh: number, fw: number, fh: number): [number, number] {
     return [((u - (c.crop?.l ?? 0)) / fw - 0.5) * bw, ((v - (c.crop?.t ?? 0)) / fh - 0.5) * bh]
+  }
+
+  private pxC?: HTMLCanvasElement
+  /** Blurs or pixelates every tracked face except the people in c.privacy.keep (clip-local coordinates). */
+  private applyFaceBlur(ctx: CanvasRenderingContext2D, c: Clip, lt: number, src: CanvasImageSource, srcRect: [number, number, number, number] | null, bw: number, bh: number) {
+    const pv = c.privacy!
+    const st = c.freeze ? c.srcIn : c.srcIn + lt * c.speed
+    const fw = Math.max(0.05, 1 - (c.crop?.l ?? 0) - (c.crop?.r ?? 0))
+    const fh = Math.max(0.05, 1 - (c.crop?.t ?? 0) - (c.crop?.b ?? 0))
+    const [SW, SH] = srcSize(src)
+    const [sx, sy, sw, sh] = srcRect ?? [0, 0, SW, SH]
+    for (let p = 0; p < 8; p++) {
+      if (pv.keep.includes(p)) continue
+      const f = faceAt(c.assetId, st, p)
+      if (!f) continue
+      const [cx, cy] = this.toLocal(c, f[0], f[1], bw, bh, fw, fh)
+      const lw = (f[2] / fw) * bw * 1.4
+      const lh = (f[3] / fh) * bh * 1.6
+      // the same part of the source picture, a little larger so the blur has pixels to work with
+      const pad = 1.35
+      const x0 = cx - (lw * pad) / 2
+      const y0 = cy - (lh * pad) / 2
+      const W2 = lw * pad
+      const H2 = lh * pad
+      const u0 = sx + ((x0 + bw / 2) / bw) * sw
+      const v0 = sy + ((y0 + bh / 2) / bh) * sh
+      const uw = (W2 / bw) * sw
+      const vh = (H2 / bh) * sh
+      ctx.save()
+      ctx.beginPath()
+      ctx.ellipse(cx, cy, lw / 2, lh / 2, (f[13] * Math.PI) / 180, 0, Math.PI * 2)
+      ctx.clip()
+      if (pv.mode === 'pixel') {
+        const P = (this.pxC ??= document.createElement('canvas'))
+        P.width = 10
+        P.height = Math.max(4, Math.round((10 * H2) / W2))
+        const g = P.getContext('2d')!
+        g.drawImage(src, u0, v0, uw, vh, 0, 0, P.width, P.height)
+        ctx.imageSmoothingEnabled = false
+        ctx.drawImage(P, x0, y0, W2, H2)
+      } else {
+        ctx.filter = `blur(${Math.max(6, Math.round(lw * (pv.amt ?? 0.12)))}px)`
+        ctx.drawImage(src, u0, v0, uw, vh, x0, y0, W2, H2)
+        ctx.drawImage(src, u0, v0, uw, vh, x0, y0, W2, H2) // twice: a blur over a blur hides features better
+      }
+      ctx.restore()
+    }
   }
 
   private applyBeauty(ctx: CanvasRenderingContext2D, c: Clip, lt: number, src: CanvasImageSource, srcRect: [number, number, number, number] | null, bw: number, bh: number, sc: number) {

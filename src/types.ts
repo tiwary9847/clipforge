@@ -183,6 +183,7 @@ export interface Clip {
   shapeText?: string
   ease?: Ease // keyframe easing
   beauty?: Beauty
+  privacy?: { keep: number[]; mode: 'blur' | 'pixel'; amt?: number } // blur every tracked face except these people
   follow?: Follow
   map?: import('./travelmap').MapData
   cutoutOf?: string // this clip is the cut-out person of that clip

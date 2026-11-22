@@ -12,6 +12,7 @@ export function NextSteps() {
   const music = useStore((s) => s.project.clips.some((c) => c.track === 'a2'))
   if (!on || !has) return null
   const steps: [string, string, () => void, boolean?][] = [
+    ['🤖', t('Ask AI'), () => window.dispatchEvent(new CustomEvent('cf:assistant', { detail: '' }))],
     ['✨', t('Auto-edit'), () => openPanel('auto')],
     ['💬', t('Add captions'), () => openPanel('captions'), captioned],
     ['🎵', t('Add music'), () => openTool('music'), music],

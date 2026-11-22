@@ -11,6 +11,7 @@ import { SettingsDialog } from './components/SettingsDialog'
 import { GuideDialog, openGuide } from './components/GuideDialog'
 import { ConvertDialog } from './components/ConvertDialog'
 import { useT } from './i18n'
+import { AssistantDialog } from './components/AIPanels'
 import { currentTheme, setTheme } from './themeMode'
 import { engine, FPS } from './engine'
 import {
@@ -53,6 +54,8 @@ export default function App() {
     }
     const onTool = () => phone() && setSheet('add')
     const onExp = () => setExporting(true)
+    const onAsk = (e: Event) => { setSheet(null); setAsk(String((e as CustomEvent).detail ?? '')) }
+    window.addEventListener('cf:assistant', onAsk)
     window.addEventListener('cf:export', onExp)
     window.addEventListener('cf:open', on)
     window.addEventListener('cf:tool', onTool)
@@ -60,10 +63,12 @@ export default function App() {
       window.removeEventListener('cf:open', on)
       window.removeEventListener('cf:tool', onTool)
       window.removeEventListener('cf:export', onExp)
+      window.removeEventListener('cf:assistant', onAsk)
     }
   }, [])
   const [dropping, setDropping] = useState(false)
   const [confirmNew, setConfirmNew] = useState(false)
+  const [ask, setAsk] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [more, setMore] = useState(false)
   const [guide, setGuide] = useState<string | null>(null)
@@ -275,6 +280,7 @@ export default function App() {
       </nav>
       {sheet && <button className="sheet-x" onClick={() => setSheet(null)} aria-label="Close panel"><i />{t('Close')}</button>}
       <ConvertDialog />
+      {ask !== null && <AssistantDialog initial={ask} onClose={() => setAsk(null)} />}
       {guide !== null && <GuideDialog topic={guide} onClose={() => setGuide(null)} />}
       {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
       {exporting && <ExportDialog onClose={() => setExporting(false)} />}

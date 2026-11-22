@@ -495,7 +495,7 @@ function AudioTab() {
   )
 }
 
-const CAPTION_STYLES: { id: string; name: string; make: (size: number) => TextProps; kw?: boolean; emoji?: boolean }[] = [
+export const CAPTION_STYLES: { id: string; name: string; make: (size: number) => TextProps; kw?: boolean; emoji?: boolean }[] = [
   {
     id: 'classic',
     name: 'Classic',
@@ -537,7 +537,7 @@ const CAPTION_STYLES: { id: string; name: string; make: (size: number) => TextPr
 ]
 
 /** Keyword of a caption line (the word that carries the meaning) and an emoji for it. */
-function lineKeyword(text: string): { idx: number[]; emoji?: string } {
+export function lineKeyword(text: string): { idx: number[]; emoji?: string } {
   const ws = text.split(' ').filter(Boolean)
   let best = -1
   let score = 0

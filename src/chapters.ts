@@ -224,13 +224,19 @@ export async function aiTitles(provider: 'gemini' | 'claude', key: string, spoke
 }
 
 /** Sends a prompt to Gemini or Claude with the user's own key; returns the reply text. */
+export const GEMINI_MODELS = ['gemini-flash-latest', 'gemini-3.5-flash', 'gemini-3.1-flash-lite']
+
 export async function askAI(provider: 'gemini' | 'claude', key: string, prompt: string, json = true): Promise<string> {
   if (provider === 'gemini') {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { ...(json ? { responseMimeType: 'application/json' } : {}), temperature: 0.9 } }),
-    })
+    // Google retires model versions (gemini-2.0-flash shut down 1 June 2026): use the auto-updating
+    // "latest Flash" alias first, then fixed current models if that alias is ever unavailable.
+    const body = JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { ...(json ? { responseMimeType: 'application/json' } : {}), temperature: 0.9 } })
+    let r: Response | null = null
+    for (const model of GEMINI_MODELS) {
+      r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body })
+      if (r.status !== 404) break // 404 = model name gone: try the next one
+    }
+    r = r!
     if (!r.ok) throw new Error(`Gemini said ${r.status} – check the key.`)
     const j = await r.json()
     return j.candidates?.[0]?.content?.parts?.[0]?.text ?? ''

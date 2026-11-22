@@ -137,11 +137,21 @@ const D: Record<string, [string, string]> = {
   'Layer 1': ['Layer 1', 'लेयर 1'],
   'Layer 2': ['Layer 2', 'लेयर 2'],
   'Layer 3': ['Layer 3', 'लेयर 3'],
+  'AI assistant': ['AI assistant', 'AI असिस्टेंट'],
+  'Ask AI': ['AI se bolo', 'AI से कहें'],
+  'Make a plan': ['Plan banao', 'प्लान बनाएँ'],
+  'Do it': ['Kar do', 'कर दो'],
+  'Undo everything': ['Sab wapas karo', 'सब वापस करें'],
+  'Ask for something else': ['Kuch aur bolo', 'कुछ और कहें'],
+  'Tell me what to do… e.g. “30 second ki reel bana do, captions aur music ke saath”': ['Batao kya karna hai… jaise “30 second ki reel bana do, captions aur music ke saath”', 'बताइए क्या करना है… जैसे “30 सेकंड की रील बना दो, कैप्शन और म्यूज़िक के साथ”'],
   'Edit by text': ['Text se edit', 'टेक्स्ट से एडिट'],
 }
 
 // tool tiles by id: [Hinglish title, Hinglish line, Hindi title, Hindi line]
 const TOOLS: Record<string, [string, string, string, string]> = {
+  assistant: ['AI assistant', 'Bolo kya chahiye – ye edit kar dega', 'AI असिस्टेंट', 'बताइए क्या चाहिए – यह एडिट कर देगा'],
+  retention: ['Retention coach', 'Log kahan video chhod dete hain – aur ek tap fix', 'रिटेंशन कोच', 'लोग कहाँ वीडियो छोड़ते हैं – और एक टैप में सुधार'],
+  blur: ['Anjaan chehre blur', 'Aas-paas ke logon ke chehre blur, aapka nahi', 'अनजान चेहरे ब्लर', 'आसपास के लोगों के चेहरे ब्लर, आपका नहीं'],
   ready: ['Post karne ko ready?', 'Video ko score karo, galtiyan ek tap mein theek', 'पोस्ट के लिए तैयार?', 'वीडियो को स्कोर करें, ग़लतियाँ एक टैप में ठीक'],
   badtakes: ['Galat take hatao', 'Dohraayi lines kaato, aakhri try rakho', 'ग़लत टेक हटाएँ', 'दोहराई लाइनें काटें, आख़िरी कोशिश रखें'],
   music: ['Music maker', 'Apna background music – koi copyright nahi', 'म्यूज़िक मेकर', 'अपना बैकग्राउंड म्यूज़िक – कोई कॉपीराइट नहीं'],

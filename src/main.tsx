@@ -42,10 +42,13 @@ import * as hooks from './hooks'
 import * as postcheck from './postcheck'
 import * as social from './social'
 import * as musiclib from './musiclib'
+import * as assistant from './assistant'
+import * as retention from './retention'
+import * as privacy from './privacy'
 import { setVizReady } from './viz'
 
 // Small handle for automated tests and for power users poking around in the console.
-;(window as any).__cf = { store, processing, dsp, engine, fastExport, library, tools2, pro, grade, multicam, media, looks, viz, anim, shorts, faces, speakers, dub, dspx, creative, studio, inp, looks2, depth3d, s2v, musicgen, autoedit2, broll, videoobj, retakes, hooks, postcheck, social, musiclib }
+;(window as any).__cf = { store, processing, dsp, engine, fastExport, library, tools2, pro, grade, multicam, media, looks, viz, anim, shorts, faces, speakers, dub, dspx, creative, studio, inp, looks2, depth3d, s2v, musicgen, autoedit2, broll, videoobj, retakes, hooks, postcheck, social, musiclib, assistant, retention, privacy }
 
 createRoot(document.getElementById('root')!).render(<App />)
 
