@@ -1,4 +1,5 @@
 import { probe, requestConvert } from '../convert'
+import { useT } from '../i18n'
 import { useEffect, useRef, useState } from 'react'
 import { getSettings, setSettings } from '../settings'
 import {
@@ -77,24 +78,32 @@ export function MediaPanel() {
   useEffect(() => {
     const on = (e: Event) => {
       const d = (e as CustomEvent).detail
-      if (d === 'templates' || d === 'memes') setTab(d)
+      if (d === 'templates' || d === 'memes' || d === 'captions' || d === 'audio' || d === 'tools' || d === 'media') setTab(d)
+      else if (d === 'texttab') setTab('text')
       else if (d === 'record' || d === 'text') {
+        // 'text' = Edit by text, which lives in Tools
         ;(window as any).__cfPending = d === 'record' ? 'rec' : 'text'
         setTab('tools')
         window.dispatchEvent(new CustomEvent('cf:tools', { detail: d === 'record' ? 'rec' : 'text' }))
       }
     }
+    const onTool = () => setTab('tools')
     window.addEventListener('cf:open', on)
-    return () => window.removeEventListener('cf:open', on)
+    window.addEventListener('cf:tool', onTool)
+    return () => {
+      window.removeEventListener('cf:open', on)
+      window.removeEventListener('cf:tool', onTool)
+    }
   }, [])
+  const t = useT()
   return (
     <div className="left">
       <LeftResize />
       <div className="tabs">
-        {TABS.map((t) => (
-          <button key={t.id} className={'tab' + (tab === t.id ? ' on' : '')} onClick={() => setTab(t.id)}>
-            <Icon name={t.icon} size={19} />
-            <small>{t.name}</small>
+        {TABS.map((tb) => (
+          <button key={tb.id} className={'tab' + (tab === tb.id ? ' on' : '')} onClick={() => setTab(tb.id)}>
+            <Icon name={tb.icon} size={19} />
+            <small>{t(tb.name)}</small>
           </button>
         ))}
       </div>
@@ -139,6 +148,7 @@ function AssetCard({ a }: { a: Asset }) {
 }
 
 function MediaTab() {
+  const t = useT()
   const assets = useStore((s) => s.assets)
   const [stock, setStock] = useState(false)
   const input = useRef<HTMLInputElement>(null)
@@ -167,15 +177,14 @@ function MediaTab() {
         }}
       />
       <button className="btn primary full" onClick={() => input.current?.click()}>
-        ＋ Import video, image or audio
+        {t('＋ Import video, image or audio')}
       </button>
       <button className={'btn full' + (stock ? ' on' : '')} onClick={() => setStock(!stock)}>
-        🎬 Free stock videos & photos {stock ? '▲' : '▼'}
+        {t('🎬 Free stock videos & photos')} {stock ? '▲' : '▼'}
       </button>
       {stock && <StockPanel />}
       <div className="hint">
-        Files stay on your device – nothing is uploaded. Drop files anywhere, or drag a card onto the timeline.
-        For memes, import short MP4/WebM reaction clips, PNG stickers and MP3 sounds.
+        {t('Files stay on your device – nothing is uploaded. Drop files anywhere, or drag a card onto the timeline. For memes, import short MP4/WebM reaction clips, PNG stickers and MP3 sounds.')}
       </div>
       {busy > 0 && <div className="hint">Importing…</div>}
       {msg && <div className="hint warn">{msg}</div>}
@@ -184,7 +193,7 @@ function MediaTab() {
           <AssetCard key={a.id} a={a} />
         ))}
       </div>
-      {!assets.length && !busy && <div className="empty">No media yet</div>}
+      {!assets.length && !busy && <div className="empty">{t('No media yet')}</div>}
     </>
   )
 }

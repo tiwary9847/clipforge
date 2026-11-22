@@ -1,3 +1,4 @@
+import { LANGS } from '../i18n'
 import { useState } from 'react'
 import { ACCENTS, activeSkin, resetSettings, setSettings, SKINS, Size, useSettings } from '../settings'
 import { TOOL_META } from './ToolCards'
@@ -43,6 +44,13 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
         <div className="set-body">
           {tab === 'look' && (
             <>
+              <div className="set-lbl">Language · भाषा</div>
+              <div className="seg set-lang">
+                {LANGS.map((l) => (
+                  <button key={l.id} className={s.lang === l.id ? 'on' : ''} onClick={() => setSettings({ lang: l.id })}>{l.name}</button>
+                ))}
+              </div>
+              <small className="muted">Buttons, tabs, tool names and Save are translated; the settings inside each tool stay in English for now.</small>
               <div className="set-lbl">Theme</div>
               <div className="skins">
                 {SKINS.map((k) => (
@@ -74,6 +82,13 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
                   <small>Turn off for a calmer, faster feel on older phones</small>
                 </div>
                 <Switch label="Animations" on={s.motion} onChange={(v) => setSettings({ motion: v })} />
+              </div>
+              <div className="set-row">
+                <div>
+                  <b>“Next” tips under the video</b>
+                  <small>One-tap Auto-edit, captions, music, text and Save once a video is added</small>
+                </div>
+                <Switch label="Next tips" on={s.nextSteps} onChange={(v) => setSettings({ nextSteps: v })} />
               </div>
             </>
           )}

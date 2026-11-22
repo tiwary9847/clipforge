@@ -6,6 +6,7 @@ import { startVoiceover } from '../processing'
 import { PRESETS } from '../types'
 import { TextEditDialog } from './TextEditDialog'
 import { Icon } from './Icon'
+import { useT } from '../i18n'
 import { RecMode, Recording, canRecordCamera, canRecordScreen, startRecording } from '../recorder'
 import { LAYOUTS, addAdjustmentLayer, applyLayout } from '../looks'
 import { DubSection, SpeakersSection } from './VoicePanels'
@@ -35,6 +36,7 @@ const download = (blob: Blob, name: string) => {
 const safeName = () => getState().projectName.replace(/[^\w\- ]+/g, '').trim() || 'clipforge'
 
 export function ToolsTab() {
+  const t = useT()
   const [dlg, setDlg] = useState<'' | 'thumb' | 'prompter' | 'text' | 'rec'>(() => {
     const w = window as any
     const p = w.__cfPending
@@ -54,12 +56,12 @@ export function ToolsTab() {
       <div className="tmpls two" style={{ marginTop: 0 }}>
         <button className="tmpl" onClick={() => setDlg('text')}>
           <span className="em"><span className="wa-ic c"><Icon name="captions" size={18} /></span></span>
-          <b>Edit by text</b>
+          <b>{t('Edit by text')}</b>
           <small>Delete words to cut · remove “um/uh” & pauses</small>
         </button>
         <button className="tmpl" onClick={() => setDlg('rec')}>
           <span className="em"><span className="wa-ic b"><Icon name="record" size={18} /></span></span>
-          <b>Record</b>
+          <b>{t('Record')}</b>
           <small>Screen, webcam or both (face bubble)</small>
         </button>
       </div>

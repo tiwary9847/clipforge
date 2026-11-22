@@ -270,3 +270,13 @@ Scripted performance test of start-up, playback, 600-clip timelines, 27 tools, a
 - **Music maker** builds tracks over 150 s from a ~75 s render with its middle 16 bars repeated (intro and ending kept): 10-min track ~290 s → 35 s.
 - **Face tracking** times one frame first and samples 3–5 fps instead of 10 on slow devices: 74 s → 31 s for a 6 s 1080p clip without a GPU.
 No memory growth over 8 consecutive exports (9 MB after GC each time).
+
+## v25 – beginner-friendly
+Reviewed as a first-time creator on a phone, then fixed:
+- **Phone first screen** says “Tap to add videos, photos or music” (no “drop” on touch screens); the empty timeline is hidden until something is added, so the welcome screen gets the whole screen.
+- **Next: row** under the preview once a video is in: ✨ Auto-edit · 💬 Add captions · 🎵 Add music · 🔤 Add text · ✅ Check & fix · ⬆ Save video (✓ when captions/music are added; × to hide, back in Settings → Look).
+- **Simple Save**: Export opens with format, quality, length, a one-line summary and one big **Save video** button; GIF/sound, part of the video, Fast vs **Safe mode** (was “real-time recording”), smoothness and chapters are under **More options**. Technical words (H.264, frame-by-frame, codecs) removed.
+- **Language: English / Hinglish / हिन्दी** (first screen and Settings → Look): top and bottom bars, tabs, welcome, Next row, Save, tool names and one-liners, inspector section titles, Media panel and track names. Tool settings inside each tool stay English for now. `src/i18n.ts` (`t()`, `toolText()`, `useT()`), falls back to English.
+- **No duplicates**: the format is picked on the welcome cards (top menu appears once a clip is added); the welcome Auto-edit card became **Script to video** (Auto-edit stays in the top bar).
+- Fixes: timeline toolbar no longer overlaps the right panel on laptops; video length badge readable in light theme.
+

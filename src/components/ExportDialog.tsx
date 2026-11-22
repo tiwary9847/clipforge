@@ -3,6 +3,7 @@ import { engine } from '../engine'
 import { Ctl, buildChapters, exportAudio, exportGif, fastExport, fastExportSupport, sourceFps } from '../fastExport'
 import { getPreset, getState, projectDuration } from '../store'
 import { fmtTime } from './Fields'
+import { useT } from '../i18n'
 import { getClientId, setClientId, uploadSupported, uploadToYouTube } from '../youtube'
 
 function canShare(blob: Blob, name: string) {
@@ -25,6 +26,8 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
   }, [])
   const [what, setWhat] = useState<'video' | 'gif' | 'audio'>('video')
   const [part, setPart] = useState(false)
+  const [more, setMore] = useState(false)
+  const t = useT()
   const selRange = (() => {
     const st = getState()
     const sel = st.project.clips.filter((c) => st.selIds.includes(c.id))
@@ -97,22 +100,32 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
   return (
     <div className="modal-bg" onPointerDown={(e) => e.target === e.currentTarget && phase !== 'running' && onClose()}>
       <div className="modal">
-        <h3>Export video</h3>
+        <h3>{t('Export video')}</h3>
         <div className="kv">
-          <span>Format</span><b>{preset.label}</b>
-          <span>Resolution</span><b>{preset.w}×{preset.h} · {mode === 'fast' || part ? (fpsPick === 'auto' ? srcFps : fpsPick) : 30} fps</b>
-          <span>Length</span><b>{fmtTime(dur)}</b>
+          <span>{t('Format')}</span><b>{preset.label}</b>
+          <span>{t('Resolution')}</span><b>{Math.min(preset.w, preset.h) >= 2000 ? '4K' : `${Math.min(preset.w, preset.h)}p`} · {mode === 'fast' || part ? (fpsPick === 'auto' ? srcFps : fpsPick) : 30} fps</b>
+          <span>{t('Length')}</span><b>{fmtTime(dur)}</b>
         </div>
 
         {phase === 'idle' && (
           <>
+            <div className="exp-simple">
+              {what === 'video' ? (
+                <span>🎬 MP4 · {mode === 'fast' ? t('Fast (recommended)') : t('Safe mode')} · {(fpsPick === 'auto' ? srcFps : fpsPick)} fps{part ? ` · ${rFrom}–${rTo} s` : ''}</span>
+              ) : (
+                <span>{what === 'gif' ? '🖼 GIF' : '🎵 Sound only'}</span>
+              )}
+              <button className="link" onClick={() => setMore(!more)}>{more ? '▾ ' + t('Fewer options') : '▸ ' + t('More options')}</button>
+            </div>
+            {more && (
+            <div className="exp-more">
             <div className="osrc">
               <button className={what === 'video' ? 'on' : ''} onClick={() => setWhat('video')}>🎬 Video (MP4)</button>
               <button className={what === 'gif' ? 'on' : ''} onClick={() => { setWhat('gif'); setPart(dur > 30 || part) }}>🖼 GIF</button>
               <button className={what === 'audio' ? 'on' : ''} onClick={() => setWhat('audio')}>🎵 Sound only</button>
             </div>
             <label className="ochk">
-              <input type="checkbox" checked={part} onChange={(e) => setPart(e.target.checked)} /> Only part of the video
+              <input type="checkbox" checked={part} onChange={(e) => setPart(e.target.checked)} /> {t('Only part of the video')}
             </label>
             {part && (
               <div className="row2 range-row">
@@ -128,19 +141,19 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
             <label className={'opt' + (mode === 'fast' ? ' on' : '')}>
               <input type="radio" checked={mode === 'fast'} disabled={!fast?.ok} onChange={() => setMode('fast')} />
               <div>
-                <b>Fast export · H.264 MP4</b>
+                <b>{t('Fast (recommended)')}</b>
                 <div className="hint">
                   {fast === null
                     ? 'Checking this browser…'
                     : fast.ok
-                      ? 'Frame-by-frame render with a standard H.264 MP4. Much faster than real time on computers with hardware video encoding (most laptops and phones); on slow machines real-time mode can be quicker.'
-                      : `Not available: ${fast.reason} Use real-time recording instead.`}
+                      ? 'Usually much quicker than the video’s length. Makes a standard MP4 for YouTube, Instagram and Facebook.'
+                      : `Not available in this browser (${fast.reason}) – Safe mode is used instead.`}
                 </div>
               </div>
             </label>
             {(mode === 'fast' || part) && (
               <div className="fps-row">
-                <span>Smoothness</span>
+                <span>{t('Smoothness')}</span>
                 <div className="seg">
                   {([['auto', `Same as my video (${srcFps} fps)`], [30, '30 fps'], [60, '60 fps'], [24, '24 fps · film']] as const).map(([v, n]) => (
                     <button key={String(v)} className={fpsPick === v ? 'on' : ''} onClick={() => setFpsPick(v)}>{n}</button>
@@ -152,9 +165,9 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
             <label className={'opt' + (mode === 'realtime' ? ' on' : '')}>
               <input type="radio" checked={mode === 'realtime'} onChange={() => setMode('realtime')} />
               <div>
-                <b>Real-time recording</b>
+                <b>{t('Safe mode')}</b>
                 <div className="hint">
-                  Works everywhere but takes about {Math.ceil(dur)}s for this video. Keep this tab open and in front.{part ? ' (Parts always use fast export.)' : ''}
+                  Plays the video once while recording it – works on every device but takes {fmtTime(Math.ceil(dur))}. Keep this tab open and in front.{part ? ' (Parts always use Fast.)' : ''}
                 </div>
               </div>
             </label>
@@ -171,11 +184,13 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                 </>
               )}
             </details>
-            <div className="hint">Nothing is uploaded – everything is processed on your device.</div>
+            </div>
+            )}
+            <div className="hint">{t('Nothing is uploaded – everything is processed on your device.')}</div>
             <div className="modal-actions">
-              <button className="btn" onClick={onClose}>Close</button>
-              <button className="btn primary" disabled={dur <= 0} onClick={start}>
-                {dur <= 0 ? 'Add a clip first' : 'Start export'}
+              <button className="btn" onClick={onClose}>{t('Close')}</button>
+              <button className="btn primary big-save" disabled={dur <= 0} onClick={start}>
+                {dur <= 0 ? 'Add a clip first' : '⬆ ' + t('Save video')}
               </button>
             </div>
           </>
@@ -188,7 +203,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
               {label} {Math.round(prog * 100)}%{mode === 'realtime' ? ' – don’t switch tabs.' : ''}
             </div>
             <div className="modal-actions">
-              <button className="btn danger" onClick={cancel}>Cancel</button>
+              <button className="btn danger" onClick={cancel}>{t('Cancel')}</button>
             </div>
           </>
         )}
@@ -197,19 +212,21 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
           <>
             {result.ext === 'gif' ? <img className="result" src={result.url} alt="GIF preview" /> : result.ext === 'm4a' || result.ext === 'wav' ? <audio className="result" src={result.url} controls /> : <video className="result" src={result.url} controls playsInline />}
             <div className="hint">
-              {(result.size / 1048576).toFixed(1)} MB · .{result.ext} · {result.codec}
-              {result.codec.startsWith('H.264 + AAC') || result.codec === 'H.264 (no audio)'
-                ? ' – the standard format for YouTube, Facebook and Instagram.'
-                : ' – works on YouTube and Facebook. This browser can’t make AAC audio, so if Instagram rejects the file, run it through a free converter such as HandBrake, or export from Chrome/Edge on Windows or Mac.'}
+              {(result.size / 1048576).toFixed(1)} MB · .{result.ext}
+              {result.ext === 'gif' || result.ext === 'm4a' || result.ext === 'wav'
+                ? ''
+                : result.codec.startsWith('H.264 + AAC') || result.codec === 'H.264 (no audio)'
+                  ? ' – ready for YouTube, Instagram and Facebook.'
+                  : ' – ready for YouTube and Facebook. This browser couldn’t make Instagram’s sound format; if Instagram refuses it, save the video again in Chrome on Android, Windows or Mac.'}
             </div>
             <div className="modal-actions">
-              <button className="btn" onClick={onClose}>Close</button>
+              <button className="btn" onClick={onClose}>{t('Close')}</button>
               {canShare(result.blob, name) && (
                 <button className="btn" onClick={() => void navigator.share({ files: [new File([result.blob], name, { type: result.blob.type })], title: name }).catch(() => {})}>
-                  ↗ Share…
+                  ↗ {t('Share')}…
                 </button>
               )}
-              <a className="btn primary" href={result.url} download={name}>⬇ Download</a>
+              <a className="btn primary" href={result.url} download={name}>⬇ {t('Download')}</a>
             </div>
             <div className="yt">
               <button className="link" onClick={() => setYt({ ...yt, open: !yt.open })}>{yt.open ? '▾' : '▸'} Upload straight to YouTube</button>
@@ -258,7 +275,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
             <div className="modal-actions">
               <button className="btn" onClick={onClose}>Close</button>
               {mode === 'fast' && (
-                <button className="btn" onClick={() => { setMode('realtime'); setPhase('idle') }}>Use real-time instead</button>
+                <button className="btn" onClick={() => { setMode('realtime'); setPhase('idle') }}>Try Safe mode instead</button>
               )}
               <button className="btn primary" onClick={start}>Try again</button>
             </div>

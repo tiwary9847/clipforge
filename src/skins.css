@@ -482,3 +482,33 @@ body:has(.tdrawer.open) .sheet-x { display: none !important; }
 @container tl (max-width: 640px) {
   .tl-bar input.zoom { display: none; }
 }
+
+/* ---------- v25 beginner-friendly ---------- */
+.wl-lang { display: flex; justify-content: center; gap: 4px; margin: 0 auto 10px; padding: 3px; border: 1px solid var(--line2); border-radius: 999px; width: max-content; }
+.wl-lang button { border: 0; background: none; color: var(--muted); font-size: 12.5px; padding: 4px 12px; border-radius: 999px; }
+.wl-lang button.on { background: var(--grad); color: #fff; }
+/* before anything is added: no empty timeline on phones, and the format is picked on the welcome cards */
+@media (max-width: 820px) {
+  .app.no-clips { --tl-hm: 0px; }
+  .app.no-clips .timeline { visibility: hidden; overflow: hidden; border: 0; }
+  .app.no-clips .preset-sel.hide-empty { display: none; }
+}
+.app.no-clips .preset-sel.hide-empty { display: none; }
+/* room for the cards: the language row replaces the big logo on short screens */
+@media (max-height: 1000px) { .wl-orb { display: none; } }
+/* "Next:" row under the preview */
+.nextsteps { display: flex; align-items: center; gap: 6px; padding: 6px 12px 8px; overflow-x: auto; scrollbar-width: none; }
+.nextsteps::-webkit-scrollbar { display: none; }
+.nextsteps .ns-lbl { font-size: 12px; font-weight: 650; color: var(--muted); flex: none; }
+.nextsteps .ns { flex: none; display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line2); background: var(--panel); color: var(--text); border-radius: 999px; padding: 5px 11px; font-size: 12.5px; white-space: nowrap; }
+.nextsteps .ns:hover { border-color: var(--accent); }
+.nextsteps .ns.done { opacity: 0.6; }
+.nextsteps .ns.done span { color: var(--accent); font-weight: 700; }
+.nextsteps .ns.save { background: var(--grad); color: #fff; border-color: transparent; font-weight: 650; }
+.nextsteps .ns-x { flex: none; border: 0; background: none; color: var(--muted); font-size: 18px; line-height: 1; padding: 2px 6px; }
+/* Export: simple first */
+.exp-simple { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid var(--line2); border-radius: 12px; font-size: 13px; margin: 6px 0 10px; }
+.exp-simple .link { background: none; border: 0; color: var(--accent); font-weight: 600; font-size: 13px; padding: 0; }
+.exp-more { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.btn.big-save { padding: 10px 22px; font-size: 15px; font-weight: 700; }
+.set-lang { margin-bottom: 4px; }

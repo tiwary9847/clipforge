@@ -4,8 +4,18 @@ import { startTour } from './Tour'
 import { importFiles } from './MediaPanel'
 import { addAssetClip, getPreset, getState, setProject, setUi, useStore } from '../store'
 import { engine } from '../engine'
+import { LANGS, useT } from '../i18n'
+import { setSettings, useSettings } from '../settings'
 
-export const openPanel = (what: 'auto' | 'record' | 'templates' | 'memes' | 'text') => window.dispatchEvent(new CustomEvent('cf:open', { detail: what }))
+/** Phones and tablets: you tap, you can't drop files. */
+export const touch = () => typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches
+/** Opens one tool card in Tools (e.g. 'music', 'script'). */
+export const openTool = (id: string) => {
+  ;(window as any).__cfTool = id // picked up by the Tools panel when it mounts
+  window.dispatchEvent(new CustomEvent('cf:tool', { detail: id }))
+}
+
+export const openPanel = (what: 'auto' | 'record' | 'templates' | 'memes' | 'text' | 'texttab' | 'captions' | 'audio' | 'tools' | 'media') => window.dispatchEvent(new CustomEvent('cf:open', { detail: what }))
 
 const FORMATS = [
   { id: 'shorts', icon: 'phone', name: 'Shorts · Reels', sub: '9:16 vertical' },
@@ -16,6 +26,8 @@ const FORMATS = [
 
 export function Welcome() {
   const presetId = useStore(() => getPreset().id)
+  const t = useT()
+  const lang = useSettings((x) => x.lang)
   const [busy, setBusy] = useState(0)
   const [over, setOver] = useState(false)
   const file = useRef<HTMLInputElement>(null)
@@ -38,36 +50,41 @@ export function Welcome() {
       onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setOver(false); if (e.dataTransfer.files.length) void take(e.dataTransfer.files) }}
     >
       <div className="wl-card">
+        <div className="wl-lang" role="group" aria-label="Language">
+          {LANGS.map((l) => (
+            <button key={l.id} className={lang === l.id ? 'on' : ''} onClick={() => setSettings({ lang: l.id })}>{l.name}</button>
+          ))}
+        </div>
         <div className="wl-hero">
           <div className="wl-orb"><Icon name="play" size={26} /></div>
-          <h1>Create something <span className="grad">scroll-stopping</span></h1>
-          <p>Edit Shorts, Reels and YouTube videos with memes, captions and effects – right on your device.</p>
+          <h1>{t('Create something')} <span className="grad">{t('scroll-stopping')}</span></h1>
+          <p>{t('Edit Shorts, Reels and YouTube videos with memes, captions and effects – right on your device.')}</p>
         </div>
 
         <button className="wl-drop" onClick={() => file.current?.click()} disabled={!!busy}>
           <Icon name="upload" size={26} />
-          <b>{busy ? `Importing ${busy} file${busy > 1 ? 's' : ''}…` : 'Drop videos, photos or music here'}</b>
-          <span>or click to browse · nothing is uploaded</span>
+          <b>{busy ? t('Importing…') : touch() ? t('Tap to add videos, photos or music') : t('Add videos, photos or music')}</b>
+          <span>{touch() ? t('from your phone gallery · nothing is uploaded') : t('click to choose, or drop files here · nothing is uploaded')}</span>
         </button>
         <input ref={file} type="file" hidden multiple accept="video/*,image/*,audio/*" onChange={(e) => { if (e.target.files) void take(e.target.files); e.target.value = '' }} />
 
-        <div className="wl-label">Format</div>
+        <div className="wl-label">{t('Format')}</div>
         <div className="wl-formats">
           {FORMATS.map((f) => (
             <button key={f.id} className={'wl-fmt' + (presetId === f.id ? ' on' : '')} onClick={() => { setProject({ presetId: f.id }); setTimeout(() => engine.render(), 0) }}>
               <Icon name={f.icon} size={20} />
-              <b>{f.name}</b>
-              <small>{f.sub}</small>
+              <b>{t(f.name)}</b>
+              <small>{t(f.sub)}</small>
             </button>
           ))}
         </div>
 
-        <div className="wl-label">Or start with <button className="lnk wl-tour" onClick={startTour}>· New here? Take the 30-second tour</button></div>
+        <div className="wl-label">{t('Or start with')} <button className="lnk wl-tour" onClick={startTour}>{t('· New here? Take the 30-second tour')}</button></div>
         <div className="wl-actions">
-          <button onClick={() => openPanel('auto')}><span className="wa-ic a"><Icon name="sparkles" size={18} /></span><b>Auto-edit</b><small>Clips in → edited video out</small></button>
-          <button onClick={() => openPanel('record')}><span className="wa-ic b"><Icon name="record" size={18} /></span><b>Record</b><small>Screen, webcam or both</small></button>
-          <button onClick={() => openPanel('templates')}><span className="wa-ic c"><Icon name="layout" size={18} /></span><b>Templates</b><small>Ready-made layouts</small></button>
-          <button onClick={() => openPanel('memes')}><span className="wa-ic d"><Icon name="smile" size={18} /></span><b>Memes</b><small>With sound, one tap</small></button>
+          <button onClick={() => openPanel('record')}><span className="wa-ic b"><Icon name="record" size={18} /></span><b>{t('Record')}</b><small>{t('Screen, webcam or both')}</small></button>
+          <button onClick={() => openPanel('templates')}><span className="wa-ic c"><Icon name="layout" size={18} /></span><b>{t('Templates')}</b><small>{t('Ready-made layouts')}</small></button>
+          <button onClick={() => openPanel('memes')}><span className="wa-ic d"><Icon name="smile" size={18} /></span><b>{t('Memes')}</b><small>{t('With sound, one tap')}</small></button>
+          <button onClick={() => openTool('script')}><span className="wa-ic a"><Icon name="type" size={18} /></span><b>{t('Script to video')}</b><small>{t('Type a script – get a video')}</small></button>
         </div>
       </div>
     </div>

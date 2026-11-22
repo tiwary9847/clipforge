@@ -10,6 +10,7 @@ import { Tour, startTour } from './components/Tour'
 import { SettingsDialog } from './components/SettingsDialog'
 import { GuideDialog, openGuide } from './components/GuideDialog'
 import { ConvertDialog } from './components/ConvertDialog'
+import { useT } from './i18n'
 import { currentTheme, setTheme } from './themeMode'
 import { engine, FPS } from './engine'
 import {
@@ -44,9 +45,22 @@ export default function App() {
     return () => window.removeEventListener('cf:theme', on)
   }, [])
   useEffect(() => {
-    const on = (e: Event) => (e as CustomEvent).detail === 'auto' && setAutoOpen(true)
+    const phone = () => matchMedia('(max-width: 820px)').matches
+    const on = (e: Event) => {
+      const d = (e as CustomEvent).detail
+      if (d === 'auto') setAutoOpen(true)
+      else if (phone()) setSheet('add') // panels and tools open in the bottom sheet on phones
+    }
+    const onTool = () => phone() && setSheet('add')
+    const onExp = () => setExporting(true)
+    window.addEventListener('cf:export', onExp)
     window.addEventListener('cf:open', on)
-    return () => window.removeEventListener('cf:open', on)
+    window.addEventListener('cf:tool', onTool)
+    return () => {
+      window.removeEventListener('cf:open', on)
+      window.removeEventListener('cf:tool', onTool)
+      window.removeEventListener('cf:export', onExp)
+    }
   }, [])
   const [dropping, setDropping] = useState(false)
   const [confirmNew, setConfirmNew] = useState(false)
@@ -115,6 +129,8 @@ export default function App() {
     for (const a of assets) if (a.kind === 'video' && !a.enriched) void enrichAsset(a)
   }, [assets])
   const name = useStore((s) => s.projectName)
+  const empty = useStore((s) => s.project.clips.length === 0)
+  const t = useT()
   const presetId = useStore((s) => s.project.presetId)
   const canUndo = useStore((s) => s.past.length > 0)
   const canRedo = useStore((s) => s.future.length > 0)
@@ -171,7 +187,7 @@ export default function App() {
 
   return (
     <div
-      className={'app' + (sheet ? ' sheet-' + sheet : '')}
+      className={'app' + (sheet ? ' sheet-' + sheet : '') + (empty ? ' no-clips' : '')}
       onDragOver={(e) => {
         if (e.dataTransfer.types.includes('Files')) {
           e.preventDefault()
@@ -198,13 +214,13 @@ export default function App() {
         </div>
         <input className="proj-name" value={name} onChange={(e) => setUi({ projectName: e.target.value })} />
         <span className="save-st" title="Your project and media are saved in this browser automatically">
-          {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? '✓ Saved' : saveStatus === 'error' ? '⚠ Not saved' : ''}
+          {saveStatus === 'saving' ? t('Saving…') : saveStatus === 'saved' ? t('✓ Saved') : saveStatus === 'error' ? '⚠ Not saved' : ''}
         </span>
         <div className="spacer" />
-        <button className="btn sm ae-btn" onClick={() => setAutoOpen(true)} title="Upload clips, set the order – we edit it for you"><Icon name="sparkles" size={15} /> Auto-edit</button>
-        <button className="btn sm hide-phone" onClick={() => setConfirmNew(true)} title="Start a new project"><Icon name="plus" size={15} /> New</button>
+        <button className="btn sm ae-btn" onClick={() => setAutoOpen(true)} title="Upload clips, set the order – we edit it for you"><Icon name="sparkles" size={15} /> {t('Auto-edit')}</button>
+        <button className="btn sm hide-phone" onClick={() => setConfirmNew(true)} title="Start a new project"><Icon name="plus" size={15} /> {t('New')}</button>
         <select
-          className="preset-sel"
+          className={'preset-sel' + (empty ? ' hide-empty' : '')}
           value={presetId}
           onChange={(e) => {
             setProject({ presetId: e.target.value })
@@ -225,19 +241,19 @@ export default function App() {
         <button className="ico tour-btn" onClick={() => openGuide()} title="Guide – how to use every feature (F1)" aria-label="Open the guide"><Icon name="help" size={16} /></button>
         <button className="ico" disabled={!canUndo} onClick={undo} title="Undo (Ctrl+Z)"><Icon name="undo" size={16} /></button>
         <button className="ico" disabled={!canRedo} onClick={redo} title="Redo (Ctrl+Shift+Z)"><Icon name="redo" size={16} /></button>
-        <button className="btn primary" onClick={() => setExporting(true)}><Icon name="upload" size={15} /> Export</button>
+        <button className="btn primary" onClick={() => setExporting(true)}><Icon name="upload" size={15} /> {t('Export')}</button>
         <div className="more-wrap">
           <button className="ico" onClick={() => setMore(!more)} aria-label="More" aria-expanded={more}><Icon name="more" size={18} /></button>
           {more && (
             <>
               <div className="more-scrim" onClick={() => setMore(false)} />
               <div className="more-menu" onClick={() => setMore(false)}>
-                <button onClick={() => setSettingsOpen(true)}><Icon name="gear" size={17} /> Settings</button>
-                <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}><Icon name={theme === 'light' ? 'moon' : 'sun'} size={17} /> {theme === 'light' ? 'Dark mode' : 'Light mode'}</button>
-                <button onClick={() => openGuide()}><Icon name="book" size={17} /> Guide</button>
-                <button onClick={startTour}><Icon name="help" size={17} /> Quick tour</button>
+                <button onClick={() => setSettingsOpen(true)}><Icon name="gear" size={17} /> {t('Settings')}</button>
+                <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}><Icon name={theme === 'light' ? 'moon' : 'sun'} size={17} /> {theme === 'light' ? t('Dark mode') : t('Light mode')}</button>
+                <button onClick={() => openGuide()}><Icon name="book" size={17} /> {t('Guide')}</button>
+                <button onClick={startTour}><Icon name="help" size={17} /> {t('Quick tour')}</button>
                 <hr />
-                <button onClick={() => setConfirmNew(true)}><Icon name="plus" size={17} /> New project</button>
+                <button onClick={() => setConfirmNew(true)}><Icon name="plus" size={17} /> {t('New project')}</button>
               </div>
             </>
           )}
@@ -252,12 +268,12 @@ export default function App() {
       </div>
       <Timeline />
       <nav className="mnav">
-        <button className={sheet === 'add' ? 'on' : ''} onClick={() => setSheet(sheet === 'add' ? null : 'add')}><Icon name="plus" size={21} /><span>Add</span></button>
-        <button className={sheet === 'edit' ? 'on' : ''} onClick={() => setSheet(sheet === 'edit' ? null : 'edit')}><Icon name="edit" size={20} /><span>{hasSel ? 'Edit' : 'Project'}</span></button>
-        <button onClick={() => engine.toggle()}>{playing ? <Icon name="pause" size={20} /> : <Icon name="play" size={20} />}<span>{playing ? 'Pause' : 'Play'}</span></button>
-        <button onClick={() => setExporting(true)}><Icon name="upload" size={20} /><span>Export</span></button>
+        <button className={sheet === 'add' ? 'on' : ''} onClick={() => setSheet(sheet === 'add' ? null : 'add')}><Icon name="plus" size={21} /><span>{t('Add')}</span></button>
+        <button className={sheet === 'edit' ? 'on' : ''} onClick={() => setSheet(sheet === 'edit' ? null : 'edit')}><Icon name="edit" size={20} /><span>{hasSel ? t('Edit') : t('Project')}</span></button>
+        <button onClick={() => engine.toggle()}>{playing ? <Icon name="pause" size={20} /> : <Icon name="play" size={20} />}<span>{playing ? t('Pause') : t('Play')}</span></button>
+        <button onClick={() => setExporting(true)}><Icon name="upload" size={20} /><span>{t('Export')}</span></button>
       </nav>
-      {sheet && <button className="sheet-x" onClick={() => setSheet(null)} aria-label="Close panel"><i />Close</button>}
+      {sheet && <button className="sheet-x" onClick={() => setSheet(null)} aria-label="Close panel"><i />{t('Close')}</button>}
       <ConvertDialog />
       {guide !== null && <GuideDialog topic={guide} onClose={() => setGuide(null)} />}
       {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}

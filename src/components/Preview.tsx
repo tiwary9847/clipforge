@@ -5,6 +5,7 @@ import { evalProp } from '../anim'
 import { fmtTime } from './Fields'
 import { Icon } from './Icon'
 import { Welcome } from './Welcome'
+import { NextSteps } from './NextSteps'
 
 export function Preview() {
   const wrap = useRef<HTMLDivElement>(null)
@@ -218,6 +219,7 @@ export function Preview() {
           <span className="muted"> / {fmtTime(total)}</span>
         </div>
       </div>
+      <NextSteps />
     </div>
   )
 }

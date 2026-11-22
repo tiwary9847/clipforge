@@ -1,3 +1,4 @@
+import { t as tt, useT } from '../i18n'
 import { useEffect, useRef, useState } from 'react'
 import { engine } from '../engine'
 import {
@@ -122,6 +123,7 @@ function ResizeEdge() {
 }
 
 export function Timeline() {
+  useT()
   useSettings((s) => s.trackH)
   const phone = useSettings(() => isPhone())
   ROW_H = rowHeight()
@@ -459,7 +461,7 @@ export function Timeline() {
                   </div>
                 )}
                 <Icon name={TRACK_ICON[tr.id] ?? 'layers'} size={13} />
-                <span className="tn" title={tr.name}>{TRACK_SHORT[tr.id] ?? tr.name}</span>
+                <span className="tn" title={tr.name}>{tt(TRACK_SHORT[tr.id] ?? tr.name)}</span>
                 {tr.type === 'video' && (
                   <button className={'tk-b' + (tflags[tr.id]?.hide ? ' on' : '')} onClick={() => toggleTrack(tr.id, 'hide')} title={tflags[tr.id]?.hide ? 'Show this track' : 'Hide this track (not in the video)'}>
                     <Icon name={tflags[tr.id]?.hide ? 'eyeOff' : 'eye'} size={13} />

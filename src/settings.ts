@@ -22,6 +22,8 @@ export interface Settings {
   hidden: string[]
   closedSecs: string[]
   motion: boolean
+  lang: 'en' | 'hinglish' | 'hi' // interface language
+  nextSteps: boolean // the 'Next:' tip row under the preview
 }
 
 export const SKINS: { id: Skin; name: string; dark: boolean; sw: [string, string, string] }[] = [
@@ -58,6 +60,8 @@ const DEFAULTS: Settings = {
   leftW: 340,
   tall: true,
   hints: true,
+  lang: 'en',
+  nextSteps: true,
   toolsOpen: false,
   pins: ['ready', 'music', 'badtakes'],
   hidden: [],

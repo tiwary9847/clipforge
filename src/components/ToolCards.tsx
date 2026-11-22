@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { getSettings, togglePin, useSettings } from '../settings'
 import { Icon } from './Icon'
 import { openGuide } from './GuideDialog'
+import { t as tr, toolText, useT } from '../i18n'
 
 export type Cat = 'fix' | 'ai' | 'audio' | 'create' | 'publish'
 export const CATS: { id: Cat; name: string; short: string }[] = [
@@ -88,14 +89,31 @@ const loadOpen = (): Set<string> => {
 }
 
 export function ToolCards({ children }: { children: ReactNode }) {
-  const { lead, tools } = useMemo(() => parse(children), [children])
+  const lang = useSettings((x) => x.lang)
+  const { lead, tools: raw } = useMemo(() => parse(children), [children])
+  // titles and one-liners in the chosen language; the English title is kept for the guide and for search
+  const tools = useMemo(() => raw.map((x) => ({ ...x, en: x.title, ...toolText(x.id, x.title, x.desc), kw: `${x.kw} ${x.title} ${x.desc}` })), [raw, lang])
   const pins = useSettings((s) => s.pins)
   const hidden = useSettings((s) => s.hidden)
   const allOpen = useSettings((s) => s.toolsOpen)
   const [q, setQ] = useState('')
   const [cat, setCat] = useState<'all' | 'pinned' | Cat>('all')
   const [open, setOpen] = useState<Set<string>>(loadOpen)
-  const [active, setActive] = useState('')
+  const [active, setActive] = useState<string>(() => {
+    const w = window as any
+    const id = w.__cfTool || ''
+    w.__cfTool = undefined
+    return id
+  })
+  useEffect(() => {
+    const on = (e: Event) => {
+      ;(window as any).__cfTool = undefined
+      setActive((e as CustomEvent).detail)
+    }
+    window.addEventListener('cf:tool', on)
+    return () => window.removeEventListener('cf:tool', on)
+  }, [])
+  useT()
   useEffect(() => {
     if (!active) return
     const k = (e: KeyboardEvent) => e.key === 'Escape' && !document.querySelector('.modal-bg') && setActive('')
@@ -124,11 +142,11 @@ export function ToolCards({ children }: { children: ReactNode }) {
   else if (cat !== 'all') sections.push({ label: '', list: visible.filter((t) => t.cats.includes(cat)) })
   else {
     const pinned = pins.map((p) => visible.find((t) => t.id === p)).filter(Boolean) as Tool[]
-    if (pinned.length) sections.push({ label: '★ Pinned', list: pinned })
+    if (pinned.length) sections.push({ label: tr('★ Pinned'), list: pinned })
     const used = new Set(pinned.map((t) => t.id))
     for (const c of CATS) {
       const list = visible.filter((t) => t.cats[0] === c.id && !used.has(t.id))
-      if (list.length) sections.push({ label: c.name, list })
+      if (list.length) sections.push({ label: tr(c.name), list })
     }
   }
   const shownIds = new Set(sections.flatMap((s) => s.list.map((t) => t.id)))
@@ -186,13 +204,13 @@ export function ToolCards({ children }: { children: ReactNode }) {
     <div className="tc-top">
       <div className="tc-search">
         <Icon name="search" size={15} />
-        <input placeholder={`Search ${visible.length} tools… (music, zoom, captions)`} value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search tools" />
+        <input placeholder={tr('Search tools…').replace('{n}', String(visible.length))} value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search tools" />
       </div>
       <div className="tc-cats">
-        <button className={'chip' + (cat === 'all' ? ' on' : '')} onClick={() => setCat('all')}>All</button>
+        <button className={'chip' + (cat === 'all' ? ' on' : '')} onClick={() => setCat('all')}>{tr('All')}</button>
         <button className={'chip' + (cat === 'pinned' ? ' on' : '')} onClick={() => setCat('pinned')} title="Pinned tools">★</button>
         {CATS.map((c) => (
-          <button key={c.id} className={'chip' + (cat === c.id ? ' on' : '')} onClick={() => setCat(c.id)} title={c.name}>{c.short}</button>
+          <button key={c.id} className={'chip' + (cat === c.id ? ' on' : '')} onClick={() => setCat(c.id)} title={tr(c.name)}>{tr(c.short)}</button>
         ))}
       </div>
     </div>
@@ -260,7 +278,7 @@ export function ToolCards({ children }: { children: ReactNode }) {
                 <b>{cur.title}</b>
                 {cur.desc && <small>{cur.desc}</small>}
               </div>
-              <button className="btn sm td-help" onClick={() => openGuide(cur.title)} title="How to use this tool – opens the guide here"><Icon name="book" size={14} /><span>How to use</span></button>
+              <button className="btn sm td-help" onClick={() => openGuide(cur.en)} title="How to use this tool – opens the guide here"><Icon name="book" size={14} /><span>How to use</span></button>
               {pinBtn(cur, 'tc-pin td-pin')}
               <button className="ico" onClick={() => setActive('')} aria-label="Close"><Icon name="x" size={16} /></button>
             </div>
