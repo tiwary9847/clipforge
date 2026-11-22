@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { engine } from '../engine'
-import { Ctl, buildChapters, exportAudio, exportGif, fastExport, fastExportSupport } from '../fastExport'
+import { Ctl, buildChapters, exportAudio, exportGif, fastExport, fastExportSupport, sourceFps } from '../fastExport'
 import { getPreset, getState, projectDuration } from '../store'
 import { fmtTime } from './Fields'
 import { getClientId, setClientId, uploadSupported, uploadToYouTube } from '../youtube'
@@ -18,6 +18,11 @@ type Phase = 'idle' | 'running' | 'done' | 'error'
 export function ExportDialog({ onClose }: { onClose: () => void }) {
   const [phase, setPhase] = useState<Phase>('idle')
   const [mode, setMode] = useState<'fast' | 'realtime'>('realtime')
+  const [fpsPick, setFpsPick] = useState<'auto' | 24 | 30 | 60>('auto')
+  const [srcFps, setSrcFps] = useState(30)
+  useEffect(() => {
+    void sourceFps().then(setSrcFps)
+  }, [])
   const [what, setWhat] = useState<'video' | 'gif' | 'audio'>('video')
   const [part, setPart] = useState(false)
   const selRange = (() => {
@@ -66,7 +71,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
           : what === 'audio'
             ? await exportAudio(onP, ctl.current, range)
             : mode === 'fast' || part
-              ? await fastExport(onP, ctl.current, range)
+              ? await fastExport(onP, ctl.current, { ...range, fps: fpsPick === 'auto' ? srcFps : fpsPick })
               : await engine.exportVideo((p) => onP(p, 'Recording in real time…'))
       if (!out) {
         setPhase('idle')
@@ -95,7 +100,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
         <h3>Export video</h3>
         <div className="kv">
           <span>Format</span><b>{preset.label}</b>
-          <span>Resolution</span><b>{preset.w}×{preset.h} · 30 fps</b>
+          <span>Resolution</span><b>{preset.w}×{preset.h} · {mode === 'fast' || part ? (fpsPick === 'auto' ? srcFps : fpsPick) : 30} fps</b>
           <span>Length</span><b>{fmtTime(dur)}</b>
         </div>
 
@@ -133,6 +138,17 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                 </div>
               </div>
             </label>
+            {(mode === 'fast' || part) && (
+              <div className="fps-row">
+                <span>Smoothness</span>
+                <div className="seg">
+                  {([['auto', `Same as my video (${srcFps} fps)`], [30, '30 fps'], [60, '60 fps'], [24, '24 fps · film']] as const).map(([v, n]) => (
+                    <button key={String(v)} className={fpsPick === v ? 'on' : ''} onClick={() => setFpsPick(v)}>{n}</button>
+                  ))}
+                </div>
+                <div className="hint">{(fpsPick === 'auto' ? srcFps : fpsPick) >= 50 ? '60 fps looks smoothest for action, sports and walking shots; the export takes about twice as long.' : 'Recorded at 60 fps? Pick 60 fps to keep it smooth.'}</div>
+              </div>
+            )}
             <label className={'opt' + (mode === 'realtime' ? ' on' : '')}>
               <input type="radio" checked={mode === 'realtime'} onChange={() => setMode('realtime')} />
               <div>

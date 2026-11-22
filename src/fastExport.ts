@@ -11,7 +11,7 @@ import {
   canEncodeAudio,
   canEncodeVideo,
 } from 'mediabunny'
-import { engine, FPS } from './engine'
+import { engine } from './engine'
 import { getAsset, getPreset, getState, projectDuration } from './store'
 import { disposeInputs, getInput, mixRange, projectHasSound } from './media'
 import { Clip } from './types'
@@ -133,7 +133,33 @@ export interface ExportOpts {
   bitrate?: number // video bits per second (default: high quality)
   audioBitrate?: number
   maxSide?: number // shrink the frame so its longer side is at most this
+  fps?: number // frames per second; default: the same as the project's videos (24–60)
   overlay?: (ctx: CanvasRenderingContext2D, W: number, H: number, t: number) => void
+}
+
+const fpsCache = new Map<string, number>()
+/** The frame rate of the project's own videos (the highest one used), snapped to 24/25/30/50/60. 30 when there is no video. */
+export async function sourceFps(): Promise<number> {
+  const ids = [...new Set(getState().project.clips.filter((c) => c.kind === 'video' && c.assetId).map((c) => c.assetId!))]
+  let best = 0
+  for (const id of ids) {
+    let f = fpsCache.get(id)
+    if (f == null) {
+      f = 30
+      try {
+        const a = getAsset(id)
+        const tr = a && (await getInput(a).getPrimaryVideoTrack())
+        if (tr) f = (await tr.computePacketStats(90)).averagePacketRate || 30
+      } catch {
+        /* unknown: assume 30 */
+      }
+      fpsCache.set(id, f)
+    }
+    best = Math.max(best, f)
+  }
+  if (!best) return 30
+  const std = [24, 25, 30, 50, 60]
+  return std.reduce((a, b) => (Math.abs(b - best) < Math.abs(a - best) ? b : a))
 }
 
 /** Loads every web font the project's text uses so the first frames don't fall back. */
@@ -171,7 +197,8 @@ export async function fastExport(onProgress: (p: number, label: string) => void,
   const sink = await openTarget()
   const output = new Output({ format: new Mp4OutputFormat({ fastStart: sink.stream ? false : 'in-memory' }), target: sink.target })
   const vsrc = new CanvasSource(canvas, { codec: 'avc', bitrate: opts.bitrate ?? QUALITY_HIGH })
-  output.addVideoTrack(vsrc, { frameRate: FPS })
+  const fps = opts.fps ?? (await sourceFps())
+  output.addVideoTrack(vsrc, { frameRate: fps })
   let asrc: AudioBufferSource | null = null
   let audioCodec: 'aac' | 'opus' = 'aac'
   if (withAudio) {
@@ -185,7 +212,7 @@ export async function fastExport(onProgress: (p: number, label: string) => void,
   const frames = new Map<string, CanvasImageSource>()
 
   try {
-    const total = Math.max(1, Math.ceil(dur * FPS))
+    const total = Math.max(1, Math.ceil(dur * fps))
     const WIN = 10 // seconds of audio mixed at a time
     let audioUpTo = from
     const sr = 48000
@@ -195,7 +222,7 @@ export async function fastExport(onProgress: (p: number, label: string) => void,
         await sink.discard()
         return null
       }
-      const t = from + i / FPS
+      const t = from + i / fps
       if (asrc && t >= audioUpTo - 1e-6 && audioUpTo < to - 1e-6) {
         const w1 = Math.min(to, audioUpTo + WIN)
         const n = Math.max(1, Math.round((w1 - audioUpTo) * sr))
@@ -208,10 +235,10 @@ export async function fastExport(onProgress: (p: number, label: string) => void,
         const w = await readers.frame(c, t)
         if (w) frames.set(c.id, w)
       }
-      if (i % 15 === 0) await readers.sweep(clips, t)
+      if (i % Math.round(fps / 2) === 0) await readers.sweep(clips, t)
       engine.paint(ctx, W, H, t, (c, lt) => (c.kind === 'video' ? frames.get(c.id) ?? null : engine.imageSource(c, lt)))
       opts.overlay?.(ctx, W, H, t)
-      await vsrc.add(i / FPS, 1 / FPS)
+      await vsrc.add(i / fps, 1 / fps)
       if (i % 4 === 0) {
         onProgress(0.05 + 0.9 * (i / total), 'Encoding video…')
         await new Promise((r) => setTimeout(r, 0))
