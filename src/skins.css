@@ -551,3 +551,8 @@ body:has(.tdrawer.open) .sheet-x { display: none !important; }
 .faces-pick .face:not(.on) img { filter: blur(3px); }
 .faces-pick .face.on { border-color: var(--accent); filter: none; }
 .faces-pick .face small { font-size: 11px; }
+/* multi-select */
+.tl-bar .btn.sm.on { background: var(--grad); color: #fff; border-color: transparent; }
+.sel-count { flex: none; font-size: 12px; font-weight: 650; padding: 3px 9px; border-radius: 999px; background: rgba(var(--acc-rgb), 0.14); color: var(--accent); }
+.tl-label { cursor: pointer; }
+.tl-bar .keep-txt .tb-txt { display: inline !important; }

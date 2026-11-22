@@ -133,6 +133,9 @@ export function Timeline() {
   const clips = useStore((s) => s.project.clips)
   const selectedId = useStore((s) => s.selectedId)
   const selIds = useStore((s) => s.selIds)
+  const [multi, setMulti] = useState(false) // Select mode: each tap adds or removes a clip (for phones)
+  const multiRef = useRef(false)
+  multiRef.current = multi
   const markers = useStore((s) => s.project.markers)
   const snap = useStore((s) => s.snap)
   const [marq, setMarq] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null)
@@ -184,7 +187,7 @@ export function Timeline() {
   const startDrag = (e: React.PointerEvent, c: Clip, mode: 'move' | 'l' | 'r') => {
     e.stopPropagation()
     e.preventDefault()
-    if (e.shiftKey || e.ctrlKey || e.metaKey) {
+    if (e.shiftKey || e.ctrlKey || e.metaKey || multiRef.current) {
       if (mode === 'move') select(c.id, 'toggle')
       return
     }
@@ -371,15 +374,21 @@ export function Timeline() {
 
   const ids = selIds
   const hasSel = ids.length > 0
+  // every clip that isn't on a locked track
+  const selectable = (track?: string) => clips.filter((c) => (!track || c.track === track) && !getState().project.tracks?.[c.track]?.lock).map((c) => c.id)
+  const allSel = clips.length > 0 && selectable().every((id) => ids.includes(id))
   void selectedId
 
   return (
     <div className="timeline">
       <ResizeEdge />
       <div className="tl-bar">
+        <button className={'btn sm keep-txt' + (multi ? ' on' : '')} onClick={() => { setMulti(!multi); if (multi) select(null) }} title="Select mode: tap clips to pick several (or Shift/Ctrl+click, or drag a box)"><Icon name="check" size={14} /><span className="tb-txt">{multi ? 'Done' : 'Select'}</span></button>
+        <button className="btn sm keep-txt" disabled={!clips.length} onClick={() => (allSel ? select(null) : selectMany(selectable()))} title={allSel ? 'Select nothing' : 'Select every clip (Ctrl+A)'}><Icon name="layers" size={14} /><span className="tb-txt">{allSel ? 'None' : 'All'}</span></button>
+        {ids.length > 1 && <span className="sel-count">{ids.length} selected</span>}
         <button className="btn sm" disabled={!hasSel} onClick={() => { checkpoint(); splitMany(ids, engine.time) }} title="Split at playhead (S)"><Icon name="scissors" size={14} /><span className="tb-txt">Split</span></button>
         <button className="btn sm" disabled={!hasSel} onClick={() => duplicateMany(ids)} title="Duplicate (Ctrl+D)"><Icon name="copy" size={14} /><span className="tb-txt">Duplicate</span></button>
-        <button className="btn sm danger" disabled={!hasSel} onClick={() => deleteMany(ids)} title="Delete (Del)"><Icon name="trash" size={14} /><span className="tb-txt">Delete</span></button>
+        <button className="btn sm danger" disabled={!hasSel} onClick={() => { const n = ids.length; deleteMany(ids); setMulti(false); if (n > 1) setUi({ toast: `Deleted ${n} clips – Undo to bring them back.` }) }} title="Delete (Del)"><Icon name="trash" size={14} /><span className="tb-txt">Delete</span></button>
         <button className="btn sm" disabled={!hasSel} onClick={() => rippleDelete(ids)} title="Delete and close the gap (Shift+Del)"><Icon name="ripple" size={14} /><span className="tb-txt">Ripple</span></button>
         <button className="btn sm" disabled={ids.length < 2} onClick={() => groupClips(ids)} title="Group selected clips (Ctrl+G)"><Icon name="link" size={14} /><span className="tb-txt">Group</span></button>
         {getState().project.clips.some((x) => ids.includes(x.id) && x.group) && <button className="btn sm" onClick={() => ungroupClips(ids)} title="Ungroup (Ctrl+Shift+G)"><Icon name="unlink" size={14} /><span className="tb-txt">Ungroup</span></button>}
@@ -450,11 +459,16 @@ export function Timeline() {
               <div
                 className={`tl-label t-${tr.id}` + (tflags[tr.id]?.hide || tflags[tr.id]?.mute || tflags[tr.id]?.lock ? ' flagged' : '')}
                 style={{ width: LABEL_W }}
-                onClick={() => phone && setTrkMenu(trkMenu === tr.id ? '' : tr.id)}
+                onClick={(e) => {
+                  if (phone) setTrkMenu(trkMenu === tr.id ? '' : tr.id)
+                  else if (!(e.target as HTMLElement).closest('button')) selectMany(selectable(tr.id))
+                }}
+                title={phone ? undefined : 'Click to select every clip on this track'}
               >
                 {phone && trkMenu === tr.id && (
                   <div className="trk-menu" onClick={(e) => e.stopPropagation()}>
                     <b>{tr.name}</b>
+                    <button onClick={() => { selectMany(selectable(tr.id)); setTrkMenu('') }}><Icon name="check" size={16} />Select all clips here</button>
                     {tr.type === 'video' && <button onClick={() => { toggleTrack(tr.id, 'hide'); setTrkMenu('') }}><Icon name={tflags[tr.id]?.hide ? 'eye' : 'eyeOff'} size={16} />{tflags[tr.id]?.hide ? 'Show track' : 'Hide track'}</button>}
                     <button onClick={() => { toggleTrack(tr.id, 'mute'); setTrkMenu('') }}><Icon name={tflags[tr.id]?.mute ? 'volume' : 'mute'} size={16} />{tflags[tr.id]?.mute ? 'Unmute' : 'Mute'}</button>
                     <button onClick={() => { toggleTrack(tr.id, 'lock'); setTrkMenu('') }}><Icon name={tflags[tr.id]?.lock ? 'unlock' : 'lock'} size={16} />{tflags[tr.id]?.lock ? 'Unlock' : 'Lock'}</button>

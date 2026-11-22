@@ -286,3 +286,6 @@ Reviewed as a first-time creator on a phone, then fixed:
 - **🙈 Blur strangers** (Tools): tracks faces (on device), lists people with face thumbnails and screen share, keeps the main person, blurs or pixelates the rest; follows faces, applies under captions, kept in exports (`Clip.privacy`, engine `applyFaceBlur`). Measured on a 2-person clip: kept face sharpness 411 → 411, other face 403 → 1.
 - **Fix: Gemini model.** `gemini-2.0-flash` was shut down by Google on 1 June 2026, breaking every Gemini feature; `askAI` now uses the auto-updating `gemini-flash-latest` alias with `gemini-3.5-flash` / `gemini-3.1-flash-lite` fallbacks on 404.
 
+### v26.1 – select many clips
+Timeline bar: **✓ Select** mode (tap clips to add/remove – works on phones), **All / None** (skips locked tracks), an “N selected” chip; click a track name (phone: track menu → Select all clips here) to select that track; deleting several shows “Deleted N clips – Undo to bring them back”.
+
