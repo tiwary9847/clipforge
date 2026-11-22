@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import body from '../guide/guide-body.html?raw'
 import { Icon } from './Icon'
 import { startTour } from './Tour'
 
@@ -21,6 +20,7 @@ export function openGuide(topic?: string) {
   window.dispatchEvent(new CustomEvent('cf:guide', { detail: topic ?? '' }))
 }
 
+let guideText: string | null = null
 const clean = (s: string) => s.replace(/[^\p{L}\p{N}\s→&-]/gu, ' ').replace(/\s+/g, ' ').trim()
 
 export function GuideDialog({ topic, onClose }: { topic: string; onClose: () => void }) {
@@ -30,11 +30,20 @@ export function GuideDialog({ topic, onClose }: { topic: string; onClose: () => 
   const [cur, setCur] = useState('')
   const [q, setQ] = useState('')
   const [menu, setMenu] = useState(false) // phone: chapter list open
+  // the guide text (≈70 KB) loads only when the guide is opened
+  const [body, setBody] = useState<string | null>(guideText)
+  useEffect(() => {
+    if (!body)
+      void import('../guide/guide-body.html?raw').then((m) => {
+        guideText = m.default
+        setBody(m.default)
+      })
+  }, [])
 
   // number the headings and collect sections once the guide is in the page
   useEffect(() => {
     const el = box.current
-    if (!el) return
+    if (!el || !body) return
     const ss: Sec[] = []
     const ps: { id: string; title: string }[] = []
     let part = ''
@@ -69,7 +78,7 @@ export function GuideDialog({ topic, onClose }: { topic: string; onClose: () => 
     })
     // links open in a new tab
     el.querySelectorAll('a[href^="http"]').forEach((a) => a.setAttribute('target', '_blank'))
-  }, [])
+  }, [body])
 
   // jump to a topic (from a tool's 📖 button): a heading first, else the bold name inside a section
   useEffect(() => {
@@ -226,7 +235,7 @@ export function GuideDialog({ topic, onClose }: { topic: string; onClose: () => 
             )}
           </nav>
           <div className="gd-body" ref={box}>
-            <article className="gd" dangerouslySetInnerHTML={{ __html: body }} />
+            {body ? <article className="gd" dangerouslySetInnerHTML={{ __html: body }} /> : <div className="hint" style={{ padding: 24 }}>Opening the guide…</div>}
             <div className="gd-end">
               <a className="btn" href={PDF()} target="_blank" rel="noopener" download="ClipForge-User-Guide.pdf"><Icon name="download" size={15} /> Download the PDF guide</a>
             </div>

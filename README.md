@@ -28,7 +28,7 @@ Memes with sound, auto-edit, Hinglish captions, multicam, colour grading and mor
 ```bash
 npm install
 npm run dev      # development server
-npm run build    # builds a single self-contained dist/index.html
+npm run build    # dist/ = the website (loads in parts); dist-single/index.html = one self-contained file (also copied to dist/clipforge.html)
 ```
 
 Requires Node 18+. Best in Chrome or Edge (desktop or Android); Safari and Firefox work with a few features disabled (the app tells you which).
@@ -43,7 +43,7 @@ The app is an installable PWA (add to home screen) and works offline after the f
 
 ## Tech
 
-React 18 + TypeScript + Vite (single-file build) · Canvas 2D compositor · Web Audio · [mediabunny](https://github.com/Vanilagy/mediabunny) for decoding/encoding (WebCodecs) · transformers.js (Whisper, MODNet, TTS) loaded on demand · IndexedDB autosave.
+React 18 + TypeScript + Vite (code-split site build + single-file build) · Canvas 2D compositor · Web Audio · [mediabunny](https://github.com/Vanilagy/mediabunny) for decoding/encoding (WebCodecs) · transformers.js (Whisper, MODNet, TTS) loaded on demand · ffmpeg.wasm (HEVC converter, on demand) · IndexedDB autosave.
 
 ## Licences of optional AI models
 
@@ -259,3 +259,7 @@ Line-icon set replacing emoji controls (tabs, header, transport, timeline toolba
 - **Music maker: 17 moods** (was 8) – new Romantic (bansuri flute), Travel and Acoustic (strummed guitar), Shehnai wedding, Devotional (tanpura drone + tabla), EDM party (four-on-the-floor + synth arps), Motivational, Suspense, Funny (marimba).
 - Not tested against the live Openverse API or real Jamendo/Freesound downloads (blocked in the build environment); tested with mocked responses in Openverse's format.
 
+## v24 – weak spots fixed
+- **60 fps export.** Export → *Smoothness*: **Same as my video** (default – reads each clip's real frame rate and snaps to 24/25/30/50/60), 30, 60 or 24 fps. A 60 fps phone clip now exports as true 60 fps (checked: 1080 distinct frames for 18 s). Applies to fast export and parts; real-time recording stays at 30.
+- **HEVC / “High Efficiency” videos convert inside the app.** When the browser can't play a clip (iPhone/Samsung HEVC or another codec) a *Convert this video?* box appears: ⚡ Quick 720p or 💎 Full quality (up to 1080p) → H.264/AAC MP4, added to your media (and to the timeline if it's empty). Uses ffmpeg's WebAssembly build in a worker, reading the file straight from disk (nothing uploaded). The converter (~32 MB, 10–30 MB to download) is fetched only the first time and then cached; from the single file it comes from the GitHub Pages site. Measured on a 2-core machine: a 20 s 1080p clip took 33 s (Quick) / 87 s (Full).
+- **Faster first load.** The website now loads in parts: the editor starts with ~470 KB (gzip) of script instead of 2 MB; face tracking, noise removal, fonts, map outlines and the guide text load when first used. The service worker then stores every part in the background, so the whole editor still works offline after the first visit. `clipforge.html` (single file, ~4.7 MB) is still built for fully offline use and is offered on the site at `/clipforge.html`.

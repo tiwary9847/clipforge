@@ -1,6 +1,5 @@
 // Animated travel map: a styled map (Natural Earth outlines, no internet needed) with the route drawing itself,
 // a vehicle riding along it and each stop popping in.
-import GEO from './geo.json'
 import { Clip } from './types'
 import { getPreset, getState } from './store'
 
@@ -172,6 +171,18 @@ let onTile = () => {}
 let osmFails = 0 // OpenStreetMap refuses some pages (e.g. a file opened from disk) – then Street uses the Clean map
 export const setTileReady = (f: () => void) => (onTile = f)
 
+// country outlines (160 KB) load only when a map is first used
+let GEO: { world: [string, number[]][]; southAsia: [string, number[]][] } | null = null
+let geoP: Promise<void> | null = null
+function geo() {
+  if (!GEO && !geoP)
+    geoP = import('./geo.json').then((m) => {
+      GEO = (m as any).default ?? m
+      onTile()
+    })
+  return GEO
+}
+
 function load(url: string): Promise<void> {
   if (cache.has(url) || failed.has(url)) return Promise.resolve()
   let p = pending.get(url)
@@ -243,6 +254,10 @@ function tilesFor(cx: number, cy: number, view: number, z: number) {
 /** Downloads every map picture a map clip needs (all zoom steps of its animation). Used before export. */
 export async function prepareMaps(timeoutMs = 15000) {
   const jobs: Promise<void>[] = []
+  if (getState().project.clips.some((c) => c.shape === 'map')) {
+    geo()
+    if (geoP) jobs.push(geoP)
+  }
   for (const c of getState().project.clips) {
     if (c.shape !== 'map' || !c.map?.stops.length) continue
     const st = TILES[styleOf(c.map)]
@@ -322,7 +337,8 @@ export function drawMap(ctx: CanvasRenderingContext2D, c: Clip, lt: number, S: n
   // downloaded (or can't, when offline) shows a clean map instead of a hole
   ctx.fillStyle = SIMPLE.sea
   ctx.fillRect(-half, -half, size, size)
-  const polys = [...(GEO as any).world, ...(GEO as any).southAsia] as [string, number[]][]
+  const g = geo()
+  const polys = g ? [...g.world, ...g.southAsia] : []
   for (const [, f] of polys) {
     let any = false
     ctx.beginPath()

@@ -130,7 +130,7 @@ tr { break-inside: avoid; }
   <li>AI features (captions, AI voices, background removal, dubbing, AI upscaling) download their model <b>once</b> the first time you use them, then work offline. The face finder for face retouch and face stickers is already built in.</li>
 </ul>
 
-<div class="warn"><b>iPhone users:</b> iPhones record in “High Efficiency” (HEVC) by default, which some browsers can’t read. If a video won’t import, go to <b>Settings → Camera → Formats → Most Compatible</b> on the iPhone (on Samsung, turn off “High efficiency video”). Chrome or Edge on Windows 11, Mac or Android can usually play HEVC.</div>
+<div class="warn"><b>iPhone and Samsung users:</b> phones often record in “High Efficiency” (HEVC), which some browsers can’t play. ClipForge then shows <b>🔄 Convert this video?</b>: pick <b>⚡ Quick · 720p</b> (fastest) or <b>💎 Full quality</b>, press <span class="ui">Convert</span>, and the converted MP4 appears in your media. Nothing is uploaded. The first time, the converter (10–30 MB) is downloaded once. A 20-second clip takes about half a minute on Quick. To avoid converting at all: iPhone <b>Settings → Camera → Formats → Most Compatible</b>; Samsung: turn off “High efficiency video”.</div>
 
 <h2>First-time tour</h2>
 <p>The first time you open ClipForge, a short 5-step tour shows you how to import, edit, add memes, make captions and export. You can replay it any time: press <span class="ui">?</span> in the top bar to open the guide, then <span class="ui">Quick tour</span> (on a phone: ⋯ → Quick tour).</p>
@@ -813,6 +813,7 @@ tr { break-inside: avoid; }
           <li><b>Real-time recording</b>: works everywhere but takes as long as the video. Keep the tab open and in front.</li>
         </ul>
       </li>
+      <li>With Fast export, pick the <b>Smoothness</b>: <b>Same as my video</b> (the default – a phone clip recorded at 60 fps stays 60 fps), <b>30 fps</b>, <b>60 fps</b> (smoothest for walking, sports and action; takes about twice as long) or <b>24 fps · film</b>.</li>
       <li>Open <b>📑 YouTube chapters from your markers</b> to copy your chapter list.</li>
       <li>Press <span class="ui">Start export</span>. When it’s done, preview it, then <b>Download</b> or <b>Share</b> (on phones this opens the share sheet for WhatsApp, Instagram, YouTube…).</li>
     </ol>
@@ -941,14 +942,15 @@ tr { break-inside: avoid; }
 <h2>Common problems</h2>
 <table>
   <tr><th style="width:34%">Problem</th><th>Fix</th></tr>
-  <tr><td>“Couldn’t import… HEVC / High Efficiency”</td><td>On iPhone: Settings → Camera → Formats → <b>Most Compatible</b>. On Samsung: turn off “High efficiency video”. Or use Chrome/Edge on Windows 11, Mac or Android.</td></tr>
+  <tr><td>“Convert this video?” appears when importing</td><td>The clip is HEVC (“High Efficiency”) or another format this browser can’t play. Press <b>Convert</b> (Quick 720p is fastest). For long videos, trim them on the phone first. To avoid it: iPhone Settings → Camera → Formats → <b>Most Compatible</b>; Samsung: turn off “High efficiency video”.</td></tr>
+  <tr><td>Exported video looks less smooth than the original</td><td>In Export, set <b>Smoothness</b> to <b>Same as my video</b> or <b>60 fps</b>.</td></tr>
   <tr><td>Captions / AI voice / dub stuck on “Downloading…”</td><td>The first use downloads the model (40–250 MB). Stay online and wait; next time it’s instant. On slow internet, pick the Tiny or Base model.</td></tr>
   <tr><td>Hindi captions have mistakes</td><td>Use <b>Accurate · Small</b> and set the language to <b>Hindi</b>. Click a caption to fix a word.</td></tr>
   <tr><td>“No faces found”</td><td>Faces need to be reasonably big, facing the camera and well lit. Try a closer shot.</td></tr>
   <tr><td>Face sticker jumps or disappears for a moment</td><td>It happens when the face turns away or is covered. Press <b>↻ Find faces again</b> on the clip, or delete that small part of the sticker.</td></tr>
   <tr><td>Speakers mixed up</td><td>Choose the exact number (<b>2 people</b>) instead of Auto. Similar voices are harder to tell apart.</td></tr>
   <tr><td>Export is slow</td><td>Use <b>Fast export</b>; close other tabs; on phones keep the screen on. Real-time mode always takes as long as the video.</td></tr>
-  <tr><td>Fast export says a clip “can’t be decoded”</td><td>That clip’s format isn’t supported by this browser. Use Real-time recording, or convert the clip to H.264 MP4.</td></tr>
+  <tr><td>Fast export says a clip “can’t be decoded”</td><td>That clip’s format isn’t supported by this browser. Remove the clip and import it again – ClipForge will offer to convert it.</td></tr>
   <tr><td>My project disappeared</td><td>Check Tools → Version history. Projects live in this browser only, so clearing browser data or using private/incognito mode loses them. Keep Backup files.</td></tr>
   <tr><td>Travel map shows the plain outline instead of a real map</td><td>The map pictures couldn’t download. Check your internet; Simple style is used automatically when offline. If Street doesn’t load when you open ClipForge as a file, it switches to Clean by itself.</td></tr>
   <tr><td>Travel map: “Couldn’t find” a place</td><td>Check the spelling or add the state (“Muzaffarpur, Bihar”). Online search needs internet; offline, type “Name, latitude, longitude”.</td></tr>
