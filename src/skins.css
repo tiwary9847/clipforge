@@ -471,3 +471,14 @@ body:has(.tdrawer.open) .sheet-x { display: none !important; }
 .conv-q { margin: 4px 0 8px; }
 .modal.convert .progress-in { transition: width .3s; }
 .modal.convert details { margin-top: 10px; }
+/* timeline toolbar fits its own width (laptops, tall layout): labels drop to icons, then the zoom slider goes */
+.timeline { container-type: inline-size; container-name: tl; }
+.tl-bar { min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.tl-bar > * { flex-shrink: 0; }
+@container tl (max-width: 900px) {
+  .tl-bar .tb-txt { display: none; }
+  .tl-bar .zlbl { display: none; }
+}
+@container tl (max-width: 640px) {
+  .tl-bar input.zoom { display: none; }
+}
