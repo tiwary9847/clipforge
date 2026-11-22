@@ -5,7 +5,7 @@ import { addAsset, baseClip, checkpoint, getState, insertSilent, projectDuration
 import { engine } from './engine'
 import { Clip } from './types'
 
-export type Mood = 'chill' | 'vlog' | 'hype' | 'sad' | 'desi' | 'festive' | 'cinematic' | 'lofi'
+export type Mood = 'chill' | 'vlog' | 'hype' | 'sad' | 'desi' | 'festive' | 'cinematic' | 'lofi' | 'romantic' | 'travel' | 'wedding' | 'bhakti' | 'edm' | 'acoustic' | 'motivational' | 'suspense' | 'funny'
 export const MOODS: { id: Mood; name: string; desc: string }[] = [
   { id: 'vlog', name: '☀️ Happy vlog', desc: 'Bright, bouncy, ukulele-pop feel' },
   { id: 'chill', name: '🌊 Chill', desc: 'Soft pads, relaxed beat' },
@@ -15,16 +15,27 @@ export const MOODS: { id: Mood; name: string; desc: string }[] = [
   { id: 'sad', name: '🌧 Emotional', desc: 'Piano, minor key, slow' },
   { id: 'desi', name: '🪘 Desi groove', desc: 'Dholak rhythm, sitar-like plucks' },
   { id: 'festive', name: '🪔 Festive', desc: 'Wedding/Diwali energy, dhol and bells' },
+  { id: 'romantic', name: '💕 Romantic', desc: 'Soft bansuri flute over warm chords' },
+  { id: 'travel', name: '🧳 Travel', desc: 'Strummed guitar, steady beat – road trips' },
+  { id: 'wedding', name: '💍 Shehnai wedding', desc: 'Shehnai melody with dholak' },
+  { id: 'bhakti', name: '🙏 Devotional', desc: 'Tanpura drone, tabla, flute' },
+  { id: 'edm', name: '🎧 EDM party', desc: 'Four-on-the-floor kick, synth arps' },
+  { id: 'acoustic', name: '🎸 Acoustic', desc: 'Just guitar – calm talking vlogs' },
+  { id: 'motivational', name: '🚀 Motivational', desc: 'Piano and drums that build up' },
+  { id: 'suspense', name: '🕵️ Suspense', desc: 'Dark, tense, slow pulse – reveals' },
+  { id: 'funny', name: '🤪 Funny', desc: 'Bouncy marimba – comedy and bloopers' },
 ]
 
 interface Style {
   bpm: number
   minor: boolean
   prog: number[] // scale degrees of the chord roots (0-based), one per bar
-  drums: 'pop' | 'chill' | 'hype' | 'lofi' | 'cine' | 'dholak' | 'none'
-  lead: 'pluck' | 'piano' | 'sitar' | 'bell' | 'none'
+  drums: 'pop' | 'chill' | 'hype' | 'lofi' | 'cine' | 'dholak' | 'tabla' | 'edm' | 'pulse' | 'none'
+  lead: 'pluck' | 'piano' | 'sitar' | 'bell' | 'flute' | 'shehnai' | 'saw' | 'marimba' | 'none'
   pad: boolean
   swing: number
+  strum?: boolean // strummed guitar chords
+  drone?: boolean // tanpura drone (Sa–Pa)
 }
 const STYLES: Record<Mood, Style> = {
   vlog: { bpm: 112, minor: false, prog: [0, 4, 5, 3], drums: 'pop', lead: 'pluck', pad: false, swing: 0 },
@@ -35,6 +46,15 @@ const STYLES: Record<Mood, Style> = {
   sad: { bpm: 70, minor: true, prog: [0, 5, 3, 4], drums: 'none', lead: 'piano', pad: true, swing: 0 },
   desi: { bpm: 100, minor: false, prog: [0, 3, 4, 0], drums: 'dholak', lead: 'sitar', pad: true, swing: 0.1 },
   festive: { bpm: 124, minor: false, prog: [0, 4, 3, 4], drums: 'dholak', lead: 'bell', pad: false, swing: 0.05 },
+  romantic: { bpm: 76, minor: false, prog: [0, 5, 3, 4], drums: 'chill', lead: 'flute', pad: true, swing: 0.06 },
+  travel: { bpm: 116, minor: false, prog: [0, 4, 5, 3], drums: 'pop', lead: 'none', pad: false, swing: 0, strum: true },
+  wedding: { bpm: 96, minor: false, prog: [0, 3, 4, 0], drums: 'dholak', lead: 'shehnai', pad: true, swing: 0.08 },
+  bhakti: { bpm: 72, minor: false, prog: [0, 0, 3, 4], drums: 'tabla', lead: 'flute', pad: false, swing: 0.05, drone: true },
+  edm: { bpm: 126, minor: true, prog: [0, 5, 3, 4], drums: 'edm', lead: 'saw', pad: true, swing: 0 },
+  acoustic: { bpm: 92, minor: false, prog: [0, 4, 5, 3], drums: 'none', lead: 'none', pad: false, swing: 0.04, strum: true },
+  motivational: { bpm: 108, minor: false, prog: [0, 5, 3, 4], drums: 'pop', lead: 'piano', pad: true, swing: 0 },
+  suspense: { bpm: 88, minor: true, prog: [0, 0, 5, 1], drums: 'pulse', lead: 'bell', pad: true, swing: 0 },
+  funny: { bpm: 122, minor: false, prog: [0, 4, 0, 4], drums: 'pop', lead: 'marimba', pad: false, swing: 0.12 },
 }
 
 const MAJOR = [0, 2, 4, 5, 7, 9, 11]
@@ -72,7 +92,7 @@ export async function compose(mood: Mood, seconds: number, seed: number): Promis
   }
   verb.buffer = ir
   const wet = ctx.createGain()
-  wet.gain.value = mood === 'cinematic' || mood === 'sad' || mood === 'chill' ? 0.35 : 0.18
+  wet.gain.value = ['cinematic', 'sad', 'chill', 'romantic', 'bhakti', 'suspense'].includes(mood) ? 0.35 : 0.18
   verb.connect(wet).connect(master)
   const noise = ctx.createBuffer(1, sr, sr)
   const nd = noise.getChannelData(0)
@@ -151,11 +171,84 @@ export async function compose(mood: Mood, seconds: number, seed: number): Promis
     s.connect(g).connect(out)
     s.start(t)
   }
+  // bansuri-like flute: a sine with slow vibrato and a little breath
+  const flute = (f: number, t: number, d: number, v: number, out: AudioNode) => {
+    const o = ctx.createOscillator()
+    o.type = 'sine'
+    o.frequency.value = f
+    const lfo = ctx.createOscillator()
+    lfo.frequency.value = 5.2
+    const lg = ctx.createGain()
+    lg.gain.setValueAtTime(0, t)
+    lg.gain.linearRampToValueAtTime(f * 0.012, t + Math.min(0.5, d * 0.6))
+    lfo.connect(lg).connect(o.frequency)
+    const g = ctx.createGain()
+    g.gain.setValueAtTime(0.0001, t)
+    g.gain.linearRampToValueAtTime(v, t + 0.09)
+    g.gain.setValueAtTime(v * 0.85, t + Math.max(0.1, d - 0.12))
+    g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.25)
+    o.connect(g).connect(out)
+    o.start(t)
+    lfo.start(t)
+    o.stop(t + d + 0.3)
+    lfo.stop(t + d + 0.3)
+    nz(t, f * 2, Math.min(0.25, d), v * 0.18, out, true)
+  }
+  // shehnai-like reed: a bright sawtooth through a nasal band-pass, with vibrato
+  const reed = (f: number, t: number, d: number, v: number, out: AudioNode) => {
+    const o = ctx.createOscillator()
+    o.type = 'sawtooth'
+    o.frequency.setValueAtTime(f * 0.97, t)
+    o.frequency.linearRampToValueAtTime(f, t + 0.06)
+    const lfo = ctx.createOscillator()
+    lfo.frequency.value = 6
+    const lg = ctx.createGain()
+    lg.gain.value = f * 0.01
+    lfo.connect(lg).connect(o.frequency)
+    const bp = ctx.createBiquadFilter()
+    bp.type = 'bandpass'
+    bp.frequency.value = Math.min(2600, f * 3)
+    bp.Q.value = 2.2
+    const g = ctx.createGain()
+    g.gain.setValueAtTime(0.0001, t)
+    g.gain.linearRampToValueAtTime(v, t + 0.05)
+    g.gain.setValueAtTime(v * 0.9, t + Math.max(0.08, d - 0.08))
+    g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.12)
+    o.connect(bp).connect(g).connect(out)
+    o.start(t)
+    lfo.start(t)
+    o.stop(t + d + 0.2)
+    lfo.stop(t + d + 0.2)
+  }
+  // synth lead for EDM arps: filtered sawtooth with a quick pluck envelope
+  const sawLead = (f: number, t: number, d: number, v: number, out: AudioNode) => {
+    const lp = ctx.createBiquadFilter()
+    lp.type = 'lowpass'
+    lp.frequency.setValueAtTime(5000, t)
+    lp.frequency.exponentialRampToValueAtTime(700, t + d)
+    lp.connect(out)
+    for (const det of [-9, 9]) tone('sawtooth', f, t, 0.004, v, d, lp, det)
+  }
+  const marimba = (f: number, t: number, v: number, out: AudioNode) => {
+    tone('sine', f, t, 0.002, v, 0.32, out)
+    tone('sine', f * 4, t, 0.002, v * 0.25, 0.08, out)
+  }
+  // a guitar strum: chord notes plucked a few ms apart
+  const strum = (notes: number[], t: number, v: number, up: boolean) => {
+    const ns = up ? [...notes].reverse() : notes
+    ns.forEach((f, i) => pluck(f, t + i * 0.014, v * (up ? 0.75 : 1), false, gtr))
+  }
   const sw = (b: number) => (b % 2 === 1 ? st.swing * beat : 0)
   const lead = ctx.createGain()
   lead.gain.value = 0.9
   lead.connect(pan(0.18)).connect(master)
   lead.connect(verb)
+  // guitar bus: warmer than the bright plucks
+  const gtr = ctx.createBiquadFilter()
+  gtr.type = 'lowpass'
+  gtr.frequency.value = 2600
+  gtr.Q.value = 0.5
+  gtr.connect(lead)
   const padBus = ctx.createGain()
   padBus.gain.value = 0.55
   const padLp = ctx.createBiquadFilter()
@@ -177,18 +270,30 @@ export async function compose(mood: Mood, seconds: number, seed: number): Promis
       for (const k of [0, 2, 4]) {
         const f = midi(deg(root + k, -1))
         for (const det of [-6, 6]) {
-          const g = tone(mood === 'sad' ? 'triangle' : 'sawtooth', f, t0, 0.4, 0.035, bar - 0.2, padBus, det)
+          const g = tone(mood === 'sad' || mood === 'romantic' || mood === 'suspense' ? 'triangle' : 'sawtooth', f, t0, 0.4, mood === 'suspense' ? 0.05 : 0.035, bar - 0.2, padBus, det)
           void g
         }
       }
     }
+    // strummed guitar chords (travel / acoustic): down, down-up, up-down-up pattern
+    if (st.strum) {
+      const chord = [0, 2, 4, 7].map((k) => midi(deg(root + (k === 7 ? 0 : k), k === 7 ? 0 : -1)))
+      const pat: [number, boolean][] = [[0, false], [1, false], [1.5, true], [2.5, true], [3, false], [3.5, true]]
+      for (const [p, up] of pat) strum(chord, t0 + p * beat + sw(p * 2), up ? 0.16 : 0.22, up)
+    }
+    // tanpura drone: Pa – Sa – Sa – Sa' every two beats
+    if (st.drone) {
+      const sa = midi(key - 12)
+      const seq = [sa * 1.5, sa * 2, sa * 2, sa]
+      for (let k = 0; k < 2; k++) for (let i = 0; i < 4; i++) pluck(seq[i], t0 + k * 2 * beat + i * beat * 0.5, 0.12, true, padBus)
+    }
     // bass
-    if (!intro || mood === 'hype') {
-      const pat = st.drums === 'hype' ? [0, 0.5, 1.5, 2, 2.5, 3.5] : st.drums === 'dholak' ? [0, 1.5, 2, 3] : [0, 2, 2.5]
+    if ((!intro || mood === 'hype' || mood === 'edm') && mood !== 'acoustic' && mood !== 'bhakti') {
+      const pat = st.drums === 'hype' ? [0, 0.5, 1.5, 2, 2.5, 3.5] : st.drums === 'edm' ? [0.5, 1.5, 2.5, 3.5] : st.drums === 'dholak' ? [0, 1.5, 2, 3] : mood === 'funny' ? [0, 1, 2, 3] : st.drums === 'pulse' ? [0] : [0, 2, 2.5]
       for (const p of pat) tone('sine', midi(deg(root, -2)), t0 + p * beat + sw(p * 2), 0.01, 0.38, beat * (st.drums === 'hype' ? 0.45 : 0.8), master)
     }
     // drums
-    if (!(intro && mood !== 'hype' && mood !== 'festive') && st.drums !== 'none') {
+    if (!(intro && mood !== 'hype' && mood !== 'festive' && mood !== 'edm') && st.drums !== 'none') {
       for (let s = 0; s < 16; s++) {
         const t = t0 + (s * beat) / 4 + (s % 2 ? sw(1) : 0)
         const q = s / 4
@@ -214,6 +319,29 @@ export async function compose(mood: Mood, seconds: number, seed: number): Promis
             if (s === 0) hit(t, 70, 35, 1.2, 1)
             if (s === 8 && b % 2 === 1) hit(t, 90, 40, 0.8, 0.7)
             break
+          case 'tabla': {
+            // soft theka: dha (low + ring), na (ring), ge (low bend)
+            const dha = [0, 6, 8]
+            const na = [2, 4, 10, 12, 14]
+            if (dha.includes(s)) {
+              hit(t, 160, 75, 0.35, 0.55)
+              tone('sine', 520, t, 0.002, 0.12, 0.25, master)
+            }
+            if (na.includes(s)) tone('sine', 560 + (s % 4) * 20, t, 0.002, 0.1, 0.18, master)
+            break
+          }
+          case 'edm':
+            if (s % 4 === 0) hit(t, 160, 42, 0.3, 1)
+            if (s === 4 || s === 12) {
+              for (const k of [0, 0.012, 0.024]) nz(t + k, 1400, 0.06, 0.25, master, true)
+            }
+            if (s % 4 === 2) nz(t, 7000, 0.09, 0.14)
+            if (b % 8 === 7 && s >= 8) nz(t, 2000 + s * 300, 0.06, 0.06 + (s - 8) * 0.02)
+            break
+          case 'pulse':
+            if (s === 0 || s === 8) hit(t, 60, 35, 0.9, 0.85)
+            if (s % 4 === 2) tone('sine', midi(deg(root, -2)), t, 0.005, 0.12, 0.2, master)
+            break
           case 'dholak': {
             // dha / ge (low) and na / ta (high) bols
             const low = [0, 3, 6, 8, 11, 14]
@@ -227,13 +355,38 @@ export async function compose(mood: Mood, seconds: number, seed: number): Promis
       }
     }
     // lead / melody (not in the intro bars, and lighter in section 0)
-    if (st.lead !== 'none' && !intro && !outro) {
-      const notes = section === 0 ? 4 : 8
+    if ((st.lead === 'flute' || st.lead === 'shehnai') && !intro && !outro) {
+      // long, singing notes – mostly quarter and half notes
+      let tb = 0
+      let i = 0
+      while (tb < 4) {
+        const len = R() < 0.35 ? 2 : 1
+        const d = root + motif[(i + b) % motif.length]
+        const f = midi(deg(d, st.lead === 'flute' ? 1 : 0))
+        if (R() > 0.12) {
+          if (st.lead === 'flute') flute(f, t0 + tb * beat, len * beat * 0.95, 0.2, lead)
+          else reed(f, t0 + tb * beat, len * beat * 0.92, 0.13, lead)
+        }
+        tb += len
+        i++
+      }
+    } else if (st.lead !== 'none' && !intro && !outro) {
+      const notes = st.lead === 'saw' ? 16 : section === 0 ? 4 : 8
       for (let i = 0; i < notes; i++) {
         if (R() < 0.18) continue
         const t = t0 + (i * bar) / notes + sw(i)
         const d = root + motif[(i + b) % motif.length]
         const f = midi(deg(d, st.lead === 'bell' ? 1 : 0))
+        if (st.lead === 'saw') {
+          // arpeggio through the chord
+          const ar = midi(deg(root + [0, 2, 4, 7, 4, 2, 0, 4][i % 8], 1))
+          sawLead(ar, t, (bar / notes) * 0.9, 0.05, lead)
+          continue
+        }
+        if (st.lead === 'marimba') {
+          marimba(midi(deg(d, 1)), t, 0.22, lead)
+          continue
+        }
         if (st.lead === 'pluck') pluck(f, t, 0.35, false, lead)
         else if (st.lead === 'sitar') pluck(f, t, 0.3, true, lead)
         else if (st.lead === 'bell') {

@@ -1,4 +1,5 @@
 // Auto chapters + title / description / hashtag helper, from what is said in the video.
+import { withCredits } from './musiclib'
 import { getState, projectDuration, setProject, checkpoint, getPreset, patchProjectSilent } from './store'
 import { PLACES } from './travelmap'
 
@@ -199,7 +200,7 @@ export function makeTitles(spoken: Sentence[], extra = ''): TitlePack {
         .join('\n')
     : ''
   const description = `${hook.charAt(0).toUpperCase() + hook.slice(1)}${/[.!?]$/.test(hook) ? '' : '…'}\n\nIs video mein: ${[k1, k2, k3].join(', ')} – poora video dekhna, end mein surprise hai! 😄${chap}\n\n👍 Video achha laga toh Like karo, Share karo aur Subscribe karna mat bhoolna 🔔\n\n${hashtags.join(' ')}`
-  return { titles, description, hashtags }
+  return { titles, description: withCredits(description), hashtags }
 }
 
 const fmt = (t: number) => {
@@ -219,7 +220,7 @@ export async function aiTitles(provider: 'gemini' | 'claude', key: string, spoke
   const m = text.match(/\{[\s\S]*\}/)
   if (!m) throw new Error('The AI reply wasn’t in the expected format – try again.')
   const o = JSON.parse(m[0])
-  return { titles: (o.titles ?? []).slice(0, 8), description: String(o.description ?? ''), hashtags: (o.hashtags ?? []).slice(0, 15) }
+  return { titles: (o.titles ?? []).slice(0, 8), description: withCredits(String(o.description ?? '')), hashtags: (o.hashtags ?? []).slice(0, 15) }
 }
 
 /** Sends a prompt to Gemini or Claude with the user's own key; returns the reply text. */

@@ -37,6 +37,7 @@ import { OnlineMemes } from './OnlineMemes'
 import { FaceStickers } from './FacePanels'
 import { Slideshow, VideoTemplates } from './CreativePanels'
 import { MusicMaker } from './AutoPanels'
+import { MusicLibrary } from './MusicLibrary'
 import { SPEAKER_COLORS, clipHasSpeakers, findSpeakers, speakerDuring } from '../speakers'
 import { MEMES, MEME_CATS, MemeCat, applyMeme, previewSound } from '../memes'
 import { CapMode, Word, buildLines, transcribe } from '../captions'
@@ -456,6 +457,8 @@ function AudioTab() {
     <>
       <div className="group-h" style={{ marginTop: 0 }}>🎵 Music maker (no copyright)</div>
       <MusicMaker />
+      <div className="group-h">🎧 Free music library (no copyright)</div>
+      <MusicLibrary compact />
       <Voiceover />
       <div className="hint">Sound effects are generated in your browser. ▶ to preview, ＋ to drop one at the playhead.</div>
       <div className="sfx-list">

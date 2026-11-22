@@ -254,3 +254,8 @@ Line-icon set replacing emoji controls (tabs, header, transport, timeline toolba
 - Guide source now lives in the repo: `docs/guide/guide.html` (+ `img/`). After editing it run `python3 docs/guide/render.py` (PDF) and `python3 scripts/build-guide.py` (in-app copy: `src/guide/guide-body.html`, `public/guide/*.webp`, `public/ClipForge-User-Guide.pdf`).
 - Screenshots retaken with the new UI; new sections for AI voice-over, Settings and the tool tiles.
 
+## v23 – more music
+- **🎧 Free music library** (Audio tab and Tools): searches openly licensed music and sound effects on Openverse (Jamendo, Freesound, Wikimedia Commons…) – no key, 16 mood chips, length filter, ▶ preview, + Add (under the whole video, ducked under talking, trimmed with a fade) or At ▸ playhead. Only **CC0, Public Domain Mark and CC BY** are requested: under CC 4.0 music synced to video is an adaptation, so ND and SA licences (and NC, for monetised videos) are left out. CC BY credit lines are kept in the project and appended to the generated description; removed tracks drop their credit. If a source refuses app downloads, a Download / Copy-credit fallback appears.
+- **Music maker: 17 moods** (was 8) – new Romantic (bansuri flute), Travel and Acoustic (strummed guitar), Shehnai wedding, Devotional (tanpura drone + tabla), EDM party (four-on-the-floor + synth arps), Motivational, Suspense, Funny (marimba).
+- Not tested against the live Openverse API or real Jamendo/Freesound downloads (blocked in the build environment); tested with mocked responses in Openverse's format.
+

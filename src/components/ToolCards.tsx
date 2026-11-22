@@ -18,6 +18,7 @@ export const TOOL_META: [string, string, Cat[], string, string][] = [
   ['Ready to post', 'ready', ['fix', 'publish'], 'Score your video and fix problems in one tap', 'check score viral hook safe zone loudness'],
   ['Bad-take', 'badtakes', ['fix', 'ai'], 'Cut repeated lines, keep your last try', 'retake mistake repeat galti'],
   ['Music maker', 'music', ['audio', 'create'], 'Original background music – no copyright', 'song bgm gaana background'],
+  ['Free music library', 'musiclib', ['audio'], 'Search free songs and sound effects that are safe to use', 'song bgm gaana music library copyright free royalty audio sound effects openverse'],
   ['Auto punch-in', 'zooms', ['ai'], 'Zoom on your face at key moments', 'zoom jump cut'],
   ['Auto sound effects', 'sfx', ['ai', 'audio'], 'Whoosh on cuts, pops on key words', 'sound effect whoosh'],
   ['Auto b-roll', 'broll', ['ai', 'create'], 'Stock clips that match what you say', 'stock pexels pixabay footage'],

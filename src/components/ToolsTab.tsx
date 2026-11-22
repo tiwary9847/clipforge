@@ -11,6 +11,7 @@ import { LAYOUTS, addAdjustmentLayer, applyLayout } from '../looks'
 import { DubSection, SpeakersSection } from './VoicePanels'
 import { ScriptToVideo } from './ScriptPanel'
 import { ToolCards } from './ToolCards'
+import { MusicLibrary } from './MusicLibrary'
 import { BadTakes, ChatStory, HookWriter, ReadyCheck, ReplySticker } from './PostPanels'
 import { AutoSfxSection, AutoZoomSection, BrollSection, MusicMaker } from './AutoPanels'
 import { ChaptersSection, EnhanceSection, TitlesSection, TravelMapSection } from './MorePanels'
@@ -69,6 +70,8 @@ export function ToolsTab() {
       <BadTakes />
       <div className="group-h">🎵 Music maker (no copyright)</div>
       <MusicMaker />
+      <div className="group-h">🎧 Free music library</div>
+      <MusicLibrary />
       <div className="group-h">🎯 Auto punch-in zooms</div>
       <AutoZoomSection />
       <div className="group-h">🔊 Auto sound effects</div>
