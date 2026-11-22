@@ -63,6 +63,15 @@ void fastExport.cleanOldExports()
 
 applySettings()
 watchSystem()
+// ask the browser to keep projects and media permanently (otherwise it may clear them when space is low,
+// and Safari can remove site data after 7 days without a visit)
+try {
+  navigator.storage?.persisted?.().then((on) => {
+    if (!on) navigator.storage.persist?.().catch(() => {})
+  })
+} catch {
+  /* older browsers */
+}
 
 setVizReady(() => engine.requestRender())
 setTileReady(() => engine.requestRender())
