@@ -115,22 +115,40 @@ export async function scheduleClipAudio(ctx: BaseAudioContext, dest: AudioNode, 
   const sink = new AudioBufferSink(track)
   const from = c.srcIn + (wa - c.start) * c.speed
   const to = c.srcIn + (wb - c.start) * c.speed
-  let any = false
+  // join the decoded pieces (~20 ms each) into one buffer and play it with a single node:
+  // one node per piece made mixing a 10-minute video take over a minute
+  const parts: AudioBuffer[] = []
+  const stamps: number[] = []
   for await (const w of sink.buffers(from, to)) {
-    const src = ctx.createBufferSource()
-    src.buffer = w.buffer
-    src.playbackRate.value = c.speed
-    src.connect(into)
-    let at = c.start + (w.timestamp - c.srcIn) / c.speed // timeline time where this buffer begins
-    let off = 0
-    if (at < wa) {
-      off = (wa - at) * c.speed
-      at = wa
-    }
-    src.start(at - t0, off)
-    src.stop(wb - t0)
-    any = true
+    parts.push(w.buffer)
+    stamps.push(w.timestamp)
   }
+  if (!parts.length) return false
+  const psr = parts[0].sampleRate
+  const chs = Math.max(...parts.map((b) => b.numberOfChannels))
+  const first = stamps[0]
+  const len = Math.max(...parts.map((b, i) => Math.round((stamps[i] - first) * psr) + b.length))
+  const joined = ctx.createBuffer(chs, len, psr)
+  for (let ch = 0; ch < chs; ch++) {
+    const out = joined.getChannelData(ch)
+    parts.forEach((b, i) => {
+      if (b.sampleRate !== psr) return
+      out.set(b.getChannelData(Math.min(ch, b.numberOfChannels - 1)), Math.round((stamps[i] - first) * psr))
+    })
+  }
+  const src = ctx.createBufferSource()
+  src.buffer = joined
+  src.playbackRate.value = c.speed
+  src.connect(into)
+  let at = c.start + (first - c.srcIn) / c.speed // timeline time where the sound begins
+  let off = 0
+  if (at < wa) {
+    off = (wa - at) * c.speed
+    at = wa
+  }
+  src.start(at - t0, off)
+  src.stop(wb - t0)
+  const any = true
   return any
 }
 
