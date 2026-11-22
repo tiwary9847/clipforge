@@ -663,6 +663,39 @@ const e=`<h1 class="part"><span class="n">1</span>Getting started</h1>
 <p class="where">Stickers tab → Callouts &amp; shapes → Progress bar, then click it on the timeline</p>
 <p>Choose <b>⬆ Top</b> or <b>⬇ Bottom</b>, and <b>Thin bar</b>, <b>Rounded</b> (with a moving dot) or <b>Chapters</b> (split into parts at your markers, like YouTube chapters).</p>
 
+<h1 class="part"><span class="n">★</span>AI pack</h1>
+<p class="lead">Three tools that work like an editor sitting next to you: tell it what you want, see where viewers will leave, and keep strangers private.</p>
+
+<h2>🤖 AI assistant</h2>
+<p class="where">Next row → 🤖 Ask AI · or Tools tab → AI assistant</p>
+<ol>
+  <li>Type or speak (🎤) what you want, in English or Hinglish – for example <i>“Isko 30 second ki reel bana do, captions aur upbeat music ke saath”</i>, <i>“Boring parts hatao aur zoom lagao”</i> or <i>“Galtiyan aur repeat lines hata do”</i>. Or tap one of the examples.</li>
+  <li>Press <span class="ui">✨ Make a plan</span>. The assistant shows the steps it will do, in the order that works (format → cut silences → keep the best N seconds → captions → bad takes → blur → zooms → B-roll → sound effects → music → hook → volume → check). Untick anything you don’t want.</li>
+  <li>Press <span class="ui">▶ Do it</span>. Each step shows ✓ and what it did. If one step can’t run (for example B-roll without a stock key), it says why and the rest carry on.</li>
+  <li><b>↩ Undo everything</b> puts your project back exactly as before in one tap. <b>⬆ Save video</b> opens Save.</li>
+</ol>
+<div class="tip"><b>Works without any AI key</b> for common requests in English and Hinglish (captions, music + mood, zoom, sound effects, 30 seconds / 1 minute, boring parts, galtiyan, blur, volume, check, “sab kuch edit kar do”). With a free Gemini key (aistudio.google.com) it understands anything you type and replies in your style; only your request and a one-line project summary are sent.</div>
+<div class="note">On a slow test computer, a 10-minute 1080p vlog became a 30-second captioned reel with zooms, sound effects and music in about 40 seconds.</div>
+
+<h2>📈 Retention coach</h2>
+<p class="where">Tools tab → Retention coach</p>
+<ol>
+  <li>Press <span class="ui">📈 Check my video</span>. You get a score, a graph of estimated viewers still watching, and coloured bands where people are likely to leave.</li>
+  <li>Each problem spot says why: <b>⏸ Pause</b> (1.2 s+ of silence), <b>🖼 Same shot</b> (nothing new on screen for 6 s in a Short, 12 s in a long video), <b>😐 Flat</b> (same tone and loudness), <b>🐢 Slow talk</b> (needs captions), <b>🚪 Slow start</b>, <b>🪝 No hook</b>, <b>⏱ Too long</b> (Shorts over 60 s).</li>
+  <li>Fix each in one tap: <b>✂️ Cut</b>, <b>🎯 Zoom in</b> (a punch-in every few seconds over a long stretch, centred on your face when tracked), <b>⏩ 1.25×</b> (speeds that part up and moves everything after it), <b>🎬 B-roll</b> or <b>🪝 Add hook</b>. Or press <b>⚡ Fix the safe ones</b> to cut pauses and zoom long shots together. It checks again after each fix.</li>
+  <li>Tick <b>Also let the AI read the captions</b> (needs captions and a key) to find repeated points, slow explanations and off-topic parts too (marked 🤖).</li>
+</ol>
+<div class="tip">The graph is an estimate from these signals – not your real YouTube analytics. Use it to find slow spots before you post; check YouTube Studio’s retention graph afterwards.</div>
+
+<h2>🙈 Blur strangers</h2>
+<p class="where">Tools tab → Blur strangers</p>
+<ol>
+  <li>Press <span class="ui">👀 Find the faces</span>. ClipForge tracks every face in your main videos (on your device) and shows each person as a small picture, with how much of the video they are in.</li>
+  <li>The person on screen the most (usually you) is set to <b>Keep</b>. Tap anyone else you want to keep sharp.</li>
+  <li>Choose <b>🌫 Blur</b> or <b>▦ Pixelate</b> and press <span class="ui">🙈 Blur the others</span>. The blur follows each face as it moves, stays in exports, and goes under your captions and stickers so those stay sharp. <b>Remove blur</b> or Undo takes it off.</li>
+</ol>
+<div class="warn">Face finding can miss someone very small, side-on or behind glass. Play the video through before posting.</div>
+
 <h1 class="part"><span class="n">★</span>Make it yours</h1>
 
 <h2>⚙️ Settings</h2>
