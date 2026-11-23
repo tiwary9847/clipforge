@@ -353,7 +353,7 @@ const e=`<h1 class="part"><span class="n">1</span>Getting started</h1>
   <tr><td>🎤 Remove vocals</td><td>Karaoke: removes the singing from a song (works on stereo music).</td></tr>
   <tr><td>Voice effect</td><td><b>Chipmunk, deep, robot, echo, reverb, cave, phone, megaphone, radio, alien</b>, heard in preview and in the export.</td></tr>
   <tr><td>📏 Loudness (Tools tab)</td><td>Makes the whole video the standard loudness for YouTube/Instagram (−14 LUFS) with a limiter so nothing distorts.</td></tr>
-  <tr><td>🗣 AI voice (Tools tab)</td><td>Type text and an AI voice reads it: English voices (Heart, Bella, Michael, Emma, George, fine for monetised videos) and Hindi/English MMS voices (<b>not</b> for monetised videos).</td></tr>
+  <tr><td>🗣 AI voice (Tools tab)</td><td>Type text and an AI voice reads it: English voices (Heart, Bella, Michael, Emma, George), fine for monetised videos. (The earlier Hindi MMS voice was removed because its licence doesn’t allow monetised videos.)</td></tr>
 </table>
 
 
@@ -731,6 +731,27 @@ const e=`<h1 class="part"><span class="n">1</span>Getting started</h1>
   <li><b>Track buttons</b> (hover a track name on a computer; tap the track icon on a phone): <b>👁 Hide</b> leaves that layer out of the preview and the export, <b>🔇 Mute</b> silences it, <b>🔒 Lock</b> stops clips there from being moved by accident. They show in amber while on.</li>
 </ul>
 
+
+<h1 class="part"><span class="n">★</span>Free &amp; Pro, and the phone app</h1>
+<p class="lead">ClipForge is free with no ads. Pro removes the small mark and adds built-in AI, 4K and more.</p>
+<table class="kv">
+  <tr><td>Free</td><td>Every editing tool, captions, music, AI tools with your own free Gemini key, 1080p and 60 fps export. Exports carry a small “Made with ClipForge” mark in the bottom-right corner.</td></tr>
+  <tr><td>Pro</td><td>No mark · built-in AI without a key (300 requests a month) · 4K export · All formats at once · Brand kit. ₹99 for 30 days, ₹699 for 12 months, or ₹1,999 lifetime. Passes don’t renew automatically.</td></tr>
+</table>
+<h2>Get Pro</h2>
+<ol>
+  <li>Press <span class="ui">Go Pro</span> (top bar, or ⋯ menu on a phone). A locked Pro feature opens the same screen.</li>
+  <li>Pick a plan, type your email (website) and press <span class="ui">Get Pro</span>. Pay with UPI, card or net banking (Razorpay); in the Android app, through Google Play. Pro turns on straight away.</li>
+  <li><b>New phone?</b> ClipForge Pro → <b>Already bought Pro? Get it back</b> → your email + the payment ID from the receipt (starts with <code>pay_</code>). In the Android app, Pro comes back with the same Google account.</li>
+  <li><b>Another device:</b> ClipForge Pro → <b>Use Pro on another phone or computer</b> → Copy licence code, then paste it on the other device under <b>I have a licence code</b>.</li>
+</ol>
+<h2>Install ClipForge on your phone</h2>
+<ul>
+  <li><b>Android (Chrome):</b> tap <b>📲 Install ClipForge on this phone</b> on the first screen (or ⋯ → Install app). It opens like an app, full screen, and works offline.</li>
+  <li><b>iPhone (Safari):</b> Share button □↑ → <b>Add to Home Screen</b>.</li>
+  <li><b>Share into ClipForge:</b> once installed on Android, open a video in Gallery or WhatsApp → Share → <b>ClipForge</b>. It opens with the video on the timeline.</li>
+  <li><b>Shortcuts:</b> long-press the ClipForge icon for <b>New Short</b>, <b>New YouTube</b> and <b>Ask AI</b>.</li>
+</ul>
 
 <h1 class="part"><span class="n">11</span>Export &amp; share</h1>
 <div class="side">
