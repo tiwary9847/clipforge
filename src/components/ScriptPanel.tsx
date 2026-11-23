@@ -1,3 +1,4 @@
+import { builtinAI } from '../plan'
 import { useRef, useState } from 'react'
 import { setUi } from '../store'
 import { Scene, scriptToVideo, splitScript, writeScript } from '../script2video'
@@ -23,8 +24,8 @@ export function ScriptToVideo() {
     <>
       <div className="hint">Paste your script (or let the AI write one) – you get a voiced video with matching stock clips and captions.</div>
       <details className="chap">
-        <summary>✨ Let the AI write it {key ? `(${prov === 'gemini' ? 'Gemini' : 'Claude'})` : '(needs your key)'}</summary>
-        {!key && <div className="hint">Add a free Gemini key first in Tools → Title, description &amp; hashtags → AI writer.</div>}
+        <summary>✨ Let the AI write it {key ? `(${prov === 'gemini' ? 'Gemini' : 'Claude'})` : builtinAI() ? '(built-in AI · Pro)' : '(needs your key or Pro)'}</summary>
+        {!key && !builtinAI() && <div className="hint">Add a free Gemini key first in Tools → Title, description &amp; hashtags → AI writer.</div>}
         <div className="osearch">
           <input placeholder="Topic, e.g. 5 street foods of Old Delhi" value={topic} onChange={(e) => setTopic(e.target.value)} />
         </div>
@@ -38,7 +39,7 @@ export function ScriptToVideo() {
         </div>
         <button
           className="btn full"
-          disabled={!key || !topic.trim() || !!busy}
+          disabled={(!key && !builtinAI()) || !topic.trim() || !!busy}
           onClick={async () => {
             setBusy('Writing…')
             try {

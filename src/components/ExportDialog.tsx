@@ -4,6 +4,7 @@ import { Ctl, buildChapters, exportAudio, exportGif, fastExport, fastExportSuppo
 import { getPreset, getState, projectDuration } from '../store'
 import { fmtTime } from './Fields'
 import { useT } from '../i18n'
+import { isPro, requirePro } from '../plan'
 import { getClientId, setClientId, uploadSupported, uploadToYouTube } from '../youtube'
 
 function canShare(blob: Blob, name: string) {
@@ -57,6 +58,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
   }, [])
 
   const start = async () => {
+    if (Math.min(preset.w, preset.h) > 1100 && !isPro() && !requirePro('4K export is part of ClipForge Pro. Pick a 1080p format, or get Pro.')) return
     setPhase('running')
     setErr('')
     setProg(0)

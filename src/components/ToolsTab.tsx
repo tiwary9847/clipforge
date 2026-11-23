@@ -7,6 +7,7 @@ import { PRESETS } from '../types'
 import { TextEditDialog } from './TextEditDialog'
 import { Icon } from './Icon'
 import { useT } from '../i18n'
+import { ProGate } from './ProDialog'
 import { AssistantCard, BlurStrangers, RetentionCoach } from './AIPanels'
 import { RecMode, Recording, canRecordCamera, canRecordScreen, startRecording } from '../recorder'
 import { LAYOUTS, addAdjustmentLayer, applyLayout } from '../looks'
@@ -138,9 +139,9 @@ export function ToolsTab() {
         </button>
       </div>
       <div className="group-h">🎨 Brand kit</div>
-      <BrandKit />
+      <ProGate what="Brand kit"><BrandKit /></ProGate>
       <div className="group-h">📦 All formats at once</div>
-      <MultiExport />
+      <ProGate what="All formats at once"><MultiExport /></ProGate>
       <div className="group-h">🕘 Version history</div>
       <Versions />
       <div className="group-h">💾 Backup & restore</div>

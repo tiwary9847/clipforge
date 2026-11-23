@@ -140,7 +140,7 @@ export async function analyse(status: (m: string) => void, ai?: { provider: 'gem
   if (short && dur > 60) issues.push({ kind: 'long', from: 60, to: dur, why: `${Math.round(dur)} s long – Shorts and Reels do best under 60 s`, fixes: ['cut'], weight: 3 })
 
   // optional: an AI reads what is said
-  if (ai?.key && caps.length > 3) {
+  if (ai && caps.length > 3) {
     status('AI is reading what you say…')
     try {
       const lines = caps.map((c) => `[${c.start.toFixed(1)}] ${c.text!.text}`).join('\n').slice(0, 8000)

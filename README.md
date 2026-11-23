@@ -47,7 +47,7 @@ React 18 + TypeScript + Vite (code-split site build + single-file build) · Canv
 
 ## Licences of optional AI models
 
-Downloaded only when you use the feature: Whisper (MIT), MODNet (Apache-2.0), Kokoro voices (Apache-2.0), MMS Hindi/English voices (**CC BY-NC 4.0 – not for monetised videos**).
+Downloaded only when you use the feature: Whisper (MIT), MODNet (Apache-2.0), Kokoro voices (Apache-2.0). The HEVC converter's ffmpeg core is GPL-2.0-or-later (separate program, source at github.com/ffmpegwasm/ffmpeg.wasm). MMS voices (CC BY-NC) were removed in v27.
 
 ---
 
@@ -288,4 +288,14 @@ Reviewed as a first-time creator on a phone, then fixed:
 
 ### v26.1 – select many clips
 Timeline bar: **✓ Select** mode (tap clips to add/remove – works on phones), **All / None** (skips locked tracks), an “N selected” chip; click a track name (phone: track menu → Select all clips here) to select that track; deleting several shows “Deleted N clips – Undo to bring them back”.
+
+## v27 – Free / Pro, payments, phone app
+- **Free / Pro** (`src/plan.ts`): free has everything except Pro, no ads, and a small “Made with ClipForge” mark (engine `drawMark`, bottom-right above the Shorts/Reels buttons, in preview and exports). **Pro** (₹99 / 30 days, ₹699 / 12 months, ₹1,999 lifetime; passes don't auto-renew): no mark, built-in AI without a key (300 requests/month through the server), 4K export, all formats at once, brand kit. **Go Pro** in the top bar and ⋯ menu; Pro features show a locked card.
+- **Licences**: `payload.signature` signed with ECDSA P-256; the app verifies with the embedded public key (offline, can't be edited). The private key is **not** in the repo (owner keeps it). `server/make-licence.mjs` makes owner/gift licences. Licence code can be copied to another device; restore with email + payment ID.
+- **Payment server** (`server/worker.js`, Cloudflare Worker + KV): Razorpay orders/verify (plan and amount taken from the order, not the browser), webhook backup, restore, Google Play purchase check (Digital Goods API in the TWA; passes consumed, lifetime acknowledged), built-in AI proxy with a monthly limit. `node server/test.mjs <key> <pub>`: 23 checks incl. forged signatures, relabelled orders, wrong-email restores, fake webhooks, edited licences, AI limit.
+- **Pro screen** (`components/ProDialog.tsx`): plans, Razorpay Checkout (UPI/card) on the web, Play Billing in the Android app, licence code, restore. Shows “Pro sales open soon” until `CONFIG.server` / `CONFIG.razorpayKey` are set.
+- **Phone app**: Install button (welcome screen + ⋯ menu; iPhone instructions), **Share → ClipForge** from Gallery/WhatsApp (manifest `share_target` + service worker), app-icon shortcuts (New Short, New YouTube, Ask AI). Android Trusted Web Activity config `android/twa-manifest.json` (+ Play Billing) and a manual GitHub workflow; PWABuilder route in MONEY-SETUP.md.
+- **Licence clean-up for selling**: removed the MMS voices (CC BY-NC). ffmpeg core (HEVC converter) is GPL-2.0-or-later and runs as a separate program in a worker; its source is at github.com/ffmpegwasm/ffmpeg.wasm.
+- The “Deploy to GitHub Pages” workflow now runs only by hand: GitHub Actions on the account is locked for billing, so it failed on every push. The site publishes from the gh-pages branch as before.
+- **Setup for the owner:** see **MONEY-SETUP.md** (Razorpay, Cloudflare, Gemini, PWABuilder/Play Console, policy pages in `docs/legal-templates/`).
 

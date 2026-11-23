@@ -7,14 +7,21 @@ import { Issue, KIND_LABEL, Report, analyse, fixCut, fixSpeed, fixZoom, fmt } fr
 import { setUi, useStore } from '../store'
 import { Project } from '../types'
 import { openTool } from './Welcome'
+import { builtinAI } from '../plan'
 
 const toast = (m: string) => setUi({ toast: m })
-const aiKey = () => ({ provider: ((localStorage.getItem('clipforge-ai-prov') as 'gemini' | 'claude') || 'gemini') as 'gemini' | 'claude', key: localStorage.getItem('clipforge-ai-key') ?? '' })
+const ownKey = () => ({ provider: ((localStorage.getItem('clipforge-ai-prov') as 'gemini' | 'claude') || 'gemini') as 'gemini' | 'claude', key: localStorage.getItem('clipforge-ai-key') ?? '' })
+/** The AI to use: your own key, else Pro's built-in AI (askAI routes an empty key to the server), else none. */
+const aiKey = () => {
+  const o = ownKey()
+  return o.key ? o : builtinAI() ? { provider: o.provider, key: '' , builtin: true } : { ...o, builtin: false }
+}
+const hasAI = () => !!ownKey().key || builtinAI()
 
 /** Shared "your own AI key" box (Gemini has a free key). */
 function KeyBox({ note }: { note: string }) {
-  const [prov, setProv] = useState(aiKey().provider)
-  const [key, setKey] = useState(aiKey().key)
+  const [prov, setProv] = useState(ownKey().provider)
+  const [key, setKey] = useState(ownKey().key)
   const save = (k: string, p = prov) => {
     setKey(k)
     localStorage.setItem('clipforge-ai-key', k)
@@ -61,7 +68,7 @@ export function AssistantDialog({ initial, onClose }: { initial: string; onClose
     setReply('')
     const { provider, key } = aiKey()
     let steps: Step[] = []
-    if (key) {
+    if (hasAI()) {
       setBusy('Thinking…')
       try {
         const r = await aiPlan(q, provider, key)
@@ -196,7 +203,7 @@ export function AssistantCard() {
 export function RetentionCoach() {
   const [rep, setRep] = useState<Report | null>(null)
   const [busy, setBusy] = useState('')
-  const [useAi, setUseAi] = useState(() => !!aiKey().key)
+  const [useAi, setUseAi] = useState(() => hasAI())
   const clips = useStore((s) => s.project.clips)
   const stale = useRef(false)
   useEffect(() => {
@@ -206,7 +213,7 @@ export function RetentionCoach() {
     setBusy('Starting…')
     try {
       stale.current = false
-      setRep(await analyse(setBusy, useAi && aiKey().key ? aiKey() : undefined))
+      setRep(await analyse(setBusy, useAi && hasAI() ? aiKey() : undefined))
     } catch (e) {
       toast((e as Error).message)
     }

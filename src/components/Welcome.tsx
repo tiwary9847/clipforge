@@ -5,6 +5,7 @@ import { importFiles } from './MediaPanel'
 import { addAssetClip, getPreset, getState, setProject, setUi, useStore } from '../store'
 import { engine } from '../engine'
 import { LANGS, useT } from '../i18n'
+import { install, useCanInstall } from '../install'
 import { setSettings, useSettings } from '../settings'
 
 /** Phones and tablets: you tap, you can't drop files. */
@@ -28,6 +29,7 @@ export function Welcome() {
   const presetId = useStore(() => getPreset().id)
   const t = useT()
   const lang = useSettings((x) => x.lang)
+  const installable = useCanInstall()
   const [busy, setBusy] = useState(0)
   const [over, setOver] = useState(false)
   const file = useRef<HTMLInputElement>(null)
@@ -79,6 +81,9 @@ export function Welcome() {
           ))}
         </div>
 
+        {installable && touch() && (
+          <button className="wl-install" onClick={() => void install()}>📲 {t('Install ClipForge on this phone')} <small>{t('– opens like an app, works offline')}</small></button>
+        )}
         <div className="wl-label">{t('Or start with')} <button className="lnk wl-tour" onClick={startTour}>{t('· New here? Take the 30-second tour')}</button></div>
         <div className="wl-actions">
           <button onClick={() => openPanel('record')}><span className="wa-ic b"><Icon name="record" size={18} /></span><b>{t('Record')}</b><small>{t('Screen, webcam or both')}</small></button>

@@ -3,3 +3,7 @@ dist
 *.log
 public/ffmpeg
 dist-single
+
+# never commit licence keys
+*.jwk.json
+secrets/

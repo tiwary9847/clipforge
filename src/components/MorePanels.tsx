@@ -1,3 +1,4 @@
+import { builtinAI } from '../plan'
 import { useRef, useState } from 'react'
 import { addMapClip, setUi, useStore } from '../store'
 import { Found, MAP_STYLES, MODES, MapData, Stop, TravelMode, findPlace, km, rememberPlace, searchOnline, suggest } from '../travelmap'
@@ -255,9 +256,9 @@ export function TitlesSection() {
           <input type="password" placeholder="API key" value={key} onChange={(e) => setKey(e.target.value)} />
           <button
             className="btn sm primary"
-            disabled={!key || !!busy || (!ready && !!ui)}
+            disabled={(!key && !builtinAI()) || !!busy || (!ready && !!ui)}
             onClick={async () => {
-              localStorage.setItem('clipforge-ai-key', key)
+              if (key) localStorage.setItem('clipforge-ai-key', key)
               localStorage.setItem('clipforge-ai-prov', prov)
               setBusy('Writing…')
               try {

@@ -549,8 +549,7 @@ export const VOICES = [
   { id: 'kokoro:am_michael', name: 'English · Michael (male, US)', commercial: true },
   { id: 'kokoro:bf_emma', name: 'English · Emma (female, UK)', commercial: true },
   { id: 'kokoro:bm_george', name: 'English · George (male, UK)', commercial: true },
-  { id: 'mms:Xenova/mms-tts-hin', name: 'हिन्दी · Hindi (non-commercial licence)', commercial: false },
-  { id: 'mms:Xenova/mms-tts-eng', name: 'English · MMS (non-commercial licence)', commercial: false },
+  // MMS Hindi/English voices were removed: their CC BY-NC licence doesn't allow monetised videos or a paid app
 ]
 
 /** Depth map (0 = far, 255 = near) of an RGBA image. */

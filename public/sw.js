@@ -1,6 +1,7 @@
 // Offline support. The page itself: network first (so updates arrive), cache as fallback.
 // Build files in assets/ have unique names, so once stored they're used straight from the cache.
-const CACHE = 'clipforge-v2'
+const CACHE = 'clipforge-v3'
+const SHARED = 'clipforge-shared' // files shared into the app from the phone's Share menu
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png']
 self.addEventListener('install', (e) => {
   e.waitUntil(
@@ -18,10 +19,26 @@ self.addEventListener('install', (e) => {
   )
 })
 self.addEventListener('activate', (e) => {
-  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()))
+  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE && k !== SHARED).map((k) => caches.delete(k)))).then(() => self.clients.claim()))
 })
 self.addEventListener('fetch', (e) => {
   const u = new URL(e.request.url)
+  // Share → ClipForge from the gallery, WhatsApp or camera: keep the files, then open the editor
+  if (e.request.method === 'POST' && u.pathname.endsWith('/share-target')) {
+    e.respondWith(
+      (async () => {
+        const form = await e.request.formData()
+        const c = await caches.open(SHARED)
+        let i = 0
+        for (const f of form.getAll('media')) {
+          if (!(f instanceof File)) continue
+          await c.put(`./shared/${Date.now()}-${i++}`, new Response(f, { headers: { 'content-type': f.type || 'application/octet-stream', 'x-name': encodeURIComponent(f.name || 'shared') } }))
+        }
+        return Response.redirect('./?shared=' + i, 303)
+      })(),
+    )
+    return
+  }
   if (e.request.method !== 'GET' || u.origin !== location.origin) return // AI models, CDNs etc. go straight to the network
   const store = (r) => {
     if (r.ok && r.status === 200) {

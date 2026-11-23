@@ -45,10 +45,11 @@ import * as musiclib from './musiclib'
 import * as assistant from './assistant'
 import * as retention from './retention'
 import * as privacy from './privacy'
+import * as plan from './plan'
 import { setVizReady } from './viz'
 
 // Small handle for automated tests and for power users poking around in the console.
-;(window as any).__cf = { store, processing, dsp, engine, fastExport, library, tools2, pro, grade, multicam, media, looks, viz, anim, shorts, faces, speakers, dub, dspx, creative, studio, inp, looks2, depth3d, s2v, musicgen, autoedit2, broll, videoobj, retakes, hooks, postcheck, social, musiclib, assistant, retention, privacy }
+;(window as any).__cf = { store, processing, dsp, engine, fastExport, library, tools2, pro, grade, multicam, media, looks, viz, anim, shorts, faces, speakers, dub, dspx, creative, studio, inp, looks2, depth3d, s2v, musicgen, autoedit2, broll, videoobj, retakes, hooks, postcheck, social, musiclib, assistant, retention, privacy, plan }
 
 createRoot(document.getElementById('root')!).render(<App />)
 
@@ -65,6 +66,7 @@ document.fonts?.addEventListener?.('loadingdone', () => engine.requestRender())
 void fastExport.cleanOldExports()
 
 applySettings()
+void plan.loadLicence().then(() => engine.requestRender())
 watchSystem()
 // ask the browser to keep projects and media permanently (otherwise it may clear them when space is low,
 // and Safari can remove site data after 7 days without a visit)

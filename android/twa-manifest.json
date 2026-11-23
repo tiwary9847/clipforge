@@ -1,0 +1,42 @@
+{
+  "packageId": "io.github.tiwary9847.clipforge",
+  "host": "tiwary9847.github.io",
+  "name": "ClipForge – Video Editor",
+  "launcherName": "ClipForge",
+  "display": "standalone",
+  "orientation": "default",
+  "themeColor": "#7c5cff",
+  "navigationColor": "#0f1117",
+  "navigationColorDark": "#0f1117",
+  "navigationDividerColor": "#0f1117",
+  "navigationDividerColorDark": "#0f1117",
+  "backgroundColor": "#0f1117",
+  "enableNotifications": false,
+  "startUrl": "/clipforge/",
+  "iconUrl": "https://tiwary9847.github.io/clipforge/icon-512.png",
+  "maskableIconUrl": "https://tiwary9847.github.io/clipforge/icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": { "path": "./android.keystore", "alias": "clipforge" },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [
+    { "name": "New Short / Reel", "shortName": "New Short", "url": "https://tiwary9847.github.io/clipforge/?start=shorts", "chosenIconUrl": "https://tiwary9847.github.io/clipforge/icon-192.png" },
+    { "name": "New YouTube video", "shortName": "New YouTube", "url": "https://tiwary9847.github.io/clipforge/?start=yt", "chosenIconUrl": "https://tiwary9847.github.io/clipforge/icon-192.png" },
+    { "name": "AI assistant", "shortName": "Ask AI", "url": "https://tiwary9847.github.io/clipforge/?ask=1", "chosenIconUrl": "https://tiwary9847.github.io/clipforge/icon-192.png" }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://tiwary9847.github.io/clipforge/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": { "playBilling": { "enabled": true } },
+  "shareTarget": {
+    "action": "/clipforge/share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": { "files": [{ "name": "media", "accept": ["video/*", "image/*", "audio/*"] }] }
+  },
+  "alphaDependencies": { "enabled": false },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "minSdkVersion": 21
+}

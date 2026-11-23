@@ -12,6 +12,9 @@ import { GuideDialog, openGuide } from './components/GuideDialog'
 import { ConvertDialog } from './components/ConvertDialog'
 import { useT } from './i18n'
 import { AssistantDialog } from './components/AIPanels'
+import { ProDialog } from './components/ProDialog'
+import { openPro, usePro } from './plan'
+import { handleLaunch, install, useCanInstall } from './install'
 import { currentTheme, setTheme } from './themeMode'
 import { engine, FPS } from './engine'
 import {
@@ -56,6 +59,8 @@ export default function App() {
     const onExp = () => setExporting(true)
     const onAsk = (e: Event) => { setSheet(null); setAsk(String((e as CustomEvent).detail ?? '')) }
     window.addEventListener('cf:assistant', onAsk)
+    const onPro = (e: Event) => { setSheet(null); setProWhy(String((e as CustomEvent).detail ?? '')) }
+    window.addEventListener('cf:pro', onPro)
     window.addEventListener('cf:export', onExp)
     window.addEventListener('cf:open', on)
     window.addEventListener('cf:tool', onTool)
@@ -64,11 +69,15 @@ export default function App() {
       window.removeEventListener('cf:tool', onTool)
       window.removeEventListener('cf:export', onExp)
       window.removeEventListener('cf:assistant', onAsk)
+      window.removeEventListener('cf:pro', onPro)
     }
   }, [])
   const [dropping, setDropping] = useState(false)
   const [confirmNew, setConfirmNew] = useState(false)
   const [ask, setAsk] = useState<string | null>(null)
+  const [proWhy, setProWhy] = useState<string | null>(null)
+  const pro = usePro()
+  const installable = useCanInstall()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [more, setMore] = useState(false)
   const [guide, setGuide] = useState<string | null>(null)
@@ -121,6 +130,7 @@ export default function App() {
     void restoreProject().then((ok) => {
       if (ok) setUi({ toast: 'Restored your last project' })
       startAutosave()
+      void handleLaunch()
     })
   }, [])
   useEffect(() => {
@@ -223,6 +233,7 @@ export default function App() {
         </span>
         <div className="spacer" />
         <button className="btn sm ae-btn" onClick={() => setAutoOpen(true)} title="Upload clips, set the order – we edit it for you"><Icon name="sparkles" size={15} /> {t('Auto-edit')}</button>
+          <button className={'btn pro-btn' + (pro ? ' is-pro' : '')} onClick={() => openPro()} title={pro ? 'You have ClipForge Pro' : 'ClipForge Pro – no mark, 4K, built-in AI'}>{pro ? '★ Pro' : 'Go Pro'}</button>
         <button className="btn sm hide-phone" onClick={() => setConfirmNew(true)} title="Start a new project"><Icon name="plus" size={15} /> {t('New')}</button>
         <select
           className={'preset-sel' + (empty ? ' hide-empty' : '')}
@@ -254,6 +265,8 @@ export default function App() {
               <div className="more-scrim" onClick={() => setMore(false)} />
               <div className="more-menu" onClick={() => setMore(false)}>
                 <button onClick={() => setSettingsOpen(true)}><Icon name="gear" size={17} /> {t('Settings')}</button>
+                {installable && <button onClick={() => void install()}>📲 Install app</button>}
+                <button onClick={() => openPro()}>⭐ {pro ? 'ClipForge Pro ✓' : 'Go Pro'}</button>
                 <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}><Icon name={theme === 'light' ? 'moon' : 'sun'} size={17} /> {theme === 'light' ? t('Dark mode') : t('Light mode')}</button>
                 <button onClick={() => openGuide()}><Icon name="book" size={17} /> {t('Guide')}</button>
                 <button onClick={startTour}><Icon name="help" size={17} /> {t('Quick tour')}</button>
@@ -280,6 +293,7 @@ export default function App() {
       </nav>
       {sheet && <button className="sheet-x" onClick={() => setSheet(null)} aria-label="Close panel"><i />{t('Close')}</button>}
       <ConvertDialog />
+      {proWhy !== null && <ProDialog why={proWhy} onClose={() => setProWhy(null)} />}
       {ask !== null && <AssistantDialog initial={ask} onClose={() => setAsk(null)} />}
       {guide !== null && <GuideDialog topic={guide} onClose={() => setGuide(null)} />}
       {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}

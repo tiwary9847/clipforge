@@ -1,3 +1,4 @@
+import { isPro } from './plan'
 import { VoiceChain, buildVoice } from './voice'
 import { levelsAt } from './viz'
 import { gradePixels, isIdentity } from './grade'
@@ -641,6 +642,48 @@ class Engine {
         } else this.drawClip(ctx, c, t, W, H, getSrc, boxes)
       }
     }
+    if (!isPro() && project.clips.length) this.drawMark(ctx, W, H)
+  }
+
+  /** Free version: a small “Made with ClipForge” mark in the bottom-right corner (removed with Pro). */
+  private drawMark(ctx: CanvasRenderingContext2D, W: number, H: number) {
+    const s = Math.min(W, H) / 1080
+    const fs = Math.round(26 * s)
+    ctx.save()
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    ctx.globalAlpha = 0.82
+    ctx.filter = 'none'
+    ctx.font = `700 ${fs}px Inter, system-ui, sans-serif`
+    const label = 'Made with ClipForge'
+    const tw = ctx.measureText(label).width
+    const pad = 12 * s
+    const bw = tw + fs * 1.4 + pad * 2
+    const bh = fs + pad * 1.4
+    // above the bottom bar of Shorts/Reels, inside the safe area
+    const x = W - bw - 24 * s
+    const y = H - bh - (H > W ? H * 0.2 : 28 * s)
+    ctx.fillStyle = 'rgba(0,0,0,0.45)'
+    ctx.beginPath()
+    ctx.roundRect(x, y, bw, bh, bh / 2)
+    ctx.fill()
+    const g = ctx.createLinearGradient(x, y, x + fs, y + fs)
+    g.addColorStop(0, '#7c5cff')
+    g.addColorStop(1, '#ff5ca8')
+    ctx.fillStyle = g
+    ctx.beginPath()
+    ctx.arc(x + pad + fs * 0.5, y + bh / 2, fs * 0.5, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = '#fff'
+    ctx.beginPath()
+    const cx = x + pad + fs * 0.5
+    const cy = y + bh / 2
+    ctx.moveTo(cx - fs * 0.15, cy - fs * 0.22)
+    ctx.lineTo(cx + fs * 0.25, cy)
+    ctx.lineTo(cx - fs * 0.15, cy + fs * 0.22)
+    ctx.fill()
+    ctx.textBaseline = 'middle'
+    ctx.fillText(label, x + pad + fs * 1.4, y + bh / 2 + 1)
+    ctx.restore()
   }
 
   private previewSource(c: Clip, lt: number): CanvasImageSource | null {

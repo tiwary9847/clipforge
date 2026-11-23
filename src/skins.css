@@ -556,3 +556,28 @@ body:has(.tdrawer.open) .sheet-x { display: none !important; }
 .sel-count { flex: none; font-size: 12px; font-weight: 650; padding: 3px 9px; border-radius: 999px; background: rgba(var(--acc-rgb), 0.14); color: var(--accent); }
 .tl-label { cursor: pointer; }
 .tl-bar .keep-txt .tb-txt { display: inline !important; }
+
+/* ---------- v27 Pro ---------- */
+.pro-btn { background: linear-gradient(135deg, #ffb703, #ff5ca8); color: #fff; border: 0; font-weight: 700; }
+.pro-btn.is-pro { background: none; border: 1px solid #ffb703; color: #d98e00; }
+@media (max-width: 820px) { .top .pro-btn { display: none; } }
+.pro-badge { display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.06em; padding: 2px 7px; border-radius: 6px; background: linear-gradient(135deg, #ffb703, #ff5ca8); color: #fff; }
+.pro-badge.big { font-size: 13px; padding: 4px 10px; }
+.pro-lock { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px; border: 1px dashed #ffb703; border-radius: 12px; }
+.modal.pro-modal { max-width: 520px; }
+.pro-head { display: flex; align-items: center; gap: 10px; }
+.pro-head h3 { margin: 0; }
+.pro-why { margin: 10px 0 4px; padding: 9px 12px; border-radius: 10px; background: rgba(255, 183, 3, 0.14); font-size: 13.5px; }
+.pro-ok { font-weight: 650; color: #16a34a; }
+.pro-feats { list-style: none; padding: 0; margin: 10px 0; display: flex; flex-direction: column; gap: 7px; font-size: 13.5px; }
+.pro-feats li { display: flex; gap: 9px; }
+.pro-offers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
+.pro-offer { position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 14px 6px 10px; border: 2px solid var(--line2); border-radius: 14px; background: var(--panel); color: var(--text); }
+.pro-offer.on { border-color: #ff5ca8; box-shadow: 0 0 0 3px rgba(255, 92, 168, 0.15); }
+.pro-offer b { font-size: 13px; }
+.pro-offer .pro-price { font-size: 21px; font-weight: 800; }
+.pro-offer small { font-size: 11px; color: var(--muted); text-align: center; }
+.pro-tag { position: absolute; top: -9px; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #ff5ca8; color: #fff; }
+.modal-bg:has(.pro-modal) { z-index: 60; }
+.wl-install { display: block; width: 100%; margin: 10px 0 4px; padding: 10px 12px; border: 1px dashed var(--accent); border-radius: 12px; background: rgba(var(--acc-rgb), 0.06); color: var(--text); font-weight: 650; text-align: left; }
+.wl-install small { font-weight: 400; color: var(--muted); }

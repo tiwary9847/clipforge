@@ -226,7 +226,11 @@ export async function aiTitles(provider: 'gemini' | 'claude', key: string, spoke
 /** Sends a prompt to Gemini or Claude with the user's own key; returns the reply text. */
 export const GEMINI_MODELS = ['gemini-flash-latest', 'gemini-3.5-flash', 'gemini-3.1-flash-lite']
 
+import { askBuiltin, builtinAI } from './plan'
+
 export async function askAI(provider: 'gemini' | 'claude', key: string, prompt: string, json = true): Promise<string> {
+  // Pro without a key of their own: the ClipForge server answers (built-in AI)
+  if (!key && builtinAI()) return askBuiltin(prompt, !!json)
   if (provider === 'gemini') {
     // Google retires model versions (gemini-2.0-flash shut down 1 June 2026): use the auto-updating
     // "latest Flash" alias first, then fixed current models if that alias is ever unavailable.

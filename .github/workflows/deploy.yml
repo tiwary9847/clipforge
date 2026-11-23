@@ -1,7 +1,7 @@
 name: Deploy to GitHub Pages
+# The live site is published from the gh-pages branch, so this only runs when started by hand
+# (it was failing on every push while the account's GitHub Actions are locked for billing).
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read

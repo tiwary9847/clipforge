@@ -1,0 +1,100 @@
+# Earning with ClipForge – setup guide
+
+Everything in the app is built. These are the steps only you can do (they need your identity, bank account or payment). Do them in order. Each step says what to send back to Claude, if anything.
+
+| | Step | Time | Cost |
+|---|---|---|---|
+| 0 | Check your employment contract / company policy on side businesses | – | – |
+| 1 | Keep your licence key safe | 2 min | free |
+| 2 | Fill in the 4 policy pages | 20 min | free |
+| 3 | Razorpay account + KYC | 1–3 days | free (≈2% per payment) |
+| 4 | Cloudflare server (payments + built-in AI) | 20 min | free plan |
+| 5 | Gemini key for built-in AI | 5 min | free tier, then pay-per-use |
+| 6 | Android app with PWABuilder | 30 min | free |
+| 7 | Google Play Console | 1–7 days | $25 once |
+| 8 | Fix GitHub billing (optional) | 5 min | – |
+
+---
+
+## 0. Your job
+Many employers (including large consulting firms) have rules about outside business or paid side projects. Read your contract or ask HR before you start charging money.
+
+## 1. Your licence key (most important)
+You received **`clipforge-licence-private.jwk.json`**. It's the key that creates Pro licences.
+- Save it somewhere safe and private (a password manager, or an encrypted drive). **Never** put it in GitHub, WhatsApp or email.
+- If someone gets it, they can make free Pro licences. If you lose it, existing licences keep working, but you'd need a new key and an app update to sell more.
+- You also received **`owner-licence.txt`** – your own lifetime Pro. Open ClipForge → Go Pro → “I have a licence code” → paste it. Do the same on each of your devices.
+- To gift Pro (Seema, testers, collaborators), you can run this on a computer with Node.js:
+  `node server/make-licence.mjs clipforge-licence-private.jwk.json "friend@email.com" year gift`
+  (or ask Claude to do it).
+
+## 2. Policy pages
+Razorpay won't switch on live payments without Terms, Privacy, Refund and Contact pages.
+Fill in every `[…]` in `docs/legal-templates/` (your full name, city, email). Then send the details to Claude, who'll publish them and link them from the Pro screen.
+
+## 3. Razorpay (UPI / cards on the website)
+1. Sign up at **razorpay.com** → choose *Individual / Sole proprietor*, category *Software / SaaS*.
+2. Website: `https://tiwary9847.github.io/clipforge/` (after step 2, the policy pages are on it).
+3. Complete KYC (PAN, bank account, address).
+4. While waiting, you can test: **Settings → API Keys → Test mode → Generate key**. Note the **Key ID** (`rzp_test_…`) and **Key Secret**.
+5. After activation, generate **Live** keys (`rzp_live_…`).
+6. **Webhooks** (Settings → Webhooks → Add): URL `https://clipforge-pay.<your-subdomain>.workers.dev/webhook`, event **payment.captured**, and set a secret (any long random text). Note the **Webhook Secret**.
+
+GST: as an individual, you usually don't need GST registration until your yearly turnover crosses the threshold. Ask a CA once income starts.
+
+## 4. Cloudflare server (free)
+On a computer with Node.js (Claude can walk you through this live):
+```
+cd clipforge/server
+npx wrangler login                                 # opens the browser – sign up free at cloudflare.com
+npx wrangler kv namespace create DB                # copy the id into wrangler.toml (PASTE_KV_ID_HERE)
+npx wrangler secret put LICENCE_PRIVATE_JWK        # paste the WHOLE content of clipforge-licence-private.jwk.json
+npx wrangler secret put RAZORPAY_KEY_ID            # rzp_test_… first, rzp_live_… later
+npx wrangler secret put RAZORPAY_KEY_SECRET
+npx wrangler secret put RAZORPAY_WEBHOOK_SECRET
+npx wrangler secret put GEMINI_KEY                 # step 5
+npx wrangler deploy                                # prints https://clipforge-pay.<you>.workers.dev
+```
+Send Claude the **workers.dev address** and your **Razorpay Key ID** (not the secret). Claude puts them in `src/plan.ts` (`CONFIG.server`, `CONFIG.razorpayKey`) and deploys. Then the “Get Pro” button goes live.
+
+Test first with Razorpay **test** keys: test UPI id `success@razorpay` pays instantly. Then switch the two Razorpay secrets to live keys and ask Claude to swap the Key ID.
+
+The server was tested here with simulated payments: genuine payments give a licence; forged signatures, a ₹99 order relabelled as lifetime, wrong-email restores, fake webhooks, edited licences and over-limit AI use are all refused (`node server/test.mjs`).
+
+## 5. Gemini key (built-in AI for Pro)
+aistudio.google.com → Get API key. Put it in the server (step 4). Each Pro user gets 300 AI requests a month (`AI_MONTHLY` in `wrangler.toml`). Set a monthly budget alert in Google Cloud Billing so costs can't surprise you; Flash models cost very little per request.
+
+## 6. Android app (PWABuilder – no Android Studio needed)
+1. Go to **pwabuilder.com**, enter `https://tiwary9847.github.io/clipforge/` → *Package for stores* → **Android** → *Google Play*.
+2. Package ID: `io.github.tiwary9847.clipforge` · App name: `ClipForge – Video Editor` · Launcher name: `ClipForge`.
+3. Under *Signing key* choose **Create new** and fill your name. Download the zip.
+4. **Keep the `signing.keystore` and `signing-key-info.txt` from the zip forever**, with the licence key. Every app update must be signed with them.
+5. The zip has an `.apk` (install on your phone to test – allow “install unknown apps”) and an `.aab` (for the Play Store).
+6. The zip also has **`assetlinks.json`**. Without it, the app shows a small address bar at the top. To remove it: on GitHub create a public repository named exactly **`tiwary9847.github.io`**, add the file at `.well-known/assetlinks.json`, and in that repo's Settings → Pages publish from the main branch. (Or send Claude the file and the repository and Claude will do it.)
+7. Turn on **Play Billing** in PWABuilder's options if shown – ClipForge uses it for in-app Pro.
+
+The same app setup is in `android/twa-manifest.json` for GitHub's automatic build (step 8).
+
+## 7. Google Play Console
+1. play.google.com/console → developer account ($25 once, identity check).
+2. Create app → upload the `.aab`. Fill in the store listing (Claude can write the description and screenshots), content rating and data safety (“no data collected” except purchase email – see the privacy page).
+3. **In-app products** (Monetize → Products → In-app products), all *Managed products*:
+   - `pro_month` – ₹99 – “ClipForge Pro – 30 days”
+   - `pro_year` – ₹699 – “ClipForge Pro – 12 months”
+   - `pro_life` – ₹1,999 – “ClipForge Pro – Lifetime”
+4. **Server access to purchases:** Google Cloud → create a *service account* → in Play Console → Users and permissions → invite its email with “View financial data / manage orders”. Download its JSON key, then:
+   `npx wrangler secret put PLAY_SERVICE_ACCOUNT` (paste the JSON) and `npx wrangler secret put PLAY_PACKAGE` (`io.github.tiwary9847.clipforge`).
+5. New personal developer accounts must run a closed test with at least 12 testers for 14 days before going public – friends and family can join.
+
+Inside the Play app, Pro is bought through Google Play (Play's policy). In India Google currently keeps 15% of your first $1M a year; it has started lower fees and web-payment links in the US, UK and EEA, and says more markets will follow. Razorpay on the website takes about 2%.
+
+## 8. GitHub billing (optional)
+GitHub Actions on your account is locked because of a billing issue (every automatic job shows “account is locked due to a billing issue”). The website isn't affected. To use the automatic Android build instead of PWABuilder: fix it at github.com → Settings → Billing, add the keystore as secrets (`ANDROID_KEYSTORE_B64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_PASSWORD`), then Actions → **Android app** → Run workflow.
+
+---
+
+### What's already in the app
+- **Free:** everything except the Pro features, **no ads**, a small “Made with ClipForge” mark (bottom-right, above the Shorts/Reels buttons).
+- **Pro (₹99 / 30 days, ₹699 / year, ₹1,999 lifetime):** no mark, built-in AI without a key (300 requests a month), 4K export, all formats at once, brand kit.
+- Licences are signed and checked in the app (works offline, can't be faked); “Get it back” restores Pro on a new phone with email + payment ID; Pro can be copied to another device with the licence code.
+- Until steps 3–4 are done, the Pro screen says “Pro sales open soon” and accepts licence codes.

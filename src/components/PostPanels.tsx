@@ -1,3 +1,4 @@
+import { builtinAI } from '../plan'
 import { useState } from 'react'
 import { setUi } from '../store'
 import type { Check } from '../postcheck'
@@ -157,9 +158,9 @@ export function HookWriter() {
           <input type="password" placeholder="API key" value={key} onChange={(e) => setKey(e.target.value)} />
           <button
             className="btn sm primary"
-            disabled={!key || !!busy}
+            disabled={(!key && !builtinAI()) || !!busy}
             onClick={async () => {
-              localStorage.setItem('clipforge-ai-key', key)
+              if (key) localStorage.setItem('clipforge-ai-key', key)
               localStorage.setItem('clipforge-ai-prov', prov)
               setBusy('Writing…')
               try {

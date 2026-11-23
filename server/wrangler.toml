@@ -1,0 +1,12 @@
+name = "clipforge-pay"
+main = "worker.js"
+compatibility_date = "2026-11-01"
+
+# create it with: npx wrangler kv namespace create DB   → paste the id here
+[[kv_namespaces]]
+binding = "DB"
+id = "PASTE_KV_ID_HERE"
+
+[vars]
+ALLOWED_ORIGINS = "https://tiwary9847.github.io"
+AI_MONTHLY = "300"
