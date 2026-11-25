@@ -183,7 +183,6 @@ export interface Clip {
   my?: number
   ms?: number // mask size, 1 = whole clip box
   group?: string // clips sharing an id move, select, copy and trim together
-  tpl?: string // made by a builder (e.g. 'property') – rebuilding replaces these clips
   mc?: boolean // part of a multicam edit
   blend?: string
   chroma?: Chroma

@@ -31,7 +31,6 @@ export const PRO_FEATURES: [string, string][] = [
   ['🗣️', 'Hindi AI voice-over – natural Hindi and Hinglish voices'],
   ['📦', 'One-tap upload kit – Short + YouTube + Instagram files, each with titles, description, hashtags and thumbnail'],
   ['✨', 'Premium caption styles – Neon, Karaoke, Gold, Comic and more'],
-  ['🏠', 'Property reel maker – price tag, location, highlights, Call / WhatsApp ending and RERA line from one short form'],
   ['🪔', 'Premium template packs – wedding, festival (Diwali/Holi), travel, devotional'],
   ['🎞', '4K export'],
   ['📐', 'All formats at once (16:9, 9:16, 4:5, 1:1 in one go)'],
