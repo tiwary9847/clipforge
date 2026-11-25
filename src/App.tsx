@@ -34,6 +34,7 @@ import {
   useStore,
   groupClips,
   ungroupClips,
+  select as selectClip,
 } from './store'
 import { cutToAngle } from './multicam'
 import { enrichAsset } from './processing'
@@ -63,6 +64,21 @@ export default function App() {
     window.addEventListener('cf:assistant', onAsk)
     const onPilot = () => { setSheet(null); setPilot(true) }
     window.addEventListener('cf:autopilot', onPilot)
+    const onEditText = (e: Event) => {
+      const id = String((e as CustomEvent).detail ?? '')
+      if (id) selectClip(id)
+      if (phone()) setSheet('edit')
+      // focus the words box and select them, so typing replaces the text
+      setTimeout(() => {
+        const ta = [...document.querySelectorAll<HTMLTextAreaElement>('.right textarea, .sheet textarea')].find((x) => x.offsetParent)
+        if (ta) {
+          ta.focus()
+          ta.select()
+          ta.scrollIntoView({ block: 'center', behavior: 'smooth' })
+        }
+      }, phone() ? 350 : 60)
+    }
+    window.addEventListener('cf:edittext', onEditText)
     const onPro = (e: Event) => { setSheet(null); setProWhy(String((e as CustomEvent).detail ?? '')) }
     window.addEventListener('cf:pro', onPro)
     window.addEventListener('cf:export', onExp)

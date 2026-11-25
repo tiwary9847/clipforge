@@ -19,6 +19,7 @@ import {
   deleteStyle,
   loadStyles,
   setUi,
+  updateClip,
   useStore,
 } from '../store'
 import { engine } from '../engine'
@@ -358,12 +359,70 @@ function StyleLibrary() {
   )
 }
 
+/** Type your own words first, pick a look, place and length – then add. */
+const QUICK_LOOKS: [string, string][] = [['c-white', 'Simple'], ['c-yellow', 'Yellow'], ['c-boxed', 'Black box'], ['t-hormozi', 'Purple box'], ['t-beast', 'Big bold'], ['n-pink', 'Neon'], ['b-price', 'Price tag'], ['h-sub', 'हिन्दी']]
+function QuickText() {
+  const [txt, setTxt] = useState('')
+  const [look, setLook] = useState('c-white')
+  const [pos, setPos] = useState<'top' | 'middle' | 'bottom'>('middle')
+  const [len, setLen] = useState<'3' | '5' | 'end' | 'all'>('3')
+  const add = () => {
+    const words = txt.trim()
+    if (!words) return
+    const p = TEXT_STYLES.find((x) => x.id === look) ?? TEXT_STYLES[0]
+    const total = projectDuration()
+    const at = len === 'all' ? 0 : Math.min(engine.time, Math.max(0, total - 0.5))
+    const dur = len === 'all' ? Math.max(1, total) : len === 'end' ? Math.max(1, total - at) : Math.min(Number(len), Math.max(1, total - at) || Number(len))
+    const y = pos === 'top' ? 0.18 : pos === 'bottom' ? 0.8 : 0.5
+    engine.seek(at)
+    const c = addText({ ...p, y }, words)
+    if (c) updateClip(c.id, { start: at, dur, y })
+    engine.requestRender()
+    setTxt('')
+    setUi({ toast: `Text added${len === 'all' ? ' for the whole video' : ` at ${at.toFixed(1)} s`} – drag it on the video to move it, or ${matchMedia('(pointer: coarse)').matches ? 'double-tap' : 'double-click'} it to change the words.` })
+  }
+  return (
+    <div className="quick-text">
+      <textarea
+        className="full"
+        rows={2}
+        placeholder="Type your text… e.g. 2 BHK flats from ₹40 lakh"
+        value={txt}
+        onChange={(e) => setTxt(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) add()
+        }}
+      />
+      <div className="chips">
+        {QUICK_LOOKS.map(([id, n]) => (
+          <button key={id} className={'chip' + (look === id ? ' on' : '')} onClick={() => setLook(id)}>{n}</button>
+        ))}
+      </div>
+      <div className="qt-row">
+        <span>Where</span>
+        {(['top', 'middle', 'bottom'] as const).map((x) => (
+          <button key={x} className={'chip' + (pos === x ? ' on' : '')} onClick={() => setPos(x)}>{x === 'top' ? 'Top' : x === 'middle' ? 'Middle' : 'Bottom'}</button>
+        ))}
+      </div>
+      <div className="qt-row">
+        <span>Show for</span>
+        {([['3', '3 s'], ['5', '5 s'], ['end', 'Till the end'], ['all', 'Whole video']] as const).map(([id, n]) => (
+          <button key={id} className={'chip' + (len === id ? ' on' : '')} onClick={() => setLen(id)}>{n}</button>
+        ))}
+      </div>
+      <button className="btn primary full" disabled={!txt.trim()} onClick={add}>＋ Add text to the video</button>
+    </div>
+  )
+}
+
 function TextTab() {
   useStore((s) => s.toast + s.project.clips.length) // re-render when styles change
   const mine = loadStyles()
   return (
     <>
-      <div className="hint">Tap a style to add it at the playhead. Change the words, font, colours, glow and animation in the right panel.</div>
+      <QuickText />
+      <div className="group-h">Ready-made styles</div>
+      <div className="hint">Tap a style to add it at the playhead, then change the words in the right panel – or double-click the text on the video.</div>
       <StyleLibrary />
       <div className="group-h">Classic</div>
       <div className="presets">

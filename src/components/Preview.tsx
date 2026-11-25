@@ -67,8 +67,21 @@ export function Preview() {
   const pinch = useRef<{ d0: number; scale0: number; id: string } | null>(null)
 
   /** Two fingers on the canvas scale the selected clip. */
+  const lastTap = useRef({ t: 0, id: '' as string | null })
   const stagePointerDown = (e: React.PointerEvent) => {
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    // double-click / double-tap on text → straight to typing new words
+    {
+      const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+      const cv = (e.currentTarget as HTMLElement).querySelector('canvas')
+      const k = cv ? cv.width / r.width : 1
+      const hid = engine.hitTest((e.clientX - r.left) * k, (e.clientY - r.top) * k)
+      const now = performance.now()
+      if (hid && hid === lastTap.current.id && now - lastTap.current.t < 380 && getClip(hid)?.kind === 'text') {
+        lastTap.current = { t: 0, id: null }
+        window.dispatchEvent(new CustomEvent('cf:edittext', { detail: hid }))
+      } else lastTap.current = { t: now, id: hid }
+    }
     const id = getState().selectedId
     const c = id ? getClip(id) : null
     if (pointers.current.size === 2 && c) {
