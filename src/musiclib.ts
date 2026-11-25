@@ -1,3 +1,4 @@
+import { CONFIG } from './plan'
 // Free music library: searches openly licensed music on Openverse (Jamendo, Freesound, Wikimedia Commons, ccMixter…)
 // and adds a track to the project, with its credit line saved for the video description.
 // Only licences that are safe in a (monetised) video are asked for: CC0, Public Domain Mark and CC BY.
@@ -138,18 +139,27 @@ export async function searchMusic(o: SearchOpts): Promise<{ tracks: Track[]; mor
   return { tracks, more: (o.page ?? 1) < Math.min(j.page_count ?? 1, 12) }
 }
 
+/**
+ * Downloads an audio file. Some libraries (Freesound's previews) let the browser play a file but
+ * not download it into a web app (no CORS header), so then it comes through ClipForge's own server.
+ */
+export async function fetchAudio(url: string): Promise<Blob> {
+  try {
+    const r = await fetch(url)
+    if (r.ok) return await r.blob()
+  } catch {
+    /* blocked by the site – try the relay */
+  }
+  if (!CONFIG.server) throw new Error('blocked')
+  const r = await fetch(`${CONFIG.server}/media?u=${encodeURIComponent(url)}`)
+  if (!r.ok) throw new Error('blocked')
+  return r.blob()
+}
+
 /** Downloads the track and puts it on the Music track. Throws an error with code "blocked" when the source doesn't allow apps to download it. */
 export async function addTrack(t: Track, at: 'start' | 'playhead', status: (m: string) => void): Promise<string> {
   status('Downloading the track…')
-  let blob: Blob
-  try {
-    const r = await fetch(t.url)
-    if (!r.ok) throw new Error(String(r.status))
-    blob = await r.blob()
-  } catch {
-    const e = new Error('blocked')
-    throw e
-  }
+  const blob = await fetchAudio(t.url)
   if (!/^audio\//.test(blob.type) && blob.size < 20000) throw new Error('blocked')
   const ext = (blob.type.split('/')[1] || 'mp3').replace('mpeg', 'mp3').replace('x-wav', 'wav').replace('wave', 'wav')
   const file = new File([blob], `${t.title.slice(0, 40)} – ${t.creator.slice(0, 24)}.${ext}`, { type: blob.type || 'audio/mpeg' })

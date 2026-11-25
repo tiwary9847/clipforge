@@ -22,6 +22,7 @@ globalThis.fetch = async (url, init = {}) => {
   if (url.includes('oauth2.googleapis.com/token')) return J({ access_token: 'gtok' })
   if (url.includes('androidpublisher') && !init.method) return J(playState)
   if (url.includes('androidpublisher')) return J({})
+  if (url.startsWith('https://cdn.freesound.org/')) return new Response(new Uint8Array(3000), { status: 200, headers: { 'content-type': 'audio/mpeg', 'content-length': '3000' } })
   if (url.includes('-tts')) return url.includes('gemini-3.8-flash-tts') ? J({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/L16;codec=pcm;rate=24000', data: 'AAAA' } }] } }] }) : J({}, 404)
   if (url.includes('generativelanguage')) return url.includes('gemini-flash-latest') ? J({ candidates: [{ content: { parts: [{ text: '{"ok":1}' }] } }] }) : J({}, 404)
   return J({ error: 'unexpected ' + url }, 500)
@@ -119,5 +120,11 @@ const rev = JSON.stringify({ event: 'refund.processed', payload: { refund: { ent
 ;[s, j] = await call('/admin/gift', { who: 'Friend', plan: 'year' }, A); lic = j.licence && (await appVerify(j.licence)); check('gift licence', !!lic && lic.src === 'gift')
 ;[s, j] = await call('/admin/revoke', { payment_id: lic.pid }, A); ;[s, j] = await call('/check', { licence: (await call('/admin/gift', { who: 'F2', plan: 'month' }, A))[1].licence }); check('other gifts unaffected by a revoke', j.ok === true)
 ;[s, j] = await call('/admin/coupons', {}, A); check('list coupons', j.coupons.some((c) => c.code === 'DIWALI30'))
+// audio relay
+const media = async (u) => { const r = await worker.fetch(new Request('https://w.dev/media?u=' + encodeURIComponent(u), { headers: { origin: 'https://tiwary9847.github.io' } }), env); return [r.status, r.headers.get('access-control-allow-origin'), r.headers.get('content-type')] }
+;[s, j] = [await media('https://cdn.freesound.org/previews/1/1_2-hq.mp3')]; check('relay: Freesound preview allowed, browser may read it', s[0] === 200 && s[1] === 'https://tiwary9847.github.io' && s[2] === 'audio/mpeg', JSON.stringify(s))
+check('relay: other sites refused', (await media('https://evil.example/x.mp3'))[0] === 400)
+check('relay: Freesound login-only download refused', (await media('https://freesound.org/apiv2/sounds/5/download/'))[0] === 400)
+check('relay: no http / tricks', (await media('http://cdn.freesound.org/previews/a.mp3'))[0] === 400 && (await media('https://user@cdn.freesound.org/previews/a.mp3'))[0] === 400)
 console.log(`\n${pass} passed, ${fail} failed`)
 process.exit(fail ? 1 : 0)

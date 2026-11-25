@@ -311,3 +311,7 @@ Timeline bar: **✓ Select** mode (tap clips to add/remove – works on phones),
   - **7 premium caption styles** – Neon, Gold karaoke, Comic, Fire gradient, Desi bold, Cinematic, Rainbow.
   - **Premium template packs** – Wedding (title, save the date, thank-you), Festival (Diwali, Holi, any festival), Travel (trip title, day labels, trip cost), Devotional (aarti title, bhajan lyrics, blessing ending), with Hindi fonts.
 - Browser test with mocked Razorpay/server: 34 checks (coupon, failed and successful payment, receipt, top-up, expiry banner, renewal, refund switch-off, all four packs, Neon, Hindi voice, upload kit files, dashboard).
+
+### Sound search fixes (Nov 2026)
+- Openverse: 20 results per page (more needs an account → 401); search Freesound sounds by source (most have no category); play/add Freesound's open MP3 previews, never the login-only download link.
+- Freesound's file server lets browsers play previews but not download them into a web app (no CORS header). `+ Add` now goes through the server's `GET /media?u=` relay when that happens – it only fetches audio from Freesound previews, Jamendo and Wikimedia (https, ≤25 MB, audio types). Until the server is deployed, the app offers “⬇ Save the sound” + Import instead.

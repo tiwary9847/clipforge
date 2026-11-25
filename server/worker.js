@@ -10,6 +10,8 @@
 //   POST /price    {plan, coupon, current}                → price after coupon, renewal start
 //   POST /check    {licence}                              → still valid? (refunds switch Pro off)
 //   POST /admin/…  header x-admin-token                   → seller dashboard (stats, payments, gift, revoke, coupons)
+//   GET  /media?u=<url>                                   → relays a free-library audio file (Freesound previews,
+//                                                            Jamendo, Wikimedia) whose host blocks browser downloads
 // Secrets (wrangler secret put …): RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET,
 //   LICENCE_PRIVATE_JWK, GEMINI_KEY, ADMIN_TOKEN, PLAY_SERVICE_ACCOUNT (JSON, optional), PLAY_PACKAGE (optional)
 // KV namespace binding: DB.   Vars: ALLOWED_ORIGINS (comma list), AI_MONTHLY (default 300)
@@ -220,6 +222,34 @@ function cors(env, req) {
   const ok = !allowed.length || allowed.includes(origin) || origin === 'null'
   return { 'access-control-allow-origin': ok ? origin || '*' : allowed[0], 'access-control-allow-headers': 'content-type, authorization, x-admin-token', 'access-control-allow-methods': 'POST, OPTIONS', vary: 'origin' }
 }
+/* ---- audio relay: only open audio from the free libraries the app searches ---- */
+const MEDIA_HOSTS = [/^cdn\.freesound\.org$/, /^(www\.)?freesound\.org$/, /(^|\.)jamendo\.com$/, /^upload\.wikimedia\.org$/]
+const MEDIA_MAX = 25 * 1024 * 1024
+export function mediaAllowed(raw) {
+  let u
+  try {
+    u = new URL(raw)
+  } catch {
+    return false
+  }
+  if (u.protocol !== 'https:' || u.username || u.password || u.port) return false
+  if (!MEDIA_HOSTS.some((r) => r.test(u.hostname))) return false
+  // Freesound: previews only (the full download needs the uploader's licence terms and a login)
+  if (/freesound\.org$/.test(u.hostname) && !/\/(data\/)?previews\//.test(u.pathname)) return false
+  return true
+}
+async function relayMedia(req, h) {
+  const raw = new URL(req.url).searchParams.get('u') || ''
+  if (!mediaAllowed(raw)) return reply(h, 400, { error: 'Only audio from the free libraries can be added this way.' })
+  const r = await fetch(raw, { redirect: 'follow', cf: { cacheTtl: 86400, cacheEverything: true } })
+  if (!r.ok) return reply(h, 502, { error: `The sound's site answered ${r.status}.` })
+  const type = r.headers.get('content-type') || ''
+  if (!/^(audio\/|application\/ogg|video\/ogg)/.test(type)) return reply(h, 415, { error: 'That link is not an audio file.' })
+  const len = Number(r.headers.get('content-length') || 0)
+  if (len > MEDIA_MAX) return reply(h, 413, { error: 'That sound is too big (over 25 MB).' })
+  return new Response(r.body, { status: 200, headers: { ...h, 'content-type': type, 'cache-control': 'public, max-age=86400', ...(len ? { 'content-length': String(len) } : {}) } })
+}
+
 const reply = (h, status, obj) => new Response(JSON.stringify(obj), { status, headers: { ...h, 'content-type': 'application/json' } })
 const validEmail = (e) => typeof e === 'string' && /^\S+@\S+\.\S+$/.test(e) && e.length < 200
 
@@ -227,8 +257,15 @@ export default {
   async fetch(req, env) {
     const h = cors(env, req)
     if (req.method === 'OPTIONS') return new Response(null, { headers: h })
-    if (req.method !== 'POST') return reply(h, 405, { error: 'POST only' })
     const path = new URL(req.url).pathname
+    if (req.method === 'GET' && path === '/media') {
+      try {
+        return await relayMedia(req, { ...h, 'access-control-allow-methods': 'GET, POST, OPTIONS' })
+      } catch (e) {
+        return reply(h, 502, { error: String(e?.message || e) })
+      }
+    }
+    if (req.method !== 'POST') return reply(h, 405, { error: 'POST only' })
     try {
       if (path === '/webhook') {
         const raw = await req.text()

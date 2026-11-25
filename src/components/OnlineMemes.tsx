@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { engine } from '../engine'
-import { playableUrl } from '../musiclib'
+import { fetchAudio, playableUrl } from '../musiclib'
 import { addAsset, addAssetClip, patchClip, setUi } from '../store'
 
 type Src = 'sounds' | 'gifs' | 'link'
@@ -94,9 +94,12 @@ const extOf = (mime: string, url: string, kind: Hit['kind']) => {
 export async function addFromUrl(url: string, title: string, kind: Hit['kind'] | 'auto'): Promise<string> {
   let blob: Blob
   try {
-    const r = await fetch(url)
-    if (!r.ok) throw new Error(String(r.status))
-    blob = await r.blob()
+    if (kind === 'audio') blob = await fetchAudio(url)
+    else {
+      const r = await fetch(url)
+      if (!r.ok) throw new Error(String(r.status))
+      blob = await r.blob()
+    }
   } catch {
     throw new Error("That site doesn't allow direct use in the browser. Download the file there, then use “Import my meme sound / GIF / image”.")
   }
@@ -147,8 +150,8 @@ export function OnlineMemes() {
       setUi({ toast: await addFromUrl(h.url, h.title, h.kind) })
     } catch (e) {
       if (h.kind === 'audio' && h.page) {
-        setErr('This sound’s site doesn’t let apps download it directly. Open it, download it, then use “Import my meme sound” in Built-in.')
-        setErrPage(h.page)
+        setErr('This sound’s site doesn’t let web apps download it directly. Tap “Save the sound”, then add it with “Import my meme sound” in Built-in (or drag the file onto the app).')
+        setErrPage(h.url)
       } else setErr((e as Error).message)
     }
     setBusy('')
@@ -244,7 +247,7 @@ export function OnlineMemes() {
         </>
       )}
 
-      {err && <div className="ae-err">⚠ {err}{errPage && <> <a href={errPage} target="_blank" rel="noreferrer">Open the sound’s page ↗</a></>}</div>}
+      {err && <div className="ae-err">⚠ {err}{errPage && <> <a href={errPage} target="_blank" rel="noreferrer">{/\.(mp3|ogg|wav|m4a)(\?|$)/i.test(errPage) ? '⬇ Save the sound' : 'Open the sound’s page ↗'}</a></>}</div>}
 
       <div className="ohits">
         {hits.map((h) => (
