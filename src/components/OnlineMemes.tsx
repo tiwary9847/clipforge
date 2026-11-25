@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { engine } from '../engine'
+import { playableUrl } from '../musiclib'
 import { addAsset, addAssetClip, patchClip, setUi } from '../store'
 
 type Src = 'sounds' | 'gifs' | 'link'
@@ -43,13 +44,15 @@ async function searchSounds(q: string, commercialOnly: boolean): Promise<Hit[]> 
     if (r.status === 429) throw new Error('Too many sound searches right now – wait a minute and try again.')
     if (!r.ok) throw new Error(`Sound search failed (${r.status}). Try again in a moment.`)
     const j = await r.json()
-    const hits: Hit[] = (j.results ?? [])
-      .filter((x: { url?: string }) => x.url)
-      .map((x: { id: string; title: string; url: string; license: string; creator?: string; duration?: number; foreign_landing_url?: string }) => ({
+    type Ov = { id: string; title: string; url?: string; alt_files?: { url: string }[] | null; license: string; creator?: string; duration?: number; foreign_landing_url?: string }
+    const hits: Hit[] = ((j.results ?? []) as Ov[])
+      .map((x) => ({ x, url: playableUrl(x) }))
+      .filter((o): o is { x: Ov; url: string } => !!o.url)
+      .map(({ x, url }) => ({
         id: x.id,
-        title: x.title || 'Sound',
+        title: (x.title || 'Sound').replace(/\.(wav|mp3|ogg|flac|aiff?)$/i, ''),
         sub: `${x.duration ? (x.duration / 1000).toFixed(1) + 's · ' : ''}${LICENSE[x.license] ?? x.license.toUpperCase()}${x.creator ? ' · ' + x.creator : ''}`,
-        url: x.url,
+        url,
         kind: 'audio' as const,
         page: x.foreign_landing_url,
       }))
@@ -135,21 +138,41 @@ export function OnlineMemes() {
     }
     setBusy('')
   }
+  const [errPage, setErrPage] = useState('')
   async function add(h: Hit) {
     setErr('')
+    setErrPage('')
     setBusy(h.id)
     try {
       setUi({ toast: await addFromUrl(h.url, h.title, h.kind) })
     } catch (e) {
-      setErr((e as Error).message)
+      if (h.kind === 'audio' && h.page) {
+        setErr('This sound’s site doesn’t let apps download it directly. Open it, download it, then use “Import my meme sound” in Built-in.')
+        setErrPage(h.page)
+      } else setErr((e as Error).message)
     }
     setBusy('')
   }
   function play(h: Hit) {
+    setErr('')
+    setErrPage('')
+    if (player.current && !player.current.paused && player.current.dataset.id === h.id) {
+      player.current.pause()
+      return
+    }
     player.current?.pause()
     const a = new Audio(h.url)
+    a.dataset.id = h.id
     player.current = a
-    a.play().catch(() => setErr('Couldn’t preview that sound.'))
+    a.onerror = () => {
+      setErr('This sound can’t be played here.')
+      setErrPage(h.page ?? '')
+    }
+    a.play().catch((e: Error) => {
+      if (e?.name === 'NotAllowedError') return setErr('Tap ▶ again to listen (your browser blocked sound).')
+      setErr('This sound can’t be played here.')
+      setErrPage(h.page ?? '')
+    })
   }
 
   return (
@@ -221,7 +244,7 @@ export function OnlineMemes() {
         </>
       )}
 
-      {err && <div className="ae-err">⚠ {err}</div>}
+      {err && <div className="ae-err">⚠ {err}{errPage && <> <a href={errPage} target="_blank" rel="noreferrer">Open the sound’s page ↗</a></>}</div>}
 
       <div className="ohits">
         {hits.map((h) => (

@@ -63,11 +63,25 @@ interface OvResult {
   duration?: number | null
   tags?: { name: string }[]
   alt_files?: { url: string; filetype?: string }[] | null
+  preview_url?: string
+}
+
+/**
+ * The address a browser can actually play and download. Freesound's full-quality download link
+ * (freesound.org/apiv2/sounds/<id>/download/) needs a Freesound login, so it always fails here;
+ * Freesound's MP3/OGG previews (cdn.freesound.org/previews/…) are open and fine for videos.
+ */
+export function playableUrl(r: { url?: string; alt_files?: { url: string; filetype?: string }[] | null; preview_url?: string }): string | null {
+  const all = [r.url, r.preview_url, ...(r.alt_files ?? []).map((a) => a.url)].filter((x): x is string => !!x && /^https:\/\//.test(x))
+  const locked = (u: string) => /freesound\.org\/apiv2\/.*\/download/i.test(u) || /\/apiv2\/sounds\/\d+\/?$/.test(u)
+  const ok = all.filter((u) => !locked(u))
+  return ok.find((u) => /\/previews\/.*\.mp3/i.test(u)) ?? ok.find((u) => /\/previews\//i.test(u)) ?? ok.find((u) => /\.(mp3|m4a|ogg|oga|wav|flac|aac)(\?|$)/i.test(u)) ?? ok[0] ?? null
 }
 
 function toTrack(r: OvResult): Track | null {
   const license = (r.license ?? '').toLowerCase()
-  if (!r.url || !['cc0', 'pdm', 'by'].includes(license)) return null
+  const url = playableUrl(r)
+  if (!url || !['cc0', 'pdm', 'by'].includes(license)) return null
   const d = r.duration ?? 0
   const title = (r.title ?? 'Untitled').replace(/\.(mp3|wav|ogg|flac)$/i, '')
   const creator = r.creator || 'Unknown artist'
@@ -76,7 +90,7 @@ function toTrack(r: OvResult): Track | null {
     title,
     creator,
     creatorUrl: r.creator_url,
-    url: r.url,
+    url,
     page: r.foreign_landing_url || `https://openverse.org/audio/${r.id}`,
     license,
     version: r.license_version ?? '',
