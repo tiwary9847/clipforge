@@ -28,7 +28,7 @@ import {
   trimGroupTo,
   toggleTrack,
 } from '../store'
-import { getSettings, rowHeight, setSettings, useSettings } from '../settings'
+import { getSettings, rowHeight, setSettings, timelineHeight, useSettings } from '../settings'
 import { Clip, TRACKS } from '../types'
 import { kfTimes, shiftKeyframes } from '../anim'
 import { fmtTime } from './Fields'
@@ -101,7 +101,7 @@ function ResizeEdge() {
     e.preventDefault()
     const phone = isPhone()
     const y0 = e.clientY
-    const h0 = phone ? getSettings().tlHm : getSettings().tlH
+    const h0 = timelineHeight(phone)
     setOn(true)
     const mv = (ev: PointerEvent) => {
       const max = window.innerHeight - (phone ? 230 : 260)
@@ -145,6 +145,20 @@ export function Timeline() {
   const head = useRef<HTMLDivElement>(null)
   const dur = clips.reduce((m, c) => Math.max(m, clipEnd(c)), 0)
   const totalW = Math.max(dur + 10, 30) * pps
+
+  // Keep the used lanes in view: when the empty overlay layers push the Main lane off a short
+  // timeline (phones, laptops), scroll down so the first used lane shows with one empty layer above it.
+  const usedKey = TRACKS.map((t) => (clips.some((c) => c.track === t.id) ? 1 : 0)).join('')
+  useEffect(() => {
+    const el = scroll.current
+    if (!el) return
+    const first = usedKey.indexOf('1')
+    if (first < 0) return
+    const rowTop = first * ROW_H
+    const ruler = (el.querySelector('.tl-ruler') as HTMLElement | null)?.offsetHeight ?? 26
+    const visible = el.clientHeight - ruler
+    if (rowTop + ROW_H > el.scrollTop + visible || rowTop < el.scrollTop) el.scrollTop = Math.max(0, rowTop - ROW_H)
+  }, [usedKey])
 
   useEffect(() => {
     const place = (t: number, playing: boolean) => {

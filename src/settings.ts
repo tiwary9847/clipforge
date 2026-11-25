@@ -12,8 +12,8 @@ export interface Settings {
   accent: AccentId
   uiSize: Size
   trackH: Size
-  tlH: number // desktop timeline height (px)
-  tlHm: number // phone timeline height (px)
+  tlH: number // desktop timeline height (px); 0 = auto (fits the screen)
+  tlHm: number // phone timeline height (px); 0 = auto
   leftW: number // width of the left panel (px)
   tall: boolean // side panels run the full height (timeline only under the preview)
   hints: boolean
@@ -55,8 +55,8 @@ const DEFAULTS: Settings = {
   accent: 'violet',
   uiSize: 'md',
   trackH: 'md',
-  tlH: 312,
-  tlHm: 290,
+  tlH: 0,
+  tlHm: 0,
   leftW: 340,
   tall: true,
   hints: true,
@@ -78,6 +78,9 @@ function load(): Settings {
     // older versions only stored light/dark
     const old = localStorage.getItem('clipforge-theme')
     if (!s.skin && old) s.skin = old === 'light' ? 'light' : 'aurora'
+    // the old fixed defaults become "auto", so the video gets more room on smaller screens
+    if (s.tlH === 312) s.tlH = 0
+    if (s.tlHm === 290) s.tlHm = 0
     return { ...DEFAULTS, ...s }
   } catch {
     return { ...DEFAULTS }
@@ -85,6 +88,13 @@ function load(): Settings {
 }
 
 export const getSettings = () => state
+/** Timeline height in use. Auto leaves the video about 55–60 % of the screen height. */
+export function timelineHeight(phone: boolean): number {
+  const v = phone ? state.tlHm : state.tlH
+  if (v) return v
+  const H = typeof innerHeight === 'number' ? innerHeight : 900
+  return phone ? Math.round(Math.min(250, Math.max(165, H * 0.26))) : Math.round(Math.min(312, Math.max(200, H * 0.3)))
+}
 export function setSettings(p: Partial<Settings>) {
   state = { ...state, ...p }
   try {
@@ -147,8 +157,8 @@ export function applySettings() {
   st.setProperty('--grad', `linear-gradient(135deg, ${A.a} 0%, ${A.b} 55%, ${A.c} 100%)`)
   st.setProperty('--glow', `0 0 0 1px rgba(${rgb(A.a)}, 0.45), 0 8px 28px -6px rgba(${rgb(A.a)}, 0.55)`)
   const phone = typeof matchMedia !== 'undefined' && matchMedia('(max-width: 820px)').matches
-  st.setProperty('--tl-h', `${Math.round(state.tlH)}px`)
-  st.setProperty('--tl-hm', `${Math.round(state.tlHm)}px`)
+  st.setProperty('--tl-h', `${timelineHeight(false)}px`)
+  st.setProperty('--tl-hm', `${timelineHeight(true)}px`)
   st.setProperty('--left-w', `${Math.round(state.leftW)}px`)
   st.setProperty('--row-h', `${TRACK_PX[state.trackH][phone ? 1 : 0]}px`)
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', sk.dark ? sk.sw[1] : '#ffffff')
@@ -175,4 +185,17 @@ export function togglePin(id: string) {
 export function toggleSec(title: string) {
   const c = state.closedSecs
   setSettings({ closedSecs: c.includes(title) ? c.filter((x) => x !== title) : [...c, title] })
+}
+
+// auto timeline height follows the window (rotating a phone, resizing a laptop window)
+if (typeof window !== 'undefined') {
+  let t = 0
+  window.addEventListener('resize', () => {
+    if (state.tlH && state.tlHm) return
+    clearTimeout(t)
+    t = window.setTimeout(() => {
+      document.documentElement.style.setProperty('--tl-h', `${timelineHeight(false)}px`)
+      document.documentElement.style.setProperty('--tl-hm', `${timelineHeight(true)}px`)
+    }, 80)
+  })
 }

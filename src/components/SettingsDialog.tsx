@@ -122,7 +122,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
                 </div>
                 <Seg<string>
                   value={String(innerWidth <= 820 ? s.tlHm : s.tlH)}
-                  list={(innerWidth <= 820 ? [['200', 'Short'], ['290', 'Normal'], ['380', 'Tall']] : [['230', 'Short'], ['312', 'Normal'], ['420', 'Tall'], ['540', 'Huge']]) as [string, string][]}
+                  list={(innerWidth <= 820 ? [['0', 'Auto'], ['200', 'Short'], ['280', 'Normal'], ['380', 'Tall']] : [['0', 'Auto'], ['230', 'Short'], ['300', 'Normal'], ['420', 'Tall'], ['540', 'Huge']]) as [string, string][]}
                   onPick={(v) => setSettings(innerWidth <= 820 ? { tlHm: +v } : { tlH: +v })}
                 />
               </div>

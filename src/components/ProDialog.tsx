@@ -275,6 +275,11 @@ export function ProDialog({ why, onClose }: { why: string; onClose: () => void }
   const open = salesOpen()
   const lic = licence()
   const dl = daysLeft()
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => e.key === 'Escape' && !busy && onClose()
+    window.addEventListener('keydown', k)
+    return () => window.removeEventListener('keydown', k)
+  }, [busy, onClose])
 
   const useCode = async () => {
     setBusy('Checking…')
