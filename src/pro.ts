@@ -7,6 +7,7 @@ import { evalProp } from './anim'
 import { encodeWav } from './dsp'
 import { addAsset, addAssetClip, checkpoint, clipEnd, getAsset, getClip, getPreset, getState, patchClip, projectDuration, setProject, patchProjectSilent } from './store'
 import { Asset, Clip, Keyframe } from './types'
+import { CONFIG, isPro, requirePro, ttsBuiltin } from './plan'
 
 const tick = () => new Promise((r) => setTimeout(r, 0))
 
@@ -543,7 +544,14 @@ function ask<T>(msg: Record<string, unknown>, want: string, status?: Status, tra
 
 /* ---------- AI voices ---------- */
 
-export const VOICES = [
+export const VOICES: { id: string; name: string; commercial: boolean; pro?: boolean; hindi?: boolean }[] = [
+  // Pro: natural Hindi / Hinglish voices from Gemini TTS, through the ClipForge server
+  { id: 'cloud:Kore', name: '⭐ Hindi · Kavya (female, warm)', commercial: true, pro: true, hindi: true },
+  { id: 'cloud:Aoede', name: '⭐ Hindi · Meera (female, bright)', commercial: true, pro: true, hindi: true },
+  { id: 'cloud:Leda', name: '⭐ Hindi · Anaya (female, young)', commercial: true, pro: true, hindi: true },
+  { id: 'cloud:Charon', name: '⭐ Hindi · Arjun (male, deep)', commercial: true, pro: true, hindi: true },
+  { id: 'cloud:Puck', name: '⭐ Hindi · Rohan (male, lively)', commercial: true, pro: true, hindi: true },
+  { id: 'cloud:Orus', name: '⭐ Hindi · Vikram (male, news)', commercial: true, pro: true, hindi: true },
   { id: 'kokoro:af_heart', name: 'English · Heart (female, US)', commercial: true },
   { id: 'kokoro:af_bella', name: 'English · Bella (female, US)', commercial: true },
   { id: 'kokoro:am_michael', name: 'English · Michael (male, US)', commercial: true },
@@ -584,6 +592,12 @@ export async function synth(text: string, voice: string, status?: Status): Promi
   const mock = (window as any).__cfMockTts as undefined | ((t: string, v?: string) => { audio: Float32Array; sr: number })
   if (mock) return mock(t, voice)
   const [eng, id] = voice.split(':')
+  if (eng === 'cloud') {
+    if (!requirePro('Hindi AI voices are part of ClipForge Pro.')) throw new Error('Hindi AI voices are part of ClipForge Pro.')
+    if (!CONFIG.server && !(window as any).__cfMockCloudTts) throw new Error('Hindi voices need the ClipForge server, which isn’t switched on yet.')
+    status?.('Making the voice…')
+    return ttsBuiltin(t, id)
+  }
   return ask<{ audio: Float32Array; sr: number }>(eng === 'kokoro' ? { task: 'tts', engine: 'kokoro', voice: id, text: t } : { task: 'tts', engine: 'mms', model: id, text: t }, 'audio', status)
 }
 

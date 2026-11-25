@@ -8,6 +8,8 @@ import { TextEditDialog } from './TextEditDialog'
 import { Icon } from './Icon'
 import { useT } from '../i18n'
 import { ProGate } from './ProDialog'
+import { requirePro, usePro } from '../plan'
+import { KIT_TARGETS, KitItem, KitTarget, aiKit, canAI, kitMeta, kitSpoken, kitText, kitThumb, kitVideos } from '../uploadkit'
 import { AssistantCard, BlurStrangers, RetentionCoach } from './AIPanels'
 import { RecMode, Recording, canRecordCamera, canRecordScreen, startRecording } from '../recorder'
 import { LAYOUTS, addAdjustmentLayer, applyLayout } from '../looks'
@@ -35,6 +37,7 @@ const download = (blob: Blob, name: string) => {
   a.remove()
   setTimeout(() => URL.revokeObjectURL(url), 4000)
 }
+const toast = (m: string) => setUi({ toast: m })
 const safeName = () => getState().projectName.replace(/[^\w\- ]+/g, '').trim() || 'clipforge'
 
 export function ToolsTab() {
@@ -138,6 +141,8 @@ export function ToolsTab() {
           <small>Scrolling script + record your voice</small>
         </button>
       </div>
+      <div className="group-h">🚀 One-tap upload kit</div>
+      <ProGate what="The one-tap upload kit"><UploadKit /></ProGate>
       <div className="group-h">🎨 Brand kit</div>
       <ProGate what="Brand kit"><BrandKit /></ProGate>
       <div className="group-h">📦 All formats at once</div>
@@ -286,6 +291,110 @@ function addBrandOutro(b: Brand) {
     baseClip('text', 'v4', { label: b.cta.slice(0, 40), start: Math.max(0, total - d), dur: d, y: 0.45, text: { ...p.props, text: b.cta || 'FOLLOW', color: b.color2, stroke: b.color, anim: 'pop', animDur: 0.7 }, transIn: { type: 'fade', dur: 0.15 } }),
     ...(b.name ? [baseClip('text', 'v3', { label: b.name.slice(0, 40), start: Math.max(0, total - d), dur: d, y: 0.58, text: { ...p.props, text: b.name, size: (p.props.size ?? 0.08) * 0.6, color: '#ffffff', stroke: b.color }, transIn: { type: 'fade', dur: 0.15 } })] : []),
   ])
+}
+
+/* ---------- one-tap upload kit (Pro) ---------- */
+
+function UploadKit() {
+  const [sel, setSel] = useState<Record<KitTarget, boolean>>({ shorts: true, yt: true, reels: true })
+  const [notes, setNotes] = useState('')
+  const [emoji, setEmoji] = useState('😱')
+  const [useAI, setUseAI] = useState(canAI())
+  const [busy, setBusy] = useState('')
+  const [items, setItems] = useState<KitItem[]>([])
+  const [ok, setOk] = useState<{ ok: boolean; reason?: string } | null>(null)
+  const sig = useRef({ cancelled: false })
+  useEffect(() => { void fastExportSupport().then(setOk) }, [])
+  useEffect(() => () => items.forEach((i) => i.thumb && URL.revokeObjectURL(i.thumb.url)), [items])
+  const dur = projectDuration()
+  const targets = KIT_TARGETS.filter((t) => sel[t.id]).map((t) => t.id)
+  const run = async (withVideo: boolean) => {
+    sig.current = { cancelled: false }
+    setItems([])
+    try {
+      const spoken = kitSpoken()
+      setBusy('Writing titles…')
+      let meta = kitMeta(spoken, notes)
+      if (useAI && canAI() && spoken.length) {
+        try {
+          meta = await aiKit((localStorage.getItem('clipforge-ai-prov') as 'gemini' | 'claude') || 'gemini', localStorage.getItem('clipforge-ai-key') ?? '', spoken, notes)
+        } catch (e) {
+          toast('AI titles didn’t work (' + (e as Error).message + ') – used the offline ones.')
+        }
+      }
+      const name = safeName()
+      const list: KitItem[] = []
+      for (const t of targets) {
+        setBusy('Drawing thumbnails…')
+        const m = meta[t]
+        const tb = await kitThumb(t, t === 'reels' ? m.title : m.title.replace(/#\S+/g, '').trim(), emoji)
+        list.push({ target: t, ...m, thumb: { blob: tb, name: `${name}-${t}-${t === 'yt' ? 'thumbnail' : 'cover'}.jpg`, url: URL.createObjectURL(tb) } })
+      }
+      if (withVideo) {
+        const vids = await kitVideos(targets, name, setBusy, sig.current)
+        list.forEach((i) => (i.video = vids[i.target]))
+      }
+      setItems(list)
+      setBusy('')
+      if (withVideo && !sig.current.cancelled) {
+        for (const i of list) {
+          if (i.video) download(i.video.blob, i.video.name)
+          if (i.thumb) download(i.thumb.blob, i.thumb.name)
+          await new Promise((r) => setTimeout(r, 350))
+        }
+        download(new Blob([kitText(list)], { type: 'text/plain' }), `${name}-upload-kit.txt`)
+        toast('📦 Upload kit ready – videos, thumbnails and an upload-kit.txt with all the text.')
+      }
+    } catch (e) {
+      toast((e as Error).message)
+    }
+    setBusy('')
+  }
+  const edit = (i: number, k: 'title' | 'description', v: string) => setItems((l) => l.map((x, j) => (j === i ? { ...x, [k]: v } : x)))
+  const copy = (t: string) => { void navigator.clipboard?.writeText(t); toast('Copied.') }
+  return (
+    <>
+      <div className="hint">One tap makes everything you need to post: a 9:16 file for Shorts and Reels, a 16:9 file for YouTube, and for each one its own title, description, hashtags and a thumbnail or cover. Uses your captions for the words (add captions first for the best titles).</div>
+      <div className="chips">
+        {KIT_TARGETS.map((t) => (
+          <label key={t.id} className="ochk"><input type="checkbox" checked={sel[t.id]} onChange={(e) => setSel({ ...sel, [t.id]: e.target.checked })} /> {t.emoji} {t.name}</label>
+        ))}
+      </div>
+      <div className="osearch"><input placeholder="Notes (optional) e.g. Manali trip, budget ₹5000" value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
+      <label className="row2"><span>Thumbnail emoji</span><input style={{ width: 70 }} value={emoji} onChange={(e) => setEmoji(e.target.value)} /></label>
+      <label className="ochk"><input type="checkbox" checked={useAI} disabled={!canAI()} onChange={(e) => setUseAI(e.target.checked)} /> ✨ Write with AI {canAI() ? '' : '(needs Pro AI or your own key)'}</label>
+      <div className="chips">
+        <button className="btn primary" disabled={!!busy || dur <= 0 || !targets.length || !ok?.ok} onClick={() => run(true)}>{busy || (dur <= 0 ? 'Add a clip first' : ok && !ok.ok ? 'Export not supported here' : '📦 Make upload kit')}</button>
+        <button className="btn" disabled={!!busy || dur <= 0 || !targets.length} onClick={() => run(false)}>Text + thumbnails only</button>
+        {busy && <button className="btn ghost" onClick={() => (sig.current.cancelled = true)}>Stop</button>}
+      </div>
+      {!!items.length && (
+        <div className="kit-list">
+          {items.map((it, i) => {
+            const d = KIT_TARGETS.find((t) => t.id === it.target)!
+            return (
+              <div key={it.target} className="kit-item">
+                {it.thumb && <img src={it.thumb.url} alt={`${d.name} thumbnail`} />}
+                <div>
+                  <h4>{d.emoji} {d.name}</h4>
+                  <input className="full" value={it.title} onChange={(e) => edit(i, 'title', e.target.value)} />
+                  <textarea rows={4} value={it.description} onChange={(e) => edit(i, 'description', e.target.value)} />
+                  <div className="chips">
+                    <button className="btn sm" onClick={() => copy(it.title)}>📋 Title</button>
+                    <button className="btn sm" onClick={() => copy(it.description)}>📋 Description</button>
+                    <button className="btn sm" onClick={() => copy(it.hashtags.join(' '))}>📋 Hashtags</button>
+                    {it.thumb && <button className="btn sm" onClick={() => download(it.thumb!.blob, it.thumb!.name)}>⬇ Thumbnail</button>}
+                    {it.video && <button className="btn sm" onClick={() => download(it.video!.blob, it.video!.name)}>⬇ Video</button>}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+          <button className="btn sm" onClick={() => download(new Blob([kitText(items)], { type: 'text/plain' }), `${safeName()}-upload-kit.txt`)}>⬇ All text as a file</button>
+        </div>
+      )}
+    </>
+  )
 }
 
 function MultiExport() {
@@ -554,17 +663,19 @@ function Teleprompter({ onClose }: { onClose: () => void }) {
 
 function AiVoice() {
   const [text, setText] = useState('')
-  const [voice, setVoice] = useState(VOICES[0].id)
+  const [voice, setVoice] = useState(VOICES.find((x) => !x.pro)!.id)
   const [busy, setBusy] = useState('')
   const [pct, setPct] = useState<number | undefined>()
   const [msg, setMsg] = useState('')
   const v = VOICES.find((x) => x.id === voice)!
+  const pro = usePro()
   return (
     <>
-      <div className="hint">Type a script and get a voice-over at the playhead. Runs on your device; the voice downloads once (~80 MB) and is cached.</div>
-      <textarea className="full" rows={3} placeholder={voice.includes('hin') ? 'नमस्ते दोस्तों, आज हम…' : 'Hey guys, welcome back…'} value={text} onChange={(e) => setText(e.target.value)} />
-      <select className="full" value={voice} onChange={(e) => setVoice(e.target.value)}>
-        {VOICES.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+      <div className="hint">{v.pro ? 'Type in Hindi (देवनागरी), Hinglish or English – the Pro voices read all three naturally. Made on the ClipForge server; uses 5 of your monthly AI requests.' : 'Type a script and get a voice-over at the playhead. Runs on your device; the voice downloads once (~80 MB) and is cached.'}</div>
+      <textarea className="full" rows={3} placeholder={v.hindi ? 'नमस्ते दोस्तों, आज हम… / Namaste dosto, aaj hum…' : 'Hey guys, welcome back…'} value={text} onChange={(e) => setText(e.target.value)} />
+      <select className="full" value={voice} onChange={(e) => { const nv = VOICES.find((x) => x.id === e.target.value)!; if (nv.pro && !requirePro('Hindi AI voices are part of ClipForge Pro.')) return; setVoice(nv.id) }}>
+        <optgroup label={pro ? 'Hindi & Hinglish (Pro)' : 'Hindi & Hinglish – Pro'}>{VOICES.filter((x) => x.pro).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</optgroup>
+        <optgroup label="English (free, on your device)">{VOICES.filter((x) => !x.pro).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</optgroup>
       </select>
       {!v.commercial && <div className="hint">⚠ This voice’s licence (CC BY-NC) doesn’t allow monetised videos. Type Hindi in देवनागरी for best results.</div>}
       <button

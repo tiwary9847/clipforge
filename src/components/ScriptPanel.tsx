@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { setUi } from '../store'
 import { Scene, scriptToVideo, splitScript, writeScript } from '../script2video'
 import { VOICES } from '../pro'
+import { isPro } from '../plan'
 
 const toast = (m: string) => setUi({ toast: m })
 
@@ -60,7 +61,7 @@ export function ScriptToVideo() {
       <label className="row2">
         <span>Voice</span>
         <select value={voice} onChange={(e) => setVoice(e.target.value)}>
-          {VOICES.map((v) => (
+          {VOICES.filter((v) => !v.pro || isPro()).map((v) => (
             <option key={v.id} value={v.id}>{v.name}</option>
           ))}
         </select>

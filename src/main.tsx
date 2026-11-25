@@ -1,3 +1,4 @@
+import { setUi } from './store'
 import { createRoot } from 'react-dom/client'
 import App from './App'
 import './styles.css'
@@ -66,7 +67,12 @@ document.fonts?.addEventListener?.('loadingdone', () => engine.requestRender())
 void fastExport.cleanOldExports()
 
 applySettings()
-void plan.loadLicence().then(() => engine.requestRender())
+void plan.loadLicence().then(() => {
+  engine.requestRender()
+  void plan.checkOnline()
+})
+window.addEventListener('cf:toast', (e) => setUi({ toast: (e as CustomEvent).detail }))
+window.addEventListener('online', () => void plan.checkOnline())
 watchSystem()
 // ask the browser to keep projects and media permanently (otherwise it may clear them when space is low,
 // and Safari can remove site data after 7 days without a visit)

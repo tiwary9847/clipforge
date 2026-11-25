@@ -308,11 +308,13 @@ export interface ThumbOpts {
   size: number
   fit: 'fill' | 'blur'
   vignette: boolean
+  w?: number // default 1280×720 (YouTube); 1080×1920 for a Shorts / Reels cover
+  h?: number
 }
 
 export function renderThumb(cv: HTMLCanvasElement, o: ThumbOpts) {
-  const W = 1280
-  const H = 720
+  const W = o.w ?? 1280
+  const H = o.h ?? 720
   cv.width = W
   cv.height = H
   const g = cv.getContext('2d')!
@@ -340,6 +342,7 @@ export function renderThumb(cv: HTMLCanvasElement, o: ThumbOpts) {
   const text = o.text.trim().toUpperCase()
   if (text) {
     const lines = wrap(g, text, o.size, W * 0.9)
+    // keep tall covers readable: at most 4 lines
     const lh = o.size * 1.08
     const y0 = o.pos === 'top' ? H * 0.06 : o.pos === 'bottom' ? H - H * 0.06 - lines.length * lh : (H - lines.length * lh) / 2
     g.font = `900 ${o.size}px Impact, "Arial Black", Arial, sans-serif`
@@ -355,7 +358,7 @@ export function renderThumb(cv: HTMLCanvasElement, o: ThumbOpts) {
     })
   }
   if (o.emoji) {
-    g.font = '200px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'
+    g.font = `${Math.round(Math.min(W, H) * 0.28)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`
     g.textAlign = 'right'
     const top = o.pos !== 'top'
     g.textBaseline = top ? 'top' : 'bottom'

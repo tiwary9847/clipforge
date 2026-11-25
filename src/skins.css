@@ -581,3 +581,25 @@ body:has(.tdrawer.open) .sheet-x { display: none !important; }
 .modal-bg:has(.pro-modal) { z-index: 60; }
 .wl-install { display: block; width: 100%; margin: 10px 0 4px; padding: 10px 12px; border: 1px dashed var(--accent); border-radius: 12px; background: rgba(var(--acc-rgb), 0.06); color: var(--text); font-weight: 650; text-align: left; }
 .wl-install small { font-weight: 400; color: var(--muted); }
+
+/* v28 – payments */
+.exp-banner { position: fixed; z-index: 40; top: 62px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; max-width: min(680px, calc(100vw - 20px)); padding: 8px 10px 8px 14px; border-radius: 12px; background: #fff7e0; color: #5a3b00; border: 1px solid #ffb703; box-shadow: 0 6px 24px #0003; font-size: 13.5px; }
+.exp-banner span { flex: 1; }
+@media (max-width: 760px) { .exp-banner { top: 50px; font-size: 12.5px; } }
+.pro-ok.soon { color: #c2410c; }
+.pro-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+.coupon-row { display: flex; gap: 6px; margin: 6px 0; }
+.coupon-row input { flex: 1; text-transform: uppercase; }
+.receipts { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.receipt-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; }
+.ai-meter { margin: 6px 0 10px; font-size: 13px; }
+.ai-meter .row { display: flex; justify-content: space-between; }
+.ai-meter .meter { height: 6px; border-radius: 4px; background: #8884; overflow: hidden; margin-top: 4px; }
+.ai-meter .meter i { display: block; height: 100%; background: linear-gradient(90deg, #7c5cff, #ff5ca8); }
+.chip .pro-mini, .tpl .pro-mini, .pro-mini { display: inline-block; font-size: 9px; font-weight: 800; padding: 1px 4px; border-radius: 4px; background: #ffb703; color: #1a1a1a; margin-left: 4px; vertical-align: middle; letter-spacing: .3px; }
+.kit-list { display: flex; flex-direction: column; gap: 10px; margin: 8px 0; }
+.kit-item { border: 1px solid var(--line, #8883); border-radius: 12px; padding: 10px; display: grid; grid-template-columns: 120px 1fr; gap: 10px; }
+.kit-item canvas, .kit-item img { width: 120px; border-radius: 8px; background: #000; }
+.kit-item textarea { width: 100%; font-size: 12.5px; }
+.kit-item h4 { margin: 0 0 4px; font-size: 14px; }
+@media (max-width: 560px) { .kit-item { grid-template-columns: 1fr; } }

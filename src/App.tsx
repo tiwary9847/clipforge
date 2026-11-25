@@ -12,7 +12,7 @@ import { GuideDialog, openGuide } from './components/GuideDialog'
 import { ConvertDialog } from './components/ConvertDialog'
 import { useT } from './i18n'
 import { AssistantDialog } from './components/AIPanels'
-import { ProDialog } from './components/ProDialog'
+import { ExpiryBanner, ProDialog } from './components/ProDialog'
 import { openPro, usePro } from './plan'
 import { handleLaunch, install, useCanInstall } from './install'
 import { currentTheme, setTheme } from './themeMode'
@@ -277,6 +277,7 @@ export default function App() {
           )}
         </div>
       </header>
+      <ExpiryBanner />
       <div className="mid">
         <MediaPanel />
         <Preview />

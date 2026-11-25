@@ -180,6 +180,7 @@ const TOOLS: Record<string, [string, string, string, string]> = {
   hooklines: ['Hook lines', 'AI shuruaat ki line likhega', 'हुक लाइनें', 'AI शुरुआत की लाइन लिखेगा'],
   hookfinder: ['Hook finder', 'Best pal ko shuru mein lagao', 'हुक फ़ाइंडर', 'सबसे अच्छे पल को शुरू में लगाएँ'],
   thumb: ['Thumbnail', 'Thumbnail maker aur teleprompter', 'थंबनेल', 'थंबनेल मेकर और टेलीप्रॉम्प्टर'],
+  uploadkit: ['Upload kit ek tap mein', 'Shorts, YouTube aur Reels – title, hashtags aur thumbnail ke saath', 'एक टैप अपलोड किट', 'Shorts, YouTube और Reels – टाइटल, हैशटैग और थंबनेल के साथ'],
   brand: ['Brand kit', 'Logo, rang aur font ek tap mein', 'ब्रांड किट', 'लोगो, रंग और फ़ॉन्ट एक टैप में'],
   formats: ['Sab formats', '16:9, 9:16 aur 1:1 ek saath save', 'सभी फ़ॉर्मेट', '16:9, 9:16 और 1:1 एक साथ सेव'],
   versions: ['Purane version', 'Pehle wale version par wapas jao', 'पुराने वर्ज़न', 'पहले वाले वर्ज़न पर वापस जाएँ'],

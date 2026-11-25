@@ -38,7 +38,7 @@ Fill in every `[…]` in `docs/legal-templates/` (your full name, city, email). 
 3. Complete KYC (PAN, bank account, address).
 4. While waiting, you can test: **Settings → API Keys → Test mode → Generate key**. Note the **Key ID** (`rzp_test_…`) and **Key Secret**.
 5. After activation, generate **Live** keys (`rzp_live_…`).
-6. **Webhooks** (Settings → Webhooks → Add): URL `https://clipforge-pay.<your-subdomain>.workers.dev/webhook`, event **payment.captured**, and set a secret (any long random text). Note the **Webhook Secret**.
+6. **Webhooks** (Settings → Webhooks → Add): URL `https://clipforge-pay.<your-subdomain>.workers.dev/webhook`, events **payment.captured** and **refund.processed**, and set a secret (any long random text). Note the **Webhook Secret**. (`refund.processed` is what switches Pro off when you refund someone.)
 
 GST: as an individual, you usually don't need GST registration until your yearly turnover crosses the threshold. Ask a CA once income starts.
 
@@ -53,6 +53,7 @@ npx wrangler secret put RAZORPAY_KEY_ID            # rzp_test_… first, rzp_liv
 npx wrangler secret put RAZORPAY_KEY_SECRET
 npx wrangler secret put RAZORPAY_WEBHOOK_SECRET
 npx wrangler secret put GEMINI_KEY                 # step 5
+npx wrangler secret put ADMIN_TOKEN                # a long password you choose – for your seller dashboard
 npx wrangler deploy                                # prints https://clipforge-pay.<you>.workers.dev
 ```
 Send Claude the **workers.dev address** and your **Razorpay Key ID** (not the secret). Claude puts them in `src/plan.ts` (`CONFIG.server`, `CONFIG.razorpayKey`) and deploys. Then the “Get Pro” button goes live.
@@ -61,8 +62,8 @@ Test first with Razorpay **test** keys: test UPI id `success@razorpay` pays inst
 
 The server was tested here with simulated payments: genuine payments give a licence; forged signatures, a ₹99 order relabelled as lifetime, wrong-email restores, fake webhooks, edited licences and over-limit AI use are all refused (`node server/test.mjs`).
 
-## 5. Gemini key (built-in AI for Pro)
-aistudio.google.com → Get API key. Put it in the server (step 4). Each Pro user gets 300 AI requests a month (`AI_MONTHLY` in `wrangler.toml`). Set a monthly budget alert in Google Cloud Billing so costs can't surprise you; Flash models cost very little per request.
+## 5. Gemini key (built-in AI and Hindi voices for Pro)
+aistudio.google.com → Get API key. Put it in the server (step 4). Each Pro user gets 300 AI requests a month (`AI_MONTHLY` in `wrangler.toml`); one Hindi voice-over counts as 5. Buyers can add 100 more for ₹49. The Hindi voices use Google's Gemini text-to-speech models, which cost more than text – keep the budget alert on. Set a monthly budget alert in Google Cloud Billing so costs can't surprise you; Flash models cost very little per request.
 
 ## 6. Android app (PWABuilder – no Android Studio needed)
 1. Go to **pwabuilder.com**, enter `https://tiwary9847.github.io/clipforge/` → *Package for stores* → **Android** → *Google Play*.
@@ -73,7 +74,7 @@ aistudio.google.com → Get API key. Put it in the server (step 4). Each Pro use
 6. The zip also has **`assetlinks.json`**. Without it, the app shows a small address bar at the top. To remove it: on GitHub create a public repository named exactly **`tiwary9847.github.io`**, add the file at `.well-known/assetlinks.json`, and in that repo's Settings → Pages publish from the main branch. (Or send Claude the file and the repository and Claude will do it.)
 7. Turn on **Play Billing** in PWABuilder's options if shown – ClipForge uses it for in-app Pro.
 
-The same app setup is in `android/twa-manifest.json` for GitHub's automatic build (step 8).
+The same app setup is in `android/twa-manifest.json` for GitHub's automatic build (step 9).
 
 ## 7. Google Play Console
 1. play.google.com/console → developer account ($25 once, identity check).
@@ -88,13 +89,24 @@ The same app setup is in `android/twa-manifest.json` for GitHub's automatic buil
 
 Inside the Play app, Pro is bought through Google Play (Play's policy). In India Google currently keeps 15% of your first $1M a year; it has started lower fees and web-payment links in the US, UK and EEA, and says more markets will follow. Razorpay on the website takes about 2%.
 
-## 8. GitHub billing (optional)
+## 8. Running the shop (seller dashboard)
+Open **https://tiwary9847.github.io/clipforge/admin.html**, type your workers.dev address and your `ADMIN_TOKEN` password. You get:
+- **Sales:** this month, all time, Pro users right now, refunds, sales by plan.
+- **Buyers & payments:** search by email or payment ID. “Switch off Pro” stops a licence without moving money.
+- **Coupons:** e.g. `DIWALI30` = 30% off, with a limit on uses, a last date and which plans it works for. Buyers type it on the Pro screen.
+- **Gift a licence:** for giveaways, YouTubers who review the app, or a buyer whose payment got stuck.
+
+**Refunds:** refund the money in the Razorpay dashboard. The `refund.processed` webhook marks it and Pro switches off on the buyer's device the next time it's online (the app checks once a day).
+
+**What buyers get automatically:** a receipt (printable / save as PDF) after paying, a reminder 5 days before a pass ends with a Renew button (renewing early keeps the days left), clear messages when a payment fails, and their AI requests left this month.
+
+## 9. GitHub billing (optional)
 GitHub Actions on your account is locked because of a billing issue (every automatic job shows “account is locked due to a billing issue”). The website isn't affected. To use the automatic Android build instead of PWABuilder: fix it at github.com → Settings → Billing, add the keystore as secrets (`ANDROID_KEYSTORE_B64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_PASSWORD`), then Actions → **Android app** → Run workflow.
 
 ---
 
 ### What's already in the app
 - **Free:** everything except the Pro features, **no ads**, a small “Made with ClipForge” mark (bottom-right, above the Shorts/Reels buttons).
-- **Pro (₹99 / 30 days, ₹699 / year, ₹1,999 lifetime):** no mark, built-in AI without a key (300 requests a month), 4K export, all formats at once, brand kit.
+- **Pro (₹99 / 30 days, ₹699 / year, ₹1,999 lifetime):** no mark, built-in AI without a key (300 requests a month, +100 for ₹49), **Hindi AI voices**, **one-tap upload kit** (Shorts + YouTube + Reels files with titles, description, hashtags and thumbnail each), **7 premium caption styles**, **premium template packs** (wedding, festival, travel, devotional), 4K export, all formats at once, brand kit.
 - Licences are signed and checked in the app (works offline, can't be faked); “Get it back” restores Pro on a new phone with email + payment ID; Pro can be copied to another device with the licence code.
 - Until steps 3–4 are done, the Pro screen says “Pro sales open soon” and accepts licence codes.

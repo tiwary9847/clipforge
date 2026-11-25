@@ -299,3 +299,15 @@ Timeline bar: **✓ Select** mode (tap clips to add/remove – works on phones),
 - The “Deploy to GitHub Pages” workflow now runs only by hand: GitHub Actions on the account is locked for billing, so it failed on every push. The site publishes from the gh-pages branch as before.
 - **Setup for the owner:** see **MONEY-SETUP.md** (Razorpay, Cloudflare, Gemini, PWABuilder/Play Console, policy pages in `docs/legal-templates/`).
 
+
+## v28 – full payment process + every Pro feature
+- **Buying:** coupon codes (price shown before paying), renew or upgrade early (the new pass starts when the current one ends, no days lost), a reminder bar 5 days before a pass ends with **Renew**, receipts after every payment (kept on the device, printable / save as PDF), plain-language messages when a payment fails (no balance, OTP not finished, bank declined, timeout), AI usage meter and a **₹49 top-up for 100 more AI requests**.
+- **Refunds:** Razorpay `refund.processed` webhook marks the payment; the app asks `/check` once a day and switches Pro off for a refunded licence (offline keeps Pro). Refunded payments can't be restored or use AI.
+- **Seller dashboard** (`public/admin.html` → `/clipforge/admin.html`): sales this month / all time, Pro users now, refunds, search buyers, switch off a licence, coupons (% off, max uses, last date, plans), gift licences. Protected by the `ADMIN_TOKEN` server secret; the address and password are typed in, nothing secret is in the repo.
+- **Server** (`server/worker.js`): `/price`, `/check`, `/usage`, `/tts`, `/admin/*`; licences now carry the plan and payment ID; `node server/test.mjs` – **49 checks**.
+- **Pro features that were promised and are now built:**
+  - **Hindi AI voice-over** – 6 natural Hindi/Hinglish voices (Gemini TTS through the server, newest model with fallback); in AI voice, Script to video and Dub. Counts as 5 AI requests.
+  - **One-tap upload kit** (Tools → 🚀) – a 9:16 file for Shorts and Reels and a 16:9 file for YouTube, each with its own title, description, hashtags (Shorts get `#shorts`, Reels a full Instagram caption, YouTube chapters for long videos) and a thumbnail/cover sized for that platform (1080×1920 / 1280×720), plus an `upload-kit.txt`. AI-written when Pro AI or a key is available, offline otherwise.
+  - **7 premium caption styles** – Neon, Gold karaoke, Comic, Fire gradient, Desi bold, Cinematic, Rainbow.
+  - **Premium template packs** – Wedding (title, save the date, thank-you), Festival (Diwali, Holi, any festival), Travel (trip title, day labels, trip cost), Devotional (aarti title, bhajan lyrics, blessing ending), with Hindi fonts.
+- Browser test with mocked Razorpay/server: 34 checks (coupon, failed and successful payment, receipt, top-up, expiry banner, renewal, refund switch-off, all four packs, Neon, Hindi voice, upload kit files, dashboard).

@@ -27,7 +27,8 @@ import { Asset, Clip, TextProps } from '../types'
 import { fmtTime } from './Fields'
 import { extractMono16k } from '../media'
 import { startVoiceover } from '../processing'
-import { TEMPLATES, applyTemplate } from '../templates'
+import { PACK_TEMPLATES, TEMPLATES, TEMPLATE_PACKS, applyTemplate } from '../templates'
+import { requirePro, usePro } from '../plan'
 import { ToolsTab } from './ToolsTab'
 import { StockPanel } from './StockPanel'
 import { addShape } from '../store'
@@ -257,9 +258,35 @@ function MemeTab() {
   )
 }
 
+function PremiumPacks() {
+  const pro = usePro()
+  const [pack, setPack] = useState(TEMPLATE_PACKS[0].id)
+  return (
+    <>
+      <div className="group-h">⭐ Premium packs {!pro && <span className="pro-mini">PRO</span>}</div>
+      <div className="hint">Ready-made titles, greetings and endings for weddings, festivals, trips and bhajans – Hindi fonts included.</div>
+      <div className="chips">
+        {TEMPLATE_PACKS.map((p) => (
+          <button key={p.id} className={'chip' + (pack === p.id ? ' on' : '')} onClick={() => setPack(p.id)}>{p.emoji} {p.name}</button>
+        ))}
+      </div>
+      <div className="tmpls">
+        {PACK_TEMPLATES.filter((t) => t.pack === pack).map((t) => (
+          <button key={t.id} className="tmpl" onClick={() => requirePro(`The ${TEMPLATE_PACKS.find((p) => p.id === pack)!.name} template pack is part of ClipForge Pro.`) && setUi({ toast: applyTemplate(t.id) })}>
+            <span className="em">{t.emoji}</span>
+            <b>{t.name}{!pro && <span className="pro-mini">PRO</span>}</b>
+            <small>{t.desc}</small>
+          </button>
+        ))}
+      </div>
+    </>
+  )
+}
+
 function TemplateTab() {
   return (
     <>
+      <PremiumPacks />
       <VideoTemplates />
       <Slideshow />
       <div className="group-h">🧩 Layout templates</div>
@@ -495,7 +522,7 @@ function AudioTab() {
   )
 }
 
-export const CAPTION_STYLES: { id: string; name: string; make: (size: number) => TextProps; kw?: boolean; emoji?: boolean }[] = [
+export const CAPTION_STYLES: { id: string; name: string; make: (size: number) => TextProps; kw?: boolean; emoji?: boolean; pro?: boolean }[] = [
   {
     id: 'classic',
     name: 'Classic',
@@ -533,6 +560,35 @@ export const CAPTION_STYLES: { id: string; name: string; make: (size: number) =>
     kw: true,
     emoji: true,
     make: (size) => ({ text: '', font: 'Impact, "Arial Narrow Bold", sans-serif', size: size * 1.35, color: '#ffffff', stroke: '#000000', strokeW: 0.2, bg: '#000000', bgOpacity: 0, bold: false, italic: false, upper: true, align: 'center', shadow: true, maxW: 0.86, hlColor: '#ffe500', kwColor: '#ff5ca8', hlStyle: 'big' }),
+  },
+  /* ---- Pro styles ---- */
+  {
+    id: 'neon', name: '💡 Neon', pro: true,
+    make: (size) => ({ text: '', bg: '#000000', bgOpacity: 0, bold: false, italic: false, align: 'center' as const, font: '"Baloo 2", "Arial Black", sans-serif', size: size * 1.25, color: '#7df9ff', stroke: '#ff2bd6', strokeW: 0.08, upper: true, shadow: true, maxW: 0.86, hlColor: '#ffffff', anim: 'glow', animDur: 0.4 }),
+  },
+  {
+    id: 'gold', name: '👑 Gold karaoke', pro: true,
+    make: (size) => ({ text: '', bg: '#000000', bgOpacity: 0, bold: false, italic: false, align: 'center' as const, font: '"Rozha One", Georgia, serif', size: size * 1.3, color: '#fff2b0', grad: '#d99a00', stroke: '#3a2400', strokeW: 0.12, upper: false, shadow: true, maxW: 0.86, hlColor: '#ffffff', hlStyle: 'big' }),
+  },
+  {
+    id: 'comic', name: '💥 Comic', pro: true,
+    make: (size) => ({ ...{ text: '', bg: '#000000', bgOpacity: 0, bold: false, italic: false, align: 'center' as const }, font: '"Kalam", "Comic Sans MS", cursive', size: size * 1.2, color: '#111111', stroke: '#000000', strokeW: 0, bg: '#ffe500', bgOpacity: 1, bold: true, upper: true, shadow: true, maxW: 0.8, hlColor: '#e11d48', anim: 'pop', animDur: 0.25 }),
+  },
+  {
+    id: 'fire', name: '🔥 Fire gradient', pro: true, kw: true,
+    make: (size) => ({ text: '', bg: '#000000', bgOpacity: 0, bold: false, italic: false, align: 'center' as const, font: 'Impact, "Arial Narrow Bold", sans-serif', size: size * 1.4, color: '#ffe259', grad: '#ff4e00', stroke: '#1a0000', strokeW: 0.18, upper: true, shadow: true, maxW: 0.86, hlColor: '#ffffff', kwColor: '#ffffff', hlStyle: 'big', anim: 'bounce', animDur: 0.3 }),
+  },
+  {
+    id: 'desi', name: '🪔 Desi bold', pro: true,
+    make: (size) => ({ text: '', bg: '#000000', bgOpacity: 0, bold: false, italic: false, align: 'center' as const, font: '"Yatra One", "Noto Sans Devanagari", sans-serif', size: size * 1.3, color: '#ffffff', stroke: '#7a1f00', strokeW: 0.16, upper: false, shadow: true, maxW: 0.86, hlColor: '#ffb703', hlStyle: 'box' }),
+  },
+  {
+    id: 'cine', name: '🎬 Cinematic', pro: true,
+    make: (size) => ({ text: '', bg: '#000000', bgOpacity: 0, bold: false, italic: true, align: 'center' as const, font: 'Georgia, "Times New Roman", serif', size: size * 0.95, color: '#f5f5f5', stroke: '#000000', strokeW: 0, upper: false, shadow: true, maxW: 0.78, hlColor: '#ffd27a', anim: 'fade', animDur: 0.35 }),
+  },
+  {
+    id: 'rainbow', name: '🌈 Rainbow', pro: true,
+    make: (size) => ({ text: '', bg: '#000000', bgOpacity: 0, bold: false, italic: false, align: 'center' as const, font: '"Baloo 2", "Arial Black", sans-serif', size: size * 1.3, color: '#ffffff', stroke: '#000000', strokeW: 0.16, upper: true, shadow: true, maxW: 0.86, hlColor: '#ffe500', anim: 'rainbow', animDur: 0.4 }),
   },
 ]
 
@@ -793,6 +849,7 @@ function SrtButton() {
 function CaptionTab() {
   const [txt, setTxt] = useState('')
   const [style, setStyle] = useState('pop')
+  const pro = usePro()
   const [total, setTotal] = useState(() => Math.min(120, Math.max(2, Math.round(projectDuration() - engine.time)) || 10))
   const [msg, setMsg] = useState('')
   const make = () => {
@@ -836,8 +893,9 @@ function CaptionTab() {
       <div className="chips">
         <span className="hint" style={{ alignSelf: 'center' }}>Style:</span>
         {CAPTION_STYLES.map((s) => (
-          <button key={s.id} className={'chip' + (style === s.id ? ' on' : '')} onClick={() => setStyle(s.id)}>
+          <button key={s.id} className={'chip' + (style === s.id ? ' on' : '')} onClick={() => (!s.pro || requirePro(`The “${s.name.replace(/^\S+ /, '')}” caption style is part of ClipForge Pro.`)) && setStyle(s.id)}>
             {s.name}
+            {s.pro && !pro && <span className="pro-mini">PRO</span>}
           </button>
         ))}
       </div>

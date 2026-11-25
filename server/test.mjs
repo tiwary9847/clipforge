@@ -3,11 +3,11 @@ import fs from 'node:fs'
 import worker, { makeLicence, readLicence } from './worker.js'
 const [jwkFile, pubFile] = process.argv.slice(2)
 const kv = new Map()
-const DB = { get: async (k) => kv.get(k) ?? null, put: async (k, v) => void kv.set(k, v) }
+const DB = { get: async (k) => kv.get(k) ?? null, put: async (k, v) => void kv.set(k, v), list: async ({ prefix }) => ({ keys: [...kv.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name })), list_complete: true }) }
 const rsa = await crypto.subtle.generateKey({ name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' }, true, ['sign', 'verify'])
 const pkcs8 = Buffer.from(await crypto.subtle.exportKey('pkcs8', rsa.privateKey)).toString('base64')
 const env = {
-  DB, RAZORPAY_KEY_ID: 'rzp_test_x', RAZORPAY_KEY_SECRET: 'secret123', RAZORPAY_WEBHOOK_SECRET: 'whsec', GEMINI_KEY: 'g', AI_MONTHLY: '2',
+  DB, RAZORPAY_KEY_ID: 'rzp_test_x', RAZORPAY_KEY_SECRET: 'secret123', RAZORPAY_WEBHOOK_SECRET: 'whsec', GEMINI_KEY: 'g', AI_MONTHLY: '2', ADMIN_TOKEN: 'adm-secret-1',
   LICENCE_PRIVATE_JWK: fs.readFileSync(jwkFile, 'utf8'), PLAY_PACKAGE: 'io.github.tiwary9847.clipforge',
   PLAY_SERVICE_ACCOUNT: JSON.stringify({ client_email: 'sa@x.iam', private_key: `-----BEGIN PRIVATE KEY-----\n${pkcs8}\n-----END PRIVATE KEY-----` }),
 }
@@ -22,6 +22,7 @@ globalThis.fetch = async (url, init = {}) => {
   if (url.includes('oauth2.googleapis.com/token')) return J({ access_token: 'gtok' })
   if (url.includes('androidpublisher') && !init.method) return J(playState)
   if (url.includes('androidpublisher')) return J({})
+  if (url.includes('-tts')) return url.includes('gemini-3.8-flash-tts') ? J({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/L16;codec=pcm;rate=24000', data: 'AAAA' } }] } }] }) : J({}, 404)
   if (url.includes('generativelanguage')) return url.includes('gemini-flash-latest') ? J({ candidates: [{ content: { parts: [{ text: '{"ok":1}' }] } }] }) : J({}, 404)
   return J({ error: 'unexpected ' + url }, 500)
 }
@@ -51,7 +52,8 @@ orders['order_x'] = { id: 'order_x', amount: 9900, notes: { plan: 'life', email:
 ;[s, j] = await call('/restore', { email: 'ravi@mail.in', payment_id: 'pay_1' }); check('restore with right email', s === 200 && !!(await appVerify(j.licence)))
 ;[s, j] = await call('/restore', { email: 'other@mail.in', payment_id: 'pay_1' }); check('restore with wrong email refused', s === 404)
 // webhook
-const ev = JSON.stringify({ event: 'payment.captured', payload: { payment: { entity: { id: 'pay_w', amount: 9900, created_at: Math.floor(Date.now() / 1000), notes: { plan: 'month', email: 'w@x.in' } } } } })
+orders['order_w'] = { id: 'order_w', amount: 9900, notes: { plan: 'month', email: 'w@x.in', amt: '99', from: String(Date.now()) } }
+const ev = JSON.stringify({ event: 'payment.captured', payload: { payment: { entity: { id: 'pay_w', order_id: 'order_w', amount: 9900 } } } })
 ;[s, j] = await call('/webhook', ev, { 'x-razorpay-signature': 'bad' }); check('fake webhook refused', s === 401)
 ;[s, j] = await call('/webhook', ev, { 'x-razorpay-signature': await hmac('whsec', ev) }); check('real webhook recorded', s === 200 && kv.has('pay:pay_w'))
 ;[s, j] = await call('/restore', { email: 'w@x.in', payment_id: 'pay_w' }); lic = j.licence && (await appVerify(j.licence)); check('tab closed before verify → still restorable (30 days)', s === 200 && Math.round((lic.exp - lic.iat) / 86400) === 30)
@@ -73,5 +75,49 @@ check('Play lifetime purchase → lifetime licence', s === 200 && lic?.exp === 0
 ;[s, j] = await call('/play', { sku: 'pro_month', purchaseToken: 'tok9' }); check('Play month pass consumed (can buy again)', s === 200 && calls.some((c) => c.includes(':consume')))
 playState = { ...playState, purchaseState: 1 }
 ;[s, j] = await call('/play', { sku: 'pro_year', purchaseToken: 'tok5' }); check('cancelled Play purchase refused', s === 402)
+/* ---- v28: renewals, coupons, top-ups, refunds, voice, admin ---- */
+const buy = async (plan, email, extra = {}, pid = 'pay_' + Math.random().toString(36).slice(2, 8)) => {
+  const [s1, o] = await call('/order', { plan, email, ...extra })
+  if (s1 !== 200) return [s1, o]
+  return call('/verify', { razorpay_order_id: o.order_id, razorpay_payment_id: pid, razorpay_signature: await hmac('secret123', `${o.order_id}|${pid}`) })
+}
+const month1 = await makeLicence(env, 'r@x.in', 'razorpay', 'month', Date.now() - 20 * 86400e3) // 10 days left
+;[s, j] = await buy('month', 'r@x.in', { current: month1 }); lic = j.licence && (await appVerify(j.licence))
+check('renewing early keeps the days left (10 + 30 = 40)', s === 200 && Math.round((lic.exp * 1000 - Date.now()) / 86400e3) === 40, JSON.stringify(j.receipt))
+check('receipt returned with payment', j.receipt?.amount === 99 && j.receipt?.plan === 'month')
+;[s, j] = await call('/order', { plan: 'year', email: 'z@x.in', current: await makeLicence(env, 'z@x.in', 'gift', 'life') }); check('lifetime owner can’t buy a pass by mistake', s === 400)
+// coupons
+;[s, j] = await call('/admin/coupon', { code: 'DIWALI30', off: 30 }); check('admin needs the password', s === 401)
+const A = { 'x-admin-token': 'adm-secret-1' }
+;[s, j] = await call('/admin/coupon', { code: 'diwali30', off: 30, max: 1 }, A); check('admin creates coupon', s === 200 && j.coupon.code === 'DIWALI30')
+;[s, j] = await call('/price', { plan: 'year', coupon: 'Diwali30' }); check('coupon price preview ₹699 → ₹489', j.amount === 489 && j.off === 30)
+;[s, j] = await call('/price', { plan: 'year', coupon: 'FAKE' }); check('bad coupon explained, full price', j.amount === 699 && !!j.couponError)
+;[s, j] = await buy('year', 'c@x.in', { coupon: 'DIWALI30' }); check('pay with coupon', s === 200 && j.receipt.amount === 489 && j.receipt.coupon === 'DIWALI30')
+;[s, j] = await call('/price', { plan: 'year', coupon: 'DIWALI30' }); check('coupon max uses respected', j.amount === 699)
+// AI top-up
+;[s, j] = await call('/order', { plan: 'ai100', email: 'r@x.in' }); check('AI top-up needs Pro', s === 400)
+const proT = await makeLicence(env, 't@x.in', 'razorpay', 'year')
+for (let i = 0; i < 2; i++) await call('/ai', { prompt: 'hi' }, { authorization: 'Bearer ' + proT })
+;[s, j] = await call('/ai', { prompt: 'hi' }, { authorization: 'Bearer ' + proT }); check('limit reached before top-up', s === 429 && /₹49/.test(j.error))
+;[s, j] = await buy('ai100', 't@x.in', { current: proT }); check('₹49 top-up paid', s === 200 && j.topup === 100 && !j.licence)
+;[s, j] = await call('/usage', {}, { authorization: 'Bearer ' + proT }); check('usage shows +100', j.limit === 102 && j.left === 100, JSON.stringify(j))
+;[s, j] = await call('/ai', { prompt: 'hi' }, { authorization: 'Bearer ' + proT }); check('AI works again after top-up', s === 200)
+// voice
+;[s, j] = await call('/tts', { text: 'नमस्ते दोस्तों', voice: 'Kore' }, { authorization: 'Bearer ' + proT }); check('Hindi voice returns audio', s === 200 && j.audio === 'AAAA' && j.sr === 24000)
+;[s, j] = await call('/tts', { text: 'hi' }); check('voice without Pro refused', s === 401)
+// refunds
+;[s, j] = await buy('life', 'ref@x.in', {}, 'pay_ref'); const refLic = j.licence
+;[s, j] = await call('/check', { licence: refLic }); check('check: valid before refund', j.ok === true)
+const rev = JSON.stringify({ event: 'refund.processed', payload: { refund: { entity: { payment_id: 'pay_ref' } } } })
+;[s, j] = await call('/webhook', rev, { 'x-razorpay-signature': await hmac('whsec', rev) }); check('refund webhook accepted', s === 200)
+;[s, j] = await call('/check', { licence: refLic }); check('refunded licence switched off', j.ok === false && j.revoked)
+;[s, j] = await call('/ai', { prompt: 'hi' }, { authorization: 'Bearer ' + refLic }); check('refunded licence can’t use AI', s === 401)
+;[s, j] = await call('/restore', { email: 'ref@x.in', payment_id: 'pay_ref' }); check('refunded payment can’t be restored', s === 410)
+// admin
+;[s, j] = await call('/admin/stats', {}, A); check('stats count sales and refunds', s === 200 && j.refunds === 1 && j.sales >= 4 && j.revenue > 0, JSON.stringify(j))
+;[s, j] = await call('/admin/payments', { q: 'c@x.in' }, A); check('search buyers', j.payments.length === 1 && j.payments[0].amt === 489)
+;[s, j] = await call('/admin/gift', { who: 'Friend', plan: 'year' }, A); lic = j.licence && (await appVerify(j.licence)); check('gift licence', !!lic && lic.src === 'gift')
+;[s, j] = await call('/admin/revoke', { payment_id: lic.pid }, A); ;[s, j] = await call('/check', { licence: (await call('/admin/gift', { who: 'F2', plan: 'month' }, A))[1].licence }); check('other gifts unaffected by a revoke', j.ok === true)
+;[s, j] = await call('/admin/coupons', {}, A); check('list coupons', j.coupons.some((c) => c.code === 'DIWALI30'))
 console.log(`\n${pass} passed, ${fail} failed`)
 process.exit(fail ? 1 : 0)

@@ -5,15 +5,24 @@
 //   POST /webhook  Razorpay "payment.captured"            → records payments even if the buyer closed the tab
 //   POST /play     {sku, purchaseToken}                   → checks a Google Play purchase, returns a licence
 //   POST /ai       {prompt, json}  + Bearer <licence>     → built-in AI for Pro (monthly limit)
+//   POST /tts      {text, voice}   + Bearer <licence>     → Hindi/English AI voice (Gemini TTS), counts as 5 AI requests
+//   POST /usage    + Bearer <licence>                     → AI used / left this month
+//   POST /price    {plan, coupon, current}                → price after coupon, renewal start
+//   POST /check    {licence}                              → still valid? (refunds switch Pro off)
+//   POST /admin/…  header x-admin-token                   → seller dashboard (stats, payments, gift, revoke, coupons)
 // Secrets (wrangler secret put …): RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET,
-//   LICENCE_PRIVATE_JWK, GEMINI_KEY, PLAY_SERVICE_ACCOUNT (JSON, optional), PLAY_PACKAGE (optional)
+//   LICENCE_PRIVATE_JWK, GEMINI_KEY, ADMIN_TOKEN, PLAY_SERVICE_ACCOUNT (JSON, optional), PLAY_PACKAGE (optional)
 // KV namespace binding: DB.   Vars: ALLOWED_ORIGINS (comma list), AI_MONTHLY (default 300)
 
 export const PLANS = {
   month: { price: 99, days: 30 },
   year: { price: 699, days: 366 },
   life: { price: 1999, days: 0 },
+  ai100: { price: 49, days: 0, topup: 100 }, // +100 AI requests this month (needs Pro)
 }
+const PASS = (p) => p === 'month' || p === 'year' || p === 'life'
+const TTS_MODELS = ['gemini-3.8-flash-tts', 'gemini-3.1-flash-tts-preview']
+const month = () => new Date().toISOString().slice(0, 7)
 const SKU_PLAN = { pro_month: 'month', pro_year: 'year', pro_life: 'life' }
 const GEMINI_MODELS = ['gemini-flash-latest', 'gemini-3.5-flash', 'gemini-3.1-flash-lite']
 
@@ -44,10 +53,10 @@ async function keys(env) {
   }
   return { signKey, verifyKey }
 }
-export async function makeLicence(env, sub, src, plan, from = Date.now()) {
+export async function makeLicence(env, sub, src, plan, from = Date.now(), pid = '') {
   const days = PLANS[plan].days
   const iat = Math.floor(from / 1000)
-  const body = { v: 1, sub, plan: 'pro', src, iat, exp: days ? iat + days * 86400 : 0 }
+  const body = { v: 1, sub, plan: 'pro', src, iat, exp: days ? iat + days * 86400 : 0, term: plan, ...(pid ? { pid } : {}) }
   const p = b64u(enc.encode(JSON.stringify(body)))
   const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, (await keys(env)).signKey, enc.encode(p))
   return `${p}.${b64u(sig)}`
@@ -80,6 +89,74 @@ async function savePayment(env, payment_id, rec) {
   await env.DB.put('pay:' + payment_id, JSON.stringify(rec))
 }
 
+/* ---- prices, coupons, renewals ---- */
+async function getCoupon(env, code) {
+  if (!code) return null
+  const c = JSON.parse((await env.DB.get('coupon:' + String(code).toUpperCase().trim())) || 'null')
+  if (!c || c.off <= 0) return null
+  if (c.until && c.until < Date.now()) return null
+  if (c.max && (c.used || 0) >= c.max) return null
+  return c
+}
+/** What this buyer pays and, for a renewal, when the new pass starts. */
+async function quote(env, plan, couponCode, currentToken) {
+  const P = PLANS[plan]
+  if (!P) throw Object.assign(new Error('Unknown plan'), { status: 400 })
+  const cur = currentToken ? await readLicence(env, currentToken) : null
+  if (plan === 'ai100' && !cur) throw Object.assign(new Error('AI top-ups are for Pro – get Pro first.'), { status: 400 })
+  if ((plan === 'month' || plan === 'year') && cur && !cur.exp) throw Object.assign(new Error('You already have lifetime Pro.'), { status: 400 })
+  if (plan === 'life' && cur && !cur.exp) throw Object.assign(new Error('You already have lifetime Pro.'), { status: 400 })
+  // renewing early adds the new pass after the current one, so no days are lost
+  const from = (plan === 'month' || plan === 'year') && cur?.exp ? Math.max(Date.now(), cur.exp * 1000) : Date.now()
+  const c = plan === 'ai100' ? null : await getCoupon(env, couponCode)
+  const okPlan = c && (!c.plans || !c.plans.length || c.plans.includes(plan))
+  const amount = okPlan ? Math.max(1, Math.round((P.price * (100 - Math.min(90, c.off))) / 100)) : P.price
+  return { amount, original: P.price, off: okPlan ? Math.min(90, c.off) : 0, coupon: okPlan ? String(couponCode).toUpperCase().trim() : '', from, cur }
+}
+async function aiLeft(env, sub) {
+  const limit = Number(env.AI_MONTHLY || 300)
+  const used = Number((await env.DB.get(`ai:${sub}:${month()}`)) || 0)
+  const bonus = Number((await env.DB.get(`bonus:${sub}:${month()}`)) || 0)
+  return { used, limit: limit + bonus, bonus, left: Math.max(0, limit + bonus - used) }
+}
+async function spendAI(env, sub, n) {
+  const k = `ai:${sub}:${month()}`
+  const used = Number((await env.DB.get(k)) || 0)
+  await env.DB.put(k, String(used + n), { expirationTtl: 60 * 60 * 24 * 40 })
+}
+async function listAll(env, prefix, cap = 5000) {
+  const out = []
+  let cursor
+  do {
+    const r = await env.DB.list({ prefix, cursor })
+    out.push(...r.keys.map((k) => k.name))
+    cursor = r.list_complete ? undefined : r.cursor
+  } while (cursor && out.length < cap)
+  return out
+}
+/** Gives a paid order its result: a Pro licence, or extra AI requests. Runs once per payment. */
+async function fulfil(env, pid, order) {
+  const n = order.notes || {}
+  const plan = n.plan
+  const prev = JSON.parse((await env.DB.get('pay:' + pid)) || 'null')
+  const rec = prev ?? { email: String(n.email || '').toLowerCase(), plan, at: Date.now(), from: Number(n.from) || Date.now(), amt: order.amount / 100, coupon: n.coupon || '', sub: n.sub || '' }
+  if (!prev) {
+    await env.DB.put('pay:' + pid, JSON.stringify(rec))
+    if (rec.coupon) {
+      const c = JSON.parse((await env.DB.get('coupon:' + rec.coupon)) || 'null')
+      if (c) await env.DB.put('coupon:' + rec.coupon, JSON.stringify({ ...c, used: (c.used || 0) + 1 }))
+    }
+    if (plan === 'ai100' && rec.sub) {
+      const k = `bonus:${rec.sub}:${month()}`
+      await env.DB.put(k, String(Number((await env.DB.get(k)) || 0) + PLANS.ai100.topup), { expirationTtl: 60 * 60 * 24 * 40 })
+    }
+  }
+  if (rec.refunded) throw Object.assign(new Error('This payment was refunded.'), { status: 410 })
+  const receipt = { payment_id: pid, plan, amount: rec.amt, date: rec.at, email: rec.email, coupon: rec.coupon || undefined }
+  if (plan === 'ai100') return { topup: PLANS.ai100.topup, receipt }
+  return { licence: await makeLicence(env, rec.email, 'razorpay', plan, rec.from, pid), receipt }
+}
+
 /* ---- Google Play ---- */
 async function googleToken(env) {
   const sa = JSON.parse(env.PLAY_SERVICE_ACCOUNT)
@@ -108,12 +185,40 @@ async function gemini(env, prompt, json) {
   return j?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') ?? ''
 }
 
+async function speech(env, text, voice) {
+  const tries = [
+    // newest models: transcript in parts, voice in voiceConfig.voice
+    (m) => ({ m, body: { contents: [{ role: 'user', parts: [{ text, speech_metadata: { style: 'natural, warm, clear' } }] }], generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { voice } } } } }),
+    // older preview models: prebuiltVoiceConfig
+    (m) => ({ m, body: { contents: [{ parts: [{ text }] }], generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } } } } }),
+  ]
+  let last = ''
+  for (let i = 0; i < TTS_MODELS.length; i++) {
+    const { m, body } = tries[i](TTS_MODELS[i])
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${env.GEMINI_KEY}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+    if (!r.ok) {
+      last = `voice service ${r.status}`
+      continue
+    }
+    const j = await r.json()
+    const part = j?.candidates?.[0]?.content?.parts?.find((p) => p.inlineData || p.inline_data)
+    const d = part?.inlineData ?? part?.inline_data
+    if (!d?.data) {
+      last = 'no audio returned'
+      continue
+    }
+    const rate = Number(/rate=(\d+)/.exec(d.mimeType || d.mime_type || '')?.[1]) || 24000
+    return { audio: d.data, sr: rate, format: 'pcm16' }
+  }
+  throw new Error(last || 'voice service unavailable')
+}
+
 /* ---- HTTP ---- */
 function cors(env, req) {
   const origin = req.headers.get('origin') || ''
   const allowed = (env.ALLOWED_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean)
   const ok = !allowed.length || allowed.includes(origin) || origin === 'null'
-  return { 'access-control-allow-origin': ok ? origin || '*' : allowed[0], 'access-control-allow-headers': 'content-type, authorization', 'access-control-allow-methods': 'POST, OPTIONS', vary: 'origin' }
+  return { 'access-control-allow-origin': ok ? origin || '*' : allowed[0], 'access-control-allow-headers': 'content-type, authorization, x-admin-token', 'access-control-allow-methods': 'POST, OPTIONS', vary: 'origin' }
 }
 const reply = (h, status, obj) => new Response(JSON.stringify(obj), { status, headers: { ...h, 'content-type': 'application/json' } })
 const validEmail = (e) => typeof e === 'string' && /^\S+@\S+\.\S+$/.test(e) && e.length < 200
@@ -129,19 +234,106 @@ export default {
         const raw = await req.text()
         if (!safeEq(await hmacHex(env.RAZORPAY_WEBHOOK_SECRET, raw), req.headers.get('x-razorpay-signature') || '')) return reply(h, 401, { error: 'bad signature' })
         const ev = JSON.parse(raw)
-        const p = ev?.payload?.payment?.entity
-        if (ev.event === 'payment.captured' && p?.notes?.plan && PLANS[p.notes.plan] && p.amount === PLANS[p.notes.plan].price * 100) {
-          if (!(await env.DB.get('pay:' + p.id))) await savePayment(env, p.id, { email: (p.notes.email || p.email || '').toLowerCase(), plan: p.notes.plan, at: p.created_at * 1000 })
+        if (ev.event === 'payment.captured') {
+          const p = ev?.payload?.payment?.entity
+          if (p?.order_id) {
+            const order = await rz(env, '/orders/' + p.order_id)
+            const plan = order.notes?.plan
+            if (PLANS[plan] && order.amount === Number(order.notes?.amt) * 100 && p.amount === order.amount) await fulfil(env, p.id, order).catch(() => {})
+          }
+        }
+        if (ev.event === 'refund.processed' || ev.event === 'refund.created') {
+          const pid = ev?.payload?.refund?.entity?.payment_id
+          if (pid) {
+            const rec = JSON.parse((await env.DB.get('pay:' + pid)) || 'null')
+            if (rec) await env.DB.put('pay:' + pid, JSON.stringify({ ...rec, refunded: true }))
+            await env.DB.put('rev:' + pid, '1')
+          }
         }
         return reply(h, 200, { ok: true })
       }
+
+      if (path.startsWith('/admin/')) {
+        if (!env.ADMIN_TOKEN || !safeEq(req.headers.get('x-admin-token') || '', env.ADMIN_TOKEN)) return reply(h, 401, { error: 'Wrong admin password' })
+        const body = await req.json().catch(() => ({}))
+        if (path === '/admin/stats' || path === '/admin/payments') {
+          const names = await listAll(env, 'pay:')
+          const recs = []
+          for (const n of names) recs.push({ payment_id: n.slice(4), ...JSON.parse((await env.DB.get(n)) || '{}') })
+          recs.sort((a, b) => (b.at || 0) - (a.at || 0))
+          if (path === '/admin/payments') {
+            const q = String(body.q || '').toLowerCase().trim()
+            return reply(h, 200, { payments: recs.filter((r) => !q || r.email?.includes(q) || r.payment_id.toLowerCase().includes(q)).slice(0, 300) })
+          }
+          const m0 = new Date(); m0.setUTCDate(1); m0.setUTCHours(0, 0, 0, 0)
+          const paid = recs.filter((r) => !r.refunded)
+          const by = {}
+          for (const r of paid) by[r.plan] = (by[r.plan] || 0) + 1
+          const now = Date.now()
+          const active = paid.filter((r) => PASS(r.plan) && (r.plan === 'life' || (r.from || r.at) + PLANS[r.plan].days * 86400e3 > now)).length
+          return reply(h, 200, {
+            sales: paid.length,
+            revenue: paid.reduce((s, r) => s + (r.amt || 0), 0),
+            monthSales: paid.filter((r) => r.at >= m0.getTime()).length,
+            monthRevenue: paid.filter((r) => r.at >= m0.getTime()).reduce((s, r) => s + (r.amt || 0), 0),
+            refunds: recs.length - paid.length,
+            activePro: active,
+            byPlan: by,
+          })
+        }
+        if (path === '/admin/gift') {
+          if (!PASS(body.plan) || !body.who) return reply(h, 400, { error: 'who and plan (month/year/life) needed' })
+          const gid = 'gift_' + Date.now().toString(36)
+          await env.DB.put('gift:' + gid, JSON.stringify({ who: String(body.who), plan: body.plan, at: Date.now() }))
+          return reply(h, 200, { licence: await makeLicence(env, String(body.who), 'gift', body.plan, Date.now(), gid) })
+        }
+        if (path === '/admin/revoke') {
+          const pid = String(body.payment_id || '').trim()
+          if (!pid) return reply(h, 400, { error: 'payment_id needed' })
+          await env.DB.put('rev:' + pid, '1')
+          const rec = JSON.parse((await env.DB.get('pay:' + pid)) || 'null')
+          if (rec) await env.DB.put('pay:' + pid, JSON.stringify({ ...rec, refunded: true }))
+          return reply(h, 200, { ok: true, note: 'Pro for this payment switches off the next time the buyer is online. Refund the money in the Razorpay dashboard.' })
+        }
+        if (path === '/admin/coupon') {
+          const code = String(body.code || '').toUpperCase().trim()
+          if (!/^[A-Z0-9_-]{3,20}$/.test(code)) return reply(h, 400, { error: 'Code: 3–20 letters/numbers' })
+          if (body.delete) {
+            await env.DB.put('coupon:' + code, JSON.stringify({ off: 0 }))
+            return reply(h, 200, { ok: true })
+          }
+          const off = Math.round(Number(body.off))
+          if (!(off >= 1 && off <= 90)) return reply(h, 400, { error: 'Discount 1–90 %' })
+          const prev = JSON.parse((await env.DB.get('coupon:' + code)) || '{}')
+          const c = { off, until: body.until ? Number(new Date(body.until)) : 0, max: Number(body.max) || 0, used: prev.used || 0, plans: Array.isArray(body.plans) ? body.plans.filter(PASS) : [] }
+          await env.DB.put('coupon:' + code, JSON.stringify(c))
+          return reply(h, 200, { coupon: { code, ...c } })
+        }
+        if (path === '/admin/coupons') {
+          const out = []
+          for (const n of await listAll(env, 'coupon:')) {
+            const c = JSON.parse((await env.DB.get(n)) || '{}')
+            if (c.off > 0) out.push({ code: n.slice(7), ...c })
+          }
+          return reply(h, 200, { coupons: out })
+        }
+        return reply(h, 404, { error: 'Not found' })
+      }
+
       const body = await req.json().catch(() => ({}))
 
+      if (path === '/price') {
+        const q = await quote(env, body.plan, body.coupon, body.current)
+        if (body.coupon && !q.coupon) return reply(h, 200, { amount: q.amount, original: q.original, off: 0, couponError: 'That coupon isn’t valid (or has ended).', from: q.from })
+        return reply(h, 200, { amount: q.amount, original: q.original, off: q.off, coupon: q.coupon, from: q.from })
+      }
+
       if (path === '/order') {
-        const plan = PLANS[body.plan]
-        if (!plan) return reply(h, 400, { error: 'Unknown plan' })
+        if (!PLANS[body.plan]) return reply(h, 400, { error: 'Unknown plan' })
         if (!validEmail(body.email)) return reply(h, 400, { error: 'Type a valid email' })
-        const o = await rz(env, '/orders', { amount: plan.price * 100, currency: 'INR', receipt: `cf_${Date.now()}`, notes: { plan: body.plan, email: body.email.toLowerCase() } })
+        const q = await quote(env, body.plan, body.coupon, body.current)
+        const notes = { plan: body.plan, email: body.email.toLowerCase(), amt: String(q.amount), from: String(q.from), coupon: q.coupon, sub: q.cur?.sub || '' }
+        const o = await rz(env, '/orders', { amount: q.amount * 100, currency: 'INR', receipt: `cf_${Date.now()}`, notes })
         return reply(h, 200, { order_id: o.id, amount: o.amount })
       }
 
@@ -149,23 +341,28 @@ export default {
         const { razorpay_order_id: oid, razorpay_payment_id: pid, razorpay_signature: sig } = body
         if (!oid || !pid || !sig) return reply(h, 400, { error: 'Missing payment details' })
         if (!safeEq(await hmacHex(env.RAZORPAY_KEY_SECRET, `${oid}|${pid}`), sig)) return reply(h, 401, { error: 'Payment could not be verified' })
-        // trust the order on Razorpay's side, not the plan the browser sends
+        // trust the order on Razorpay's side, not what the browser sends
         const order = await rz(env, '/orders/' + oid)
         const plan = order.notes?.plan
-        if (!PLANS[plan] || order.amount !== PLANS[plan].price * 100) return reply(h, 400, { error: 'Order does not match a plan' })
-        const email = String(order.notes?.email || body.email || '').toLowerCase()
-        const prev = JSON.parse((await env.DB.get('pay:' + pid)) || 'null')
-        const at = prev?.at ?? Date.now()
-        await savePayment(env, pid, { email, plan, at })
-        return reply(h, 200, { licence: await makeLicence(env, email, 'razorpay', plan, at) })
+        const amt = Number(order.notes?.amt)
+        if (!PLANS[plan] || !(amt >= 1) || amt > PLANS[plan].price || order.amount !== amt * 100) return reply(h, 400, { error: 'Order does not match a plan' })
+        return reply(h, 200, await fulfil(env, pid, order))
       }
 
       if (path === '/restore') {
         const rec = JSON.parse((await env.DB.get('pay:' + String(body.payment_id || '').trim())) || 'null')
-        if (!rec || rec.email !== String(body.email || '').toLowerCase().trim()) return reply(h, 404, { error: 'No purchase found for that email and payment ID.' })
-        const lic = await makeLicence(env, rec.email, 'razorpay', rec.plan, rec.at)
+        if (!rec || rec.email !== String(body.email || '').toLowerCase().trim() || !PASS(rec.plan)) return reply(h, 404, { error: 'No purchase found for that email and payment ID.' })
+        if (rec.refunded) return reply(h, 410, { error: 'That payment was refunded.' })
+        const lic = await makeLicence(env, rec.email, 'razorpay', rec.plan, rec.from || rec.at, String(body.payment_id).trim())
         if (!(await readLicence(env, lic))) return reply(h, 410, { error: 'That Pro pass has ended.' })
-        return reply(h, 200, { licence: lic })
+        return reply(h, 200, { licence: lic, receipt: { payment_id: String(body.payment_id).trim(), plan: rec.plan, amount: rec.amt, date: rec.at, email: rec.email } })
+      }
+
+      if (path === '/check') {
+        const lic = await readLicence(env, body.licence)
+        if (!lic) return reply(h, 200, { ok: false, reason: 'invalid' })
+        if (lic.pid && (await env.DB.get('rev:' + lic.pid))) return reply(h, 200, { ok: false, revoked: true })
+        return reply(h, 200, { ok: true, exp: lic.exp })
       }
 
       if (path === '/play') {
@@ -176,31 +373,56 @@ export default {
         const r = await fetch(base, { headers: { authorization: 'Bearer ' + tok } })
         const p = await r.json()
         if (!r.ok || p.purchaseState !== 0) return reply(h, 402, { error: 'This purchase is not completed.' })
-        const at = Number(p.purchaseTimeMillis) || Date.now()
+        const pid = 'play:' + (p.orderId || body.purchaseToken.slice(0, 24))
+        if (await env.DB.get('rev:' + pid)) return reply(h, 410, { error: 'This purchase was refunded.' })
+        // a renewal bought while a pass is running starts when that pass ends
+        let at = Number(p.purchaseTimeMillis) || Date.now()
+        const known = JSON.parse((await env.DB.get('pay:' + pid)) || 'null')
+        if (known) at = known.from
+        else {
+          const cur = body.current ? await readLicence(env, body.current) : null
+          if (plan !== 'life' && cur?.exp) at = Math.max(at, cur.exp * 1000)
+          await env.DB.put('pay:' + pid, JSON.stringify({ email: 'google-play', plan, at: Number(p.purchaseTimeMillis) || Date.now(), from: at, amt: PLANS[plan].price, src: 'play' }))
+        }
         // passes are consumed so they can be bought again; lifetime is acknowledged and kept
         if (plan === 'life' && p.acknowledgementState === 0) await fetch(base + ':acknowledge', { method: 'POST', headers: { authorization: 'Bearer ' + tok } })
         if (plan !== 'life' && p.consumptionState === 0) await fetch(base + ':consume', { method: 'POST', headers: { authorization: 'Bearer ' + tok } })
-        const lic = await makeLicence(env, 'play:' + (p.orderId || body.purchaseToken.slice(0, 16)), 'play', plan, at)
+        const lic = await makeLicence(env, pid, 'play', plan, at, pid)
         if (!(await readLicence(env, lic))) return reply(h, 410, { error: 'That Pro pass has ended.' })
         return reply(h, 200, { licence: lic })
       }
 
-      if (path === '/ai') {
-        const lic = await readLicence(env, (req.headers.get('authorization') || '').replace(/^Bearer /, ''))
+      const auth = async () => readLicence(env, (req.headers.get('authorization') || '').replace(/^Bearer /, ''))
+      if (path === '/usage') {
+        const lic = await auth()
         if (!lic) return reply(h, 401, { error: 'Built-in AI is part of ClipForge Pro.' })
+        return reply(h, 200, await aiLeft(env, lic.sub))
+      }
+
+      if (path === '/ai' || path === '/tts') {
+        const lic = await auth()
+        if (!lic) return reply(h, 401, { error: 'Built-in AI is part of ClipForge Pro.' })
+        if (lic.pid && (await env.DB.get('rev:' + lic.pid))) return reply(h, 401, { error: 'This Pro licence was cancelled.' })
+        const cost = path === '/tts' ? 5 : 1
+        const u = await aiLeft(env, lic.sub)
+        if (u.left < cost) return reply(h, 429, { error: `You’ve used this month’s ${u.limit} AI requests. Add 100 more for ₹49 in ClipForge Pro, or wait for the 1st.` })
+        if (path === '/tts') {
+          const text = String(body.text || '').trim()
+          if (!text || text.length > 3000) return reply(h, 400, { error: 'Text 1–3000 characters' })
+          const voice = /^[A-Za-z]{2,20}$/.test(body.voice || '') ? body.voice : 'Kore'
+          const out = await speech(env, text, voice)
+          await spendAI(env, lic.sub, cost)
+          return reply(h, 200, { ...out, left: u.left - cost })
+        }
         const prompt = String(body.prompt || '')
         if (!prompt || prompt.length > 20000) return reply(h, 400, { error: 'Request too long' })
-        const limit = Number(env.AI_MONTHLY || 300)
-        const k = `ai:${lic.sub}:${new Date().toISOString().slice(0, 7)}`
-        const used = Number((await env.DB.get(k)) || 0)
-        if (used >= limit) return reply(h, 429, { error: `You’ve used this month’s ${limit} AI requests. They reset on the 1st.` })
         const text = await gemini(env, prompt, !!body.json)
-        await env.DB.put(k, String(used + 1), { expirationTtl: 60 * 60 * 24 * 40 })
-        return reply(h, 200, { text, left: limit - used - 1 })
+        await spendAI(env, lic.sub, cost)
+        return reply(h, 200, { text, left: u.left - cost })
       }
       return reply(h, 404, { error: 'Not found' })
     } catch (e) {
-      return reply(h, 500, { error: String(e?.message || e) })
+      return reply(h, e?.status || 500, { error: String(e?.message || e) })
     }
   },
 }

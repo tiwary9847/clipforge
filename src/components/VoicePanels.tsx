@@ -5,6 +5,7 @@ import { SPEAKER_COLORS, findSpeakers, turnsOnTimeline } from '../speakers'
 import { switchBySpeaker } from '../multicam'
 import { dubToEnglish } from '../dub'
 import { VOICES } from '../pro'
+import { isPro } from '../plan'
 import { MODELS } from './MediaPanel'
 import { engine } from '../engine'
 
@@ -88,7 +89,7 @@ export function DubSection() {
   const [busy, setBusy] = useState('')
   const [pct, setPct] = useState<number | undefined>()
   const sig = useRef({ cancelled: false })
-  const eng = VOICES.filter((v) => v.id.startsWith('kokoro'))
+  const eng = VOICES.filter((v) => v.id.startsWith('kokoro') || (v.pro && isPro()))
   return (
     <>
       <div className="hint">Translates what you say into English and reads it in an AI voice at the same moments, with your original sound turned down. Lips won’t match – best for vlogs and voice-over style videos. Runs on your device (speech + voice models download once).</div>
