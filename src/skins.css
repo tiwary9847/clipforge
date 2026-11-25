@@ -603,3 +603,8 @@ body:has(.tdrawer.open) .sheet-x { display: none !important; }
 .kit-item textarea { width: 100%; font-size: 12.5px; }
 .kit-item h4 { margin: 0 0 4px; font-size: 14px; }
 @media (max-width: 560px) { .kit-item { grid-template-columns: 1fr; } }
+
+.pro-feat-go { all: unset; cursor: pointer; display: flex; gap: 9px; align-items: center; width: 100%; padding: 6px 8px; margin: -6px -8px; border-radius: 8px; }
+.pro-feat-go:hover, .pro-feat-go:focus-visible { background: #7c5cff22; }
+.pro-feat-go span:nth-child(2) { flex: 1; }
+.pro-feat-go b { font-size: 12px; color: #7c5cff; white-space: nowrap; }

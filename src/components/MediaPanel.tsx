@@ -584,7 +584,7 @@ export const CAPTION_STYLES: { id: string; name: string; make: (size: number) =>
   },
   {
     id: 'cine', name: '🎬 Cinematic', pro: true,
-    make: (size) => ({ text: '', bg: '#000000', bgOpacity: 0, bold: false, italic: true, align: 'center' as const, font: 'Georgia, "Times New Roman", serif', size: size * 0.95, color: '#f5f5f5', stroke: '#000000', strokeW: 0, upper: false, shadow: true, maxW: 0.78, hlColor: '#ffd27a', anim: 'fade', animDur: 0.35 }),
+    make: (size) => ({ text: '', bg: '#000000', bgOpacity: 0, bold: false, italic: true, align: 'center' as const, font: '"Rozha One", Georgia, serif', size: size * 1.2, color: '#f5f5f5', stroke: '#000000', strokeW: 0, upper: false, shadow: true, maxW: 0.78, hlColor: '#ffd27a', anim: 'fade', animDur: 0.35 }),
   },
   {
     id: 'rainbow', name: '🌈 Rainbow', pro: true,

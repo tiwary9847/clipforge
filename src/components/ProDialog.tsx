@@ -243,6 +243,23 @@ function AIMeter() {
   )
 }
 
+/** Where each Pro feature lives – so a buyer can jump straight to it. */
+const OPEN_FEATURE: Record<string, () => void> = {
+  '🤖': () => window.dispatchEvent(new CustomEvent('cf:assistant')),
+  '🗣': () => tool('tts'),
+  '📦': () => tool('uploadkit'),
+  '✨': () => window.dispatchEvent(new CustomEvent('cf:open', { detail: 'captions' })),
+  '🪔': () => window.dispatchEvent(new CustomEvent('cf:open', { detail: 'templates' })),
+  '🎞': () => window.dispatchEvent(new CustomEvent('cf:export')),
+  '📐': () => tool('formats'),
+  '🎨': () => tool('brand'),
+}
+function tool(id: string) {
+  ;(window as any).__cfTool = id
+  window.dispatchEvent(new CustomEvent('cf:open', { detail: 'tools' }))
+  window.dispatchEvent(new CustomEvent('cf:tool', { detail: id }))
+}
+
 /* ---------- the Pro screen ---------- */
 
 export function ProDialog({ why, onClose }: { why: string; onClose: () => void }) {
@@ -306,7 +323,20 @@ export function ProDialog({ why, onClose }: { why: string; onClose: () => void }
             )}
             {open && tab === 'renew' && !!lic.exp && <Buy plans={['month', 'year', 'life']} current label="Renew" onDone={onClose} />}
             {open && tab === 'ai' && <Buy plans={['ai100']} current label="Add 100 AI requests" onDone={onClose} />}
-            {!tab && <ul className="pro-feats">{PRO_FEATURES.map(([i, f]) => <li key={f}><span>{i}</span>{f}</li>)}</ul>}
+            {!tab && (
+              <>
+                <div className="hint">Tap a feature to open it.</div>
+                <ul className="pro-feats">
+                  {PRO_FEATURES.map(([i, f]) =>
+                    OPEN_FEATURE[i] ? (
+                      <li key={f}><button className="pro-feat-go" onClick={() => { onClose(); setTimeout(OPEN_FEATURE[i], 50) }}><span>{i}</span><span>{f}</span><b>Open →</b></button></li>
+                    ) : (
+                      <li key={f}><span>{i}</span>{f}</li>
+                    ),
+                  )}
+                </ul>
+              </>
+            )}
             <Receipts />
             <details className="chap">
               <summary>Use Pro on another phone or computer</summary>
