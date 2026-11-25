@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>ClipForge – seller dashboard</title>
+<style>
+  :root { --bg: #0f1020; --card: #181a30; --line: #2b2e4d; --fg: #eef; --mut: #9aa0c0; --acc: #7c5cff; --ok: #22c55e; --bad: #ef4444; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 system-ui, -apple-system, Segoe UI, sans-serif; background: var(--bg); color: var(--fg); }
+  header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--line); }
+  header b { font-size: 17px; }
+  main { max-width: 1100px; margin: 0 auto; padding: 18px; display: grid; gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  h2 { margin: 0 0 10px; font-size: 15px; }
+  input, select, button, textarea { font: inherit; color: inherit; background: #0c0d1a; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  button { cursor: pointer; background: var(--acc); border-color: var(--acc); font-weight: 600; }
+  button.ghost { background: transparent; border-color: var(--line); }
+  button.bad { background: transparent; border-color: var(--bad); color: #fca5a5; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .stat { background: #0c0d1a; border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+  .stat small { color: var(--mut); display: block; }
+  .stat b { font-size: 22px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--mut); font-weight: 600; }
+  .mut { color: var(--mut); }
+  .tag { display: inline-block; padding: 1px 6px; border-radius: 6px; font-size: 11px; background: #2b2e4d; }
+  .tag.ref { background: #4c1d1d; color: #fca5a5; }
+  textarea { width: 100%; }
+  #msg { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: #000c; padding: 10px 14px; border-radius: 10px; display: none; max-width: 90vw; }
+  .scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+<header><b>ClipForge · seller dashboard</b><span class="mut" id="who"></span><span style="flex:1"></span><button class="ghost" id="logout" hidden>Log out</button></header>
+<main>
+  <section class="card" id="login">
+    <h2>Log in</h2>
+    <p class="mut">Your server address (from Cloudflare) and the admin password you set as <code>ADMIN_TOKEN</code>. They stay in this browser only.</p>
+    <div class="row">
+      <input id="srv" placeholder="https://clipforge-pay.you.workers.dev" style="flex:2;min-width:240px">
+      <input id="tok" type="password" placeholder="Admin password" style="flex:1;min-width:160px">
+      <button id="go">Open dashboard</button>
+    </div>
+  </section>
+
+  <div id="app" hidden style="display:grid;gap:16px">
+    <section class="card">
+      <div class="row" style="justify-content:space-between"><h2>Sales</h2><button class="ghost" id="refresh">↻ Refresh</button></div>
+      <div class="stats" id="stats"></div>
+    </section>
+
+    <section class="card">
+      <h2>Buyers & payments</h2>
+      <div class="row" style="margin-bottom:8px"><input id="q" placeholder="Search email or payment ID" style="flex:1"><button id="search">Search</button></div>
+      <div class="scroll"><table><thead><tr><th>Date</th><th>Email</th><th>Plan</th><th>Paid</th><th>Coupon</th><th>Payment ID</th><th></th></tr></thead><tbody id="pays"></tbody></table></div>
+      <p class="mut">To refund: refund the money in the Razorpay dashboard – Pro switches off automatically through the webhook. “Switch off Pro” here only stops the licence (no money moves).</p>
+    </section>
+
+    <section class="card">
+      <h2>Coupons</h2>
+      <div class="row">
+        <input id="ccode" placeholder="CODE e.g. DIWALI30" style="width:150px;text-transform:uppercase">
+        <input id="coff" type="number" min="1" max="90" placeholder="% off" style="width:90px">
+        <input id="cmax" type="number" min="0" placeholder="Max uses (0 = no limit)" style="width:170px">
+        <input id="cuntil" type="date" title="Last day">
+        <select id="cplan"><option value="">All plans</option><option value="month">Monthly</option><option value="year">Yearly</option><option value="life">Lifetime</option></select>
+        <button id="cadd">Save coupon</button>
+      </div>
+      <div class="scroll"><table style="margin-top:10px"><thead><tr><th>Code</th><th>Off</th><th>Used</th><th>Ends</th><th>Plans</th><th></th></tr></thead><tbody id="coupons"></tbody></table></div>
+    </section>
+
+    <section class="card">
+      <h2>Gift a licence</h2>
+      <p class="mut">For giveaways, reviewers or a buyer whose payment got stuck. Send them the code; they paste it in ClipForge → Pro → “I have a licence code”.</p>
+      <div class="row">
+        <input id="gwho" placeholder="Who is it for (name or email)" style="flex:1;min-width:200px">
+        <select id="gplan"><option value="month">30 days</option><option value="year">1 year</option><option value="life">Lifetime</option></select>
+        <button id="gift">Make licence</button>
+      </div>
+      <textarea id="gout" rows="3" readonly placeholder="The licence code appears here" style="margin-top:8px"></textarea>
+    </section>
+  </div>
+</main>
+<div id="msg"></div>
+<script>
+const $ = (id) => document.getElementById(id)
+const esc = (s) => String(s ?? '').replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c])
+const say = (t) => { const m = $('msg'); m.textContent = t; m.style.display = 'block'; clearTimeout(say.t); say.t = setTimeout(() => (m.style.display = 'none'), 4000) }
+const rs = (n) => '₹' + Number(n || 0).toLocaleString('en-IN')
+const PLAN = { month: 'Monthly', year: 'Yearly', life: 'Lifetime', ai100: '+100 AI' }
+let S = sessionStorage.getItem('cf-adm-srv') || localStorage.getItem('cf-adm-srv') || ''
+let T = sessionStorage.getItem('cf-adm-tok') || ''
+$('srv').value = S
+async function api(path, body = {}) {
+  const r = await fetch(S.replace(/\/$/, '') + '/admin/' + path, { method: 'POST', headers: { 'content-type': 'application/json', 'x-admin-token': T }, body: JSON.stringify(body) })
+  const j = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(j.error || 'Server said ' + r.status)
+  return j
+}
+async function stats() {
+  const s = await api('stats')
+  const by = Object.entries(s.byPlan || {}).map(([k, v]) => `${PLAN[k] || k}: ${v}`).join(' · ') || '–'
+  $('stats').innerHTML = [
+    ['This month', rs(s.monthRevenue), s.monthSales + ' sales'],
+    ['All time', rs(s.revenue), s.sales + ' sales'],
+    ['Pro users now', s.activePro, 'passes still running + lifetime'],
+    ['Refunds', s.refunds, ''],
+    ['By plan', '', by],
+  ].map(([a, b, c]) => `<div class="stat"><small>${a}</small><b>${b}</b><small>${esc(c)}</small></div>`).join('')
+}
+async function pays(q = '') {
+  const { payments } = await api('payments', { q })
+  $('pays').innerHTML = payments.map((p) => `<tr><td>${new Date(p.at).toLocaleDateString('en-IN')}</td><td>${esc(p.email)}</td><td>${PLAN[p.plan] || esc(p.plan)} ${p.refunded ? '<span class="tag ref">refunded</span>' : ''}</td><td>${rs(p.amt)}</td><td>${esc(p.coupon || '')}</td><td><code>${esc(p.payment_id)}</code></td><td>${p.refunded ? '' : `<button class="bad" data-rev="${esc(p.payment_id)}">Switch off Pro</button>`}</td></tr>`).join('') || '<tr><td colspan="7" class="mut">No payments yet.</td></tr>'
+}
+async function coupons() {
+  const { coupons } = await api('coupons')
+  $('coupons').innerHTML = coupons.map((c) => `<tr><td><b>${esc(c.code)}</b></td><td>${c.off}%</td><td>${c.used || 0}${c.max ? ' / ' + c.max : ''}</td><td>${c.until ? new Date(c.until).toLocaleDateString('en-IN') : '–'}</td><td>${(c.plans || []).map((p) => PLAN[p]).join(', ') || 'All'}</td><td><button class="ghost" data-del="${esc(c.code)}">Delete</button></td></tr>`).join('') || '<tr><td colspan="6" class="mut">No coupons.</td></tr>'
+}
+async function all() { await Promise.all([stats(), pays($('q').value), coupons()]) }
+async function login() {
+  S = $('srv').value.trim(); T = $('tok').value || T
+  if (!/^https:\/\//.test(S)) return say('Type the https:// server address.')
+  try {
+    await all()
+    sessionStorage.setItem('cf-adm-srv', S); localStorage.setItem('cf-adm-srv', S); sessionStorage.setItem('cf-adm-tok', T)
+    $('login').hidden = true; $('app').hidden = false; $('logout').hidden = false; $('who').textContent = S.replace(/^https:\/\//, '')
+  } catch (e) { say(e.message) }
+}
+$('go').onclick = login
+$('tok').onkeydown = (e) => e.key === 'Enter' && login()
+$('logout').onclick = () => { sessionStorage.removeItem('cf-adm-tok'); location.reload() }
+$('refresh').onclick = () => all().then(() => say('Updated.'), (e) => say(e.message))
+$('search').onclick = () => pays($('q').value).catch((e) => say(e.message))
+$('q').onkeydown = (e) => e.key === 'Enter' && $('search').onclick()
+$('pays').onclick = async (e) => {
+  const id = e.target.dataset?.rev; if (!id) return
+  if (!confirm('Switch off Pro for ' + id + '? (Refund money separately in Razorpay.)')) return
+  try { const r = await api('revoke', { payment_id: id }); say(r.note || 'Done.'); await all() } catch (x) { say(x.message) }
+}
+$('cadd').onclick = async () => {
+  try {
+    const plan = $('cplan').value
+    await api('coupon', { code: $('ccode').value, off: +$('coff').value, max: +$('cmax').value || 0, until: $('cuntil').value ? $('cuntil').value + 'T23:59:59+05:30' : '', plans: plan ? [plan] : [] })
+    say('Coupon saved.'); $('ccode').value = ''; $('coff').value = ''; await coupons()
+  } catch (e) { say(e.message) }
+}
+$('coupons').onclick = async (e) => {
+  const c = e.target.dataset?.del; if (!c) return
+  try { await api('coupon', { code: c, delete: true }); await coupons() } catch (x) { say(x.message) }
+}
+$('gift').onclick = async () => {
+  try { const r = await api('gift', { who: $('gwho').value.trim(), plan: $('gplan').value }); $('gout').value = r.licence; $('gout').select(); say('Licence made – copy it and send it.') } catch (e) { say(e.message) }
+}
+if (S && T) login()
+</script>
+</body>
+</html>
