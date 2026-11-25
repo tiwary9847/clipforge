@@ -251,6 +251,7 @@ const OPEN_FEATURE: Record<string, () => void> = {
   '📦': () => tool('uploadkit'),
   '✨': () => window.dispatchEvent(new CustomEvent('cf:open', { detail: 'captions' })),
   '🪔': () => window.dispatchEvent(new CustomEvent('cf:open', { detail: 'templates' })),
+  '🏠': () => window.dispatchEvent(new CustomEvent('cf:open', { detail: 'templates' })),
   '🎞': () => window.dispatchEvent(new CustomEvent('cf:export')),
   '📐': () => tool('formats'),
   '🎨': () => tool('brand'),

@@ -40,6 +40,7 @@ import { devanagariToRoman, emojiFor } from '../tools2'
 import { contentWords } from '../chapters'
 import { OnlineMemes } from './OnlineMemes'
 import { GifPanel } from './GifPanel'
+import { PropertyPanel } from './PropertyPanel'
 import { FaceStickers } from './FacePanels'
 import { Slideshow, VideoTemplates } from './CreativePanels'
 import { MusicMaker } from './AutoPanels'
@@ -303,6 +304,7 @@ function PremiumPacks() {
 function TemplateTab() {
   return (
     <>
+      <PropertyPanel />
       <PremiumPacks />
       <VideoTemplates />
       <Slideshow />

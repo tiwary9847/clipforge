@@ -343,3 +343,9 @@ Timeline bar: **✓ Select** mode (tap clips to add/remove – works on phones),
 - Before the server has a key: “Add a GIF from your phone/computer”, or each user can paste their own free GIPHY key. Browsers without animated-picture support (older Safari) get the MP4 version of normal GIFs.
 - Memes → Online → **GIFs →** now opens this tab.
 
+## v32 – Property reel maker (Pro)
+- Templates → **🏠 Property reel maker**: one short form (type, price, location, project name, phone, badge, up to 6 highlights, RERA number, look, English/हिन्दी words, music, logo) → on the user's own footage: hook title with badge, price tag (ka-ching), 📍 location pin through the middle, highlights one by one (≤ 3.2 s each, spread over long videos), end card with name + price and a Call / WhatsApp button, and a small RERA + T&C line for the whole video. `src/property.ts`, `src/components/PropertyPanel.tsx`.
+- Three looks: Bold, Luxury gold, Clean. Every line is measured with the real font and shrunk until it fits on one line; badge/hook and the end-card blocks are stacked so they never overlap.
+- All clips are normal editable text/sounds tagged `tpl: 'property'`, so **Build again** replaces them (form is remembered), **Remove** takes them away, and undo works. Optional background music (made on the device) and the Brand-kit logo.
+- The “watch till the end” progress bar already existed (Stickers → Callouts & shapes → Progress bar, with bar / rounded / chapters styles).
+
