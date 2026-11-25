@@ -324,3 +324,8 @@ Timeline bar: **✓ Select** mode (tap clips to add/remove – works on phones),
 - **Recipes**: Talking Short, Property / business promo, Vlog, Funny / meme, Bhajan / devotional – or save your own (steps, format, caption style, music mood, zooms, sound effects, About, ending text, outputs, YouTube). Saved on the device.
 - **Fixes found while building it**: the Retention coach could merge nearby pauses into one huge "pause" and cut real talking (now pauses are never merged, it listens to the voice only – not music/effects – stops at the end of the video, and refuses any single pause cut over 6 s); the ending text no longer sits on the caption lane.
 - Tests: Autopilot single run, undo, zip contents, batch of 2 with scheduled YouTube posts (mocked Google), recipe saving – 6/6.
+
+### Export quality (Nov 2026)
+- Bitrate now follows YouTube's upload recommendations instead of a fixed "high" preset: 1080p 30 fps ≈ 8 Mbps, 1080p 60 fps ≈ 12 Mbps, 4K 30/60 ≈ 32/48 Mbps (`qualityBitrate` in `fastExport.ts`), keyframe every 2 s. Measured on a real 60 fps phone video: SSIM 0.932 → 0.954 against a Lanczos reference (6 → 12 Mbps).
+- Frames are drawn with `imageSmoothingQuality = 'high'` (sharper when small videos are enlarged, no shimmer when 4K is shrunk).
+- Autopilot uses gentle zooms when the source is much smaller than the frame (e.g. 480 px wide), and the zip stores the shared Shorts/Reels video once (`…-shorts-and-reels.mp4`).

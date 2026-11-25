@@ -7,7 +7,6 @@ import {
   CanvasSource,
   Mp4OutputFormat,
   Output,
-  QUALITY_HIGH,
   canEncodeAudio,
   canEncodeVideo,
 } from 'mediabunny'
@@ -127,6 +126,18 @@ export interface Ctl {
   cancelled: boolean
 }
 
+/**
+ * Video bitrate for a clean upload: about YouTube's recommendation (1080p 30 fps ≈ 8 Mbps,
+ * 1080p 60 fps ≈ 12–16 Mbps, 4K ≈ 35–45 Mbps). The platforms re-compress anyway, so a richer
+ * file keeps text, edges and faces sharp after their compression.
+ */
+export function qualityBitrate(W: number, H: number, fps: number): number {
+  // 30 fps → 0.13 bits per pixel per frame; 60 fps needs ~1.5× (not 2×) for the same look
+  const f = Math.min(60, Math.max(24, fps))
+  const bps = W * H * 30 * 0.13 * (f <= 30 ? f / 30 : 1 + (f - 30) / 60)
+  return Math.round(Math.min(50_000_000, Math.max(3_000_000, bps)))
+}
+
 export interface ExportOpts {
   from?: number
   to?: number
@@ -196,8 +207,8 @@ export async function fastExport(onProgress: (p: number, label: string) => void,
   const ctx = canvas.getContext('2d', { alpha: false })!
   const sink = await openTarget()
   const output = new Output({ format: new Mp4OutputFormat({ fastStart: sink.stream ? false : 'in-memory' }), target: sink.target })
-  const vsrc = new CanvasSource(canvas, { codec: 'avc', bitrate: opts.bitrate ?? QUALITY_HIGH })
   const fps = opts.fps ?? (await sourceFps())
+  const vsrc = new CanvasSource(canvas, { codec: 'avc', bitrate: opts.bitrate ?? qualityBitrate(W, H, fps), keyFrameInterval: 2 })
   output.addVideoTrack(vsrc, { frameRate: fps })
   let asrc: AudioBufferSource | null = null
   let audioCodec: 'aac' | 'opus' = 'aac'

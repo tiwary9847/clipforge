@@ -628,6 +628,9 @@ class Engine {
     ctx.fillStyle = project.bg
     ctx.fillRect(0, 0, W, H)
     ctx.restore()
+    // best scaling: sharper when a small phone video is enlarged, no shimmer when a 4K one is shrunk
+    ctx.imageSmoothingEnabled = true
+    ctx.imageSmoothingQuality = 'high'
     const order = TRACKS.filter((x) => x.type === 'video').map((x) => x.id).reverse()
     for (const tid of order) {
       if (project.tracks?.[tid]?.hide) continue

@@ -14,7 +14,7 @@ import { runChecks } from './postcheck'
 import { addLogo, loadBrand } from './tools2'
 import { KIT_TARGETS, KitItem, KitTarget, aiKit, canAI, kitMeta, kitSpoken, kitText, kitThumb, kitVideos } from './uploadkit'
 import { TEXT_PRESETS } from './library'
-import { addClipsBatch, baseClip, getState, projectDuration, setProject, swapProjectSilent } from './store'
+import { addClipsBatch, baseClip, getAsset, getPreset, getState, projectDuration, setProject, swapProjectSilent } from './store'
 import { builtinAI } from './plan'
 import { uploadToYouTube, setYouTubeThumbnail, getClientId, uploadSupported } from './youtube'
 import { engine } from './engine'
@@ -209,9 +209,16 @@ export async function runAutopilot(r: Recipe, say: Say, ctl: RunCtl): Promise<Ru
           msg = addHookText(lines[0])
           break
         }
-        case 'zooms':
-          msg = await autoZoom(r.zoom, (m) => say(m, f))
+        case 'zooms': {
+          // a small source (e.g. 480 px wide) is already enlarged to fill the frame – zooming further makes it blurry
+          const a = c && getAsset(c.assetId)
+          const P = getPreset()
+          const up = a?.width ? Math.max(P.w / a.width, P.h / a.height) : 1
+          const style: ZoomStyle = up > 1.6 ? 'subtle' : r.zoom
+          msg = await autoZoom(style, (m) => say(m, f))
+          if (style !== r.zoom) msg += ' (gentle zooms – the video is small, bigger zooms would look blurry)'
           break
+        }
         case 'sfx':
           msg = autoSfx({ cuts: true, words: hasCaptions(), amount: r.sfx })
           break
@@ -322,8 +329,22 @@ function aboutMeta(r: Recipe): Record<KitTarget, { title: string; description: s
 /** One zip per video: the files plus a text file with all titles and hashtags. */
 export async function zipKit(items: KitItem[], name: string): Promise<Blob> {
   const files: Record<string, Uint8Array> = {}
+  // Shorts and Reels are the same 9:16 file – put it in the zip once, named for both
+  const seen = new Map<Blob, string>()
   for (const it of items) {
-    if (it.video) files[it.video.name] = new Uint8Array(await it.video.blob.arrayBuffer())
+    if (it.video) {
+      const prev = seen.get(it.video.blob)
+      if (prev) {
+        const both = prev.replace(/-(shorts|reels)\./, '-shorts-and-reels.')
+        files[both] = files[prev]
+        delete files[prev]
+        seen.set(it.video.blob, both)
+        it.video = { ...it.video, name: both }
+      } else {
+        files[it.video.name] = new Uint8Array(await it.video.blob.arrayBuffer())
+        seen.set(it.video.blob, it.video.name)
+      }
+    }
     if (it.thumb) files[it.thumb.name] = new Uint8Array(await it.thumb.blob.arrayBuffer())
   }
   files[`${name}-upload-kit.txt`] = new TextEncoder().encode(kitText(items))
