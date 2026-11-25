@@ -633,3 +633,29 @@ body:has(.tdrawer.open) .sheet-x { display: none !important; }
 .ap-step.failed { background: #ef444418; }
 .ap-q b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
 @media (max-width: 560px) { .ap-step, .ap-q { grid-template-columns: 22px 1fr; } .ap-step small, .ap-q small { grid-column: 2; } }
+
+/* top bar on laptops: never wrap, never push Export off-screen */
+@media (min-width: 821px) {
+  .top .btn, .top .ae-btn, .top .ap-btn, .top .pro-btn { white-space: nowrap; flex: none; }
+  .top .proj-name { flex: 0 1 200px; min-width: 110px; width: auto; }
+  .top .preset-sel { flex: 0 1 230px; min-width: 120px; max-width: 230px; text-overflow: ellipsis; }
+  .top .spacer { min-width: 4px; }
+}
+@media (min-width: 821px) and (max-width: 1460px) {
+  .top { gap: 7px; }
+  .top .preset-sel { max-width: 170px; }
+  .top .proj-name { flex-basis: 150px; }
+  .top .btn.sm { padding-left: 9px !important; padding-right: 9px !important; }
+}
+@media (min-width: 821px) and (max-width: 1280px) {
+  .top .save-st { display: none; }
+  .top .preset-sel { max-width: 140px; }
+  /* "New" becomes just its icon */
+  .top .btn.hide-phone:not(.ap-btn) { font-size: 0; gap: 0; }
+  .top .btn.hide-phone:not(.ap-btn) svg { margin: 0; }
+}
+@media (min-width: 821px) and (max-width: 1120px) {
+  .top .ap-btn .pro-mini { display: none; }
+  .top .proj-name { flex-basis: 110px; }
+  .brand-name, .top .logo-text { display: none; }
+}

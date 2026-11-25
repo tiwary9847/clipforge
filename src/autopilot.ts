@@ -72,7 +72,7 @@ const base = (o: Partial<Recipe> & Pick<Recipe, 'id' | 'name' | 'emoji'>): Recip
   ...o,
 })
 export const BUILTIN_RECIPES: Recipe[] = [
-  base({ id: 'talk', name: 'Talking Short', emoji: '🗣', steps: { silences: true, captions: true, retakes: true, hook: true, zooms: true, sfx: true, music: true, logo: true, cta: true, loudness: true, retention: true }, captionStyle: 'hormozi', zoom: 'punchy', mood: 'hype' }),
+  base({ id: 'talk', name: 'Talking Short', emoji: '🗣️', steps: { silences: true, captions: true, retakes: true, hook: true, zooms: true, sfx: true, music: true, logo: true, cta: true, loudness: true, retention: true }, captionStyle: 'hormozi', zoom: 'punchy', mood: 'hype' }),
   base({ id: 'promo', name: 'Property / business promo', emoji: '🏠', steps: { hook: true, music: true, logo: true, cta: true, loudness: true }, mood: 'cinematic', cta: 'Call / WhatsApp: 98XXXXXXXX', about: '2 & 3 BHK flats – location, price and amenities', outputs: ['shorts', 'reels'] }),
   base({ id: 'vlog', name: 'Vlog', emoji: '🎒', steps: { silences: true, captions: true, retakes: true, zooms: true, sfx: true, music: true, cta: true, loudness: true }, captionStyle: 'pop', mood: 'travel', sfx: 'few' }),
   base({ id: 'funny', name: 'Funny / meme', emoji: '😂', steps: { silences: true, captions: true, hook: true, zooms: true, sfx: true, music: true, loudness: true }, captionStyle: 'beast', zoom: 'crazy', sfx: 'lots', mood: 'funny' }),

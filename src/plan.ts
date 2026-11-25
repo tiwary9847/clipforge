@@ -28,7 +28,7 @@ export const PRO_FEATURES: [string, string][] = [
   ['🚫', 'No “Made with ClipForge” mark on your videos'],
   ['🚀', 'Autopilot – one tap from raw video to edited Shorts, YouTube and Reels files with titles and thumbnails; batch many videos; auto-post to YouTube; your own saved recipes'],
   ['🤖', 'Built-in AI – assistant, hooks, titles, retention check – no key needed (300 AI requests a month)'],
-  ['🗣', 'Hindi AI voice-over – natural Hindi and Hinglish voices'],
+  ['🗣️', 'Hindi AI voice-over – natural Hindi and Hinglish voices'],
   ['📦', 'One-tap upload kit – Short + YouTube + Instagram files, each with titles, description, hashtags and thumbnail'],
   ['✨', 'Premium caption styles – Neon, Karaoke, Gold, Comic and more'],
   ['🪔', 'Premium template packs – wedding, festival (Diwali/Holi), travel, devotional'],

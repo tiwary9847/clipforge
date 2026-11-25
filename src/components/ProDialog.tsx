@@ -271,6 +271,8 @@ export function ProDialog({ why, onClose }: { why: string; onClose: () => void }
   const [email, setEmail] = useState(() => localStorage.getItem('clipforge-email') ?? '')
   const [payId, setPayId] = useState('')
   const [soonPick, setSoonPick] = useState<PlanId>('year')
+  // phones: keep the prices and the button on the first screen
+  const [allFeats, setAllFeats] = useState(() => typeof innerWidth === 'number' && innerWidth > 820)
   const [tab, setTab] = useState<'renew' | 'ai' | ''>(why.startsWith('renew') ? 'renew' : why.startsWith('ai') ? 'ai' : '')
   const play = inPlayApp()
   const open = salesOpen()
@@ -357,7 +359,8 @@ export function ProDialog({ why, onClose }: { why: string; onClose: () => void }
         ) : (
           <>
             {why && !/^(renew|ai)$/.test(why) && <div className="pro-why">{why}</div>}
-            <ul className="pro-feats">{PRO_FEATURES.map(([i, f]) => <li key={f}><span>{i}</span>{f}</li>)}</ul>
+            <ul className="pro-feats">{(allFeats ? PRO_FEATURES : PRO_FEATURES.slice(0, 5)).map(([i, f]) => <li key={f}><span>{i}</span>{f}</li>)}</ul>
+            {!allFeats && <button className="link" onClick={() => setAllFeats(true)}>▸ See all {PRO_FEATURES.length} Pro features</button>}
             <div className="hint">Everything else stays free – no ads, ever.</div>
             {open ? <Buy plans={['month', 'year', 'life']} label="Get Pro" onDone={onClose} /> : (
               <>

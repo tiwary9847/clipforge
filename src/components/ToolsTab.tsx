@@ -122,7 +122,7 @@ export function ToolsTab() {
       <SpeakersSection />
       <div className="group-h">🌍 Dub into English</div>
       <DubSection />
-      <div className="group-h">🗣 AI voice (text-to-speech)</div>
+      <div className="group-h">🗣️ AI voice (text-to-speech)</div>
       <AiVoice />
       <div className="group-h">📏 Loudness</div>
       <Loudness />
@@ -705,7 +705,7 @@ function AiVoice() {
           setPct(undefined)
         }}
       >
-        {busy ? `${busy}${pct !== undefined ? ' ' + Math.round(pct) + '%' : ''}` : '🗣 Generate voice'}
+        {busy ? `${busy}${pct !== undefined ? ' ' + Math.round(pct) + '%' : ''}` : '🗣️ Generate voice'}
       </button>
       {msg && <div className="hint">{msg}</div>}
     </>
