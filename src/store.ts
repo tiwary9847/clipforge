@@ -299,7 +299,7 @@ export function addAssetClip(assetId: string, track?: string, start?: number) {
   )
 }
 
-function freeOverlayTrack(start: number, dur: number): string {
+export function freeOverlayTrack(start: number, dur: number): string {
   for (const id of ['v2', 'v3', 'v4']) {
     const busy = state.project.clips.some((c) => c.track === id && start < clipEnd(c) && start + dur > c.start)
     if (!busy) return id

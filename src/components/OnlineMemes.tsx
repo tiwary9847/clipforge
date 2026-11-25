@@ -182,7 +182,7 @@ export function OnlineMemes() {
     <>
       <div className="osrc">
         <button className={src === 'sounds' ? 'on' : ''} onClick={() => { setSrc('sounds'); setHits([]); setErr('') }}>🔊 Sounds</button>
-        <button className={src === 'gifs' ? 'on' : ''} onClick={() => { setSrc('gifs'); setHits([]); setErr('') }}>🖼 GIFs</button>
+        <button onClick={() => window.dispatchEvent(new CustomEvent('cf:open', { detail: 'gifs' }))}>🖼 GIFs →</button>
         <button className={src === 'link' ? 'on' : ''} onClick={() => { setSrc('link'); setHits([]); setErr('') }}>🔗 From link</button>
       </div>
 

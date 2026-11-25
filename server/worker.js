@@ -11,9 +11,12 @@
 //   POST /check    {licence}                              → still valid? (refunds switch Pro off)
 //   POST /admin/…  header x-admin-token                   → seller dashboard (stats, payments, gift, revoke, coupons)
 //   GET  /media?u=<url>                                   → relays a free-library audio file (Freesound previews,
-//                                                            Jamendo, Wikimedia) whose host blocks browser downloads
+//                                                            Jamendo, Wikimedia) or a GIF (KLIPY, GIPHY) whose host blocks browser downloads
+//   GET  /gifs?type=gifs|stickers&q=&page=&cid=           → GIF / sticker search for the GIFs tab (KLIPY, else GIPHY);
+//                                                            the API key stays on the server, results cached 10 min
 // Secrets (wrangler secret put …): RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET,
-//   LICENCE_PRIVATE_JWK, GEMINI_KEY, ADMIN_TOKEN, PLAY_SERVICE_ACCOUNT (JSON, optional), PLAY_PACKAGE (optional)
+//   LICENCE_PRIVATE_JWK, GEMINI_KEY, ADMIN_TOKEN, PLAY_SERVICE_ACCOUNT (JSON, optional), PLAY_PACKAGE (optional),
+//   KLIPY_KEY (free, klipy.com/developers – turns on the GIFs tab), GIPHY_KEY (optional fallback)
 // KV namespace binding: DB.   Vars: ALLOWED_ORIGINS (comma list), AI_MONTHLY (default 300)
 
 export const PLANS = {
@@ -223,7 +226,8 @@ function cors(env, req) {
   return { 'access-control-allow-origin': ok ? origin || '*' : allowed[0], 'access-control-allow-headers': 'content-type, authorization, x-admin-token', 'access-control-allow-methods': 'POST, OPTIONS', vary: 'origin' }
 }
 /* ---- audio relay: only open audio from the free libraries the app searches ---- */
-const MEDIA_HOSTS = [/^cdn\.freesound\.org$/, /^(www\.)?freesound\.org$/, /(^|\.)jamendo\.com$/, /^upload\.wikimedia\.org$/]
+const MEDIA_HOSTS = [/^cdn\.freesound\.org$/, /^(www\.)?freesound\.org$/, /(^|\.)jamendo\.com$/, /^upload\.wikimedia\.org$/, /^static\.klipy\.com$/, /^(media\d?|i)\.giphy\.com$/]
+const GIF_HOST = /^(static\.klipy\.com|(media\d?|i)\.giphy\.com)$/
 const MEDIA_MAX = 25 * 1024 * 1024
 export function mediaAllowed(raw) {
   let u
@@ -240,14 +244,82 @@ export function mediaAllowed(raw) {
 }
 async function relayMedia(req, h) {
   const raw = new URL(req.url).searchParams.get('u') || ''
-  if (!mediaAllowed(raw)) return reply(h, 400, { error: 'Only audio from the free libraries can be added this way.' })
+  if (!mediaAllowed(raw)) return reply(h, 400, { error: 'Only audio from the free libraries or GIFs from the GIF search can be added this way.' })
   const r = await fetch(raw, { redirect: 'follow', cf: { cacheTtl: 86400, cacheEverything: true } })
   if (!r.ok) return reply(h, 502, { error: `The sound's site answered ${r.status}.` })
   const type = r.headers.get('content-type') || ''
-  if (!/^(audio\/|application\/ogg|video\/ogg)/.test(type)) return reply(h, 415, { error: 'That link is not an audio file.' })
+  const gif = GIF_HOST.test(new URL(raw).hostname)
+  if (gif ? !/^(image\/(gif|webp|png|jpeg)|video\/(mp4|webm))/.test(type) : !/^(audio\/|application\/ogg|video\/ogg)/.test(type))
+    return reply(h, 415, { error: gif ? 'That link is not a GIF.' : 'That link is not an audio file.' })
   const len = Number(r.headers.get('content-length') || 0)
   if (len > MEDIA_MAX) return reply(h, 413, { error: 'That sound is too big (over 25 MB).' })
   return new Response(r.body, { status: 200, headers: { ...h, 'content-type': type, 'cache-control': 'public, max-age=86400', ...(len ? { 'content-length': String(len) } : {}) } })
+}
+
+/* ---------- GIF search (GIFs tab) ---------- */
+const pick = (f, sizes, fmts) => {
+  for (const z of sizes) for (const k of fmts) if (f?.[z]?.[k]?.url) return { url: f[z][k].url, w: f[z][k].width || 0, h: f[z][k].height || 0, fmt: k }
+  return null
+}
+export async function gifSearch(env, sp) {
+  const type = sp.get('type') === 'stickers' ? 'stickers' : 'gifs'
+  const q = (sp.get('q') || '').trim().slice(0, 80)
+  const page = Math.max(1, Math.min(20, Number(sp.get('page')) || 1))
+  const cid = (sp.get('cid') || 'web').replace(/[^\w-]/g, '').slice(0, 40) || 'web'
+  if (env.KLIPY_KEY) {
+    const u = new URL(`https://api.klipy.com/api/v1/${encodeURIComponent(env.KLIPY_KEY)}/${type}/${q ? 'search' : 'trending'}`)
+    if (q) u.searchParams.set('q', q)
+    u.searchParams.set('page', String(page))
+    u.searchParams.set('per_page', '24')
+    u.searchParams.set('customer_id', cid)
+    u.searchParams.set('locale', 'in')
+    u.searchParams.set('content_filter', 'medium')
+    const r = await fetch(u)
+    if (!r.ok) throw new Error(`GIF search failed (${r.status})`)
+    const j = await r.json()
+    const items = (j?.data?.data ?? [])
+      .filter((x) => x && x.file && (x.type === 'gif' || x.type === 'sticker' || !x.type))
+      .map((x) => {
+        const thumb = pick(x.file, ['sm', 'xs', 'md'], ['webp', 'gif', 'jpg'])
+        const full = pick(x.file, ['hd', 'md'], ['webp', 'gif'])
+        const mp4 = pick(x.file, ['hd', 'md'], ['mp4'])
+        return thumb && full ? { id: 'k' + x.id, title: x.title || x.slug || 'GIF', thumb: thumb.url, w: full.w || thumb.w, h: full.h || thumb.h, url: full.url, mp4: mp4?.url } : null
+      })
+      .filter(Boolean)
+    return { items, next: !!j?.data?.has_next, by: 'KLIPY' }
+  }
+  if (env.GIPHY_KEY) {
+    const u = new URL(`https://api.giphy.com/v1/${type}/${q ? 'search' : 'trending'}`)
+    u.searchParams.set('api_key', env.GIPHY_KEY)
+    if (q) u.searchParams.set('q', q)
+    u.searchParams.set('limit', '24')
+    u.searchParams.set('offset', String((page - 1) * 24))
+    u.searchParams.set('rating', 'pg-13')
+    const r = await fetch(u)
+    if (!r.ok) throw new Error(`GIF search failed (${r.status})`)
+    const j = await r.json()
+    const items = (j.data ?? []).map((g) => {
+      const im = g.images || {}
+      const full = im.original?.webp ? { url: im.original.webp } : im.original?.url ? { url: im.original.url } : null
+      const thumb = im.fixed_width_small?.webp || im.fixed_width_small?.url || im.fixed_width?.url
+      return full && thumb ? { id: 'g' + g.id, title: g.title || 'GIF', thumb, w: Number(im.original?.width) || 0, h: Number(im.original?.height) || 0, url: full.url, mp4: im.original?.mp4 } : null
+    }).filter(Boolean)
+    const pg = j.pagination || {}
+    return { items, next: (pg.offset || 0) + (pg.count || 0) < Math.min(pg.total_count || 0, 499), by: 'GIPHY' }
+  }
+  return null
+}
+async function gifRoute(req, env, h) {
+  if (!env.KLIPY_KEY && !env.GIPHY_KEY) return reply(h, 503, { error: 'GIF search is not switched on yet (the app owner needs to add a free KLIPY key).', code: 'nogif' })
+  const url = new URL(req.url)
+  const cache = globalThis.caches?.default
+  const key = new Request(`https://gifs.cache/${url.searchParams.get('type')}/${url.searchParams.get('page')}/${encodeURIComponent((url.searchParams.get('q') || '').toLowerCase().trim())}`)
+  const hit = cache && (await cache.match(key))
+  if (hit) return new Response(hit.body, { status: 200, headers: { ...h, 'content-type': 'application/json', 'x-cache': 'hit' } })
+  const out = await gifSearch(env, url.searchParams)
+  const body = JSON.stringify(out)
+  if (cache) await cache.put(key, new Response(body, { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=600' } }))
+  return new Response(body, { status: 200, headers: { ...h, 'content-type': 'application/json' } })
 }
 
 const reply = (h, status, obj) => new Response(JSON.stringify(obj), { status, headers: { ...h, 'content-type': 'application/json' } })
@@ -258,6 +330,13 @@ export default {
     const h = cors(env, req)
     if (req.method === 'OPTIONS') return new Response(null, { headers: h })
     const path = new URL(req.url).pathname
+    if (req.method === 'GET' && path === '/gifs') {
+      try {
+        return await gifRoute(req, env, { ...h, 'access-control-allow-methods': 'GET, POST, OPTIONS' })
+      } catch (e) {
+        return reply(h, 502, { error: String(e?.message || e) })
+      }
+    }
     if (req.method === 'GET' && path === '/media') {
       try {
         return await relayMedia(req, { ...h, 'access-control-allow-methods': 'GET, POST, OPTIONS' })

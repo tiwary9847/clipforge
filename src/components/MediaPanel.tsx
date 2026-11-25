@@ -39,6 +39,7 @@ import { Icon } from './Icon'
 import { devanagariToRoman, emojiFor } from '../tools2'
 import { contentWords } from '../chapters'
 import { OnlineMemes } from './OnlineMemes'
+import { GifPanel } from './GifPanel'
 import { FaceStickers } from './FacePanels'
 import { Slideshow, VideoTemplates } from './CreativePanels'
 import { MusicMaker } from './AutoPanels'
@@ -47,10 +48,11 @@ import { SPEAKER_COLORS, clipHasSpeakers, findSpeakers, speakerDuring } from '..
 import { MEMES, MEME_CATS, MemeCat, applyMeme, previewSound } from '../memes'
 import { CapMode, Word, buildLines, transcribe } from '../captions'
 
-type Tab = 'media' | 'tools' | 'memes' | 'templates' | 'text' | 'stickers' | 'audio' | 'captions'
+type Tab = 'media' | 'tools' | 'memes' | 'gifs' | 'templates' | 'text' | 'stickers' | 'audio' | 'captions'
 const TABS: { id: Tab; icon: string; name: string }[] = [
   { id: 'media', icon: 'folder', name: 'Media' },
   { id: 'memes', icon: 'smile', name: 'Memes' },
+  { id: 'gifs', icon: 'gif', name: 'GIFs' },
   { id: 'templates', icon: 'layout', name: 'Templates' },
   { id: 'text', icon: 'type', name: 'Text' },
   { id: 'stickers', icon: 'star', name: 'Stickers' },
@@ -93,7 +95,7 @@ export function MediaPanel() {
   useEffect(() => {
     const on = (e: Event) => {
       const d = (e as CustomEvent).detail
-      if (d === 'templates' || d === 'memes' || d === 'captions' || d === 'audio' || d === 'tools' || d === 'media') setTab(d)
+      if (d === 'templates' || d === 'memes' || d === 'gifs' || d === 'captions' || d === 'audio' || d === 'tools' || d === 'media') setTab(d)
       else if (d === 'texttab') setTab('text')
       else if (d === 'record' || d === 'text') {
         // 'text' = Edit by text, which lives in Tools
@@ -125,6 +127,7 @@ export function MediaPanel() {
       <div className="panel-body">
         {tab === 'media' && <MediaTab />}
         {tab === 'memes' && <MemeTab />}
+        {tab === 'gifs' && <GifPanel />}
         {tab === 'tools' && <ToolsTab />}
         {tab === 'templates' && <TemplateTab />}
         {tab === 'text' && <TextTab />}

@@ -54,6 +54,7 @@ npx wrangler secret put RAZORPAY_KEY_SECRET
 npx wrangler secret put RAZORPAY_WEBHOOK_SECRET
 npx wrangler secret put GEMINI_KEY                 # step 5
 npx wrangler secret put ADMIN_TOKEN                # a long password you choose – for your seller dashboard
+npx wrangler secret put KLIPY_KEY                  # step 5b – turns on the GIFs tab for everyone
 npx wrangler deploy                                # prints https://clipforge-pay.<you>.workers.dev
 ```
 Send Claude the **workers.dev address** and your **Razorpay Key ID** (not the secret). Claude puts them in `src/plan.ts` (`CONFIG.server`, `CONFIG.razorpayKey`) and deploys. Then the “Get Pro” button goes live.
@@ -64,6 +65,14 @@ The server was tested here with simulated payments: genuine payments give a lice
 
 ## 5. Gemini key (built-in AI and Hindi voices for Pro)
 aistudio.google.com → Get API key. Put it in the server (step 4). Each Pro user gets 300 AI requests a month (`AI_MONTHLY` in `wrangler.toml`); one Hindi voice-over counts as 5. Buyers can add 100 more for ₹49. The Hindi voices use Google's Gemini text-to-speech models, which cost more than text – keep the budget alert on. Set a monthly budget alert in Google Cloud Billing so costs can't surprise you; Flash models cost very little per request.
+
+## 5b. GIF search (free – KLIPY)
+The **GIFs** tab searches millions of GIFs and see-through stickers. It needs one free key, kept on your server so users set up nothing:
+1. klipy.com/developers → sign up → **Generate API key** (the test key allows 100 searches a minute).
+2. `npx wrangler secret put KLIPY_KEY` and paste it. Done – the GIFs tab works for everyone.
+3. Before launch, in the KLIPY Partner Panel fill the short form to get the **free production key** (no limits) and put that in `KLIPY_KEY` instead.
+
+(Tenor's GIF API was shut down by Google on 30 June 2026. GIPHY also works – `GIPHY_KEY` – but its free key allows only 100 searches an hour for the whole app, so use KLIPY.) Until a key is set, the tab lets users add GIFs from their phone, or paste their own free GIPHY key.
 
 ## 6. Android app (PWABuilder – no Android Studio needed)
 1. Go to **pwabuilder.com**, enter `https://tiwary9847.github.io/clipforge/` → *Package for stores* → **Android** → *Google Play*.

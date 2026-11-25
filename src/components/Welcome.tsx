@@ -16,7 +16,7 @@ export const openTool = (id: string) => {
   window.dispatchEvent(new CustomEvent('cf:tool', { detail: id }))
 }
 
-export const openPanel = (what: 'auto' | 'record' | 'templates' | 'memes' | 'text' | 'texttab' | 'captions' | 'audio' | 'tools' | 'media') => window.dispatchEvent(new CustomEvent('cf:open', { detail: what }))
+export const openPanel = (what: 'auto' | 'record' | 'templates' | 'memes' | 'gifs' | 'text' | 'texttab' | 'captions' | 'audio' | 'tools' | 'media') => window.dispatchEvent(new CustomEvent('cf:open', { detail: what }))
 
 const FORMATS = [
   { id: 'shorts', icon: 'phone', name: 'Shorts · Reels', sub: '9:16 vertical' },

@@ -22,6 +22,11 @@ globalThis.fetch = async (url, init = {}) => {
   if (url.includes('oauth2.googleapis.com/token')) return J({ access_token: 'gtok' })
   if (url.includes('androidpublisher') && !init.method) return J(playState)
   if (url.includes('androidpublisher')) return J({})
+  if (url.startsWith('https://api.klipy.com/')) { const st = url.includes('/stickers/'); return J({ result: true, data: { current_page: 1, per_page: 24, has_next: true, data: [
+    { id: 7, slug: 'wow-7', title: 'Wow', type: st ? 'sticker' : 'gif', file: { hd: { webp: { url: 'https://static.klipy.com/a/hd.webp', width: 498, height: 280 }, mp4: { url: 'https://static.klipy.com/a/hd.mp4' } }, sm: { webp: { url: 'https://static.klipy.com/a/sm.webp', width: 150, height: 84 } } } },
+    { id: 8, type: 'ad', file: {} }] } }) }
+  if (url.startsWith('https://api.giphy.com/')) return J({ data: [{ id: 'abc', title: 'Clap', images: { original: { url: 'https://media1.giphy.com/x.gif', webp: 'https://media1.giphy.com/x.webp', mp4: 'https://media1.giphy.com/x.mp4', width: '480', height: '270' }, fixed_width_small: { url: 'https://media1.giphy.com/s.gif' } } }], pagination: { offset: 0, count: 1, total_count: 1 } })
+  if (url.startsWith('https://static.klipy.com/')) return new Response(new Uint8Array(900), { status: 200, headers: { 'content-type': 'image/webp', 'content-length': '900' } })
   if (url.startsWith('https://cdn.freesound.org/')) return new Response(new Uint8Array(3000), { status: 200, headers: { 'content-type': 'audio/mpeg', 'content-length': '3000' } })
   if (url.includes('-tts')) return url.includes('gemini-3.8-flash-tts') ? J({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/L16;codec=pcm;rate=24000', data: 'AAAA' } }] } }] }) : J({}, 404)
   if (url.includes('generativelanguage')) return url.includes('gemini-flash-latest') ? J({ candidates: [{ content: { parts: [{ text: '{"ok":1}' }] } }] }) : J({}, 404)
@@ -123,6 +128,20 @@ const rev = JSON.stringify({ event: 'refund.processed', payload: { refund: { ent
 // audio relay
 const media = async (u) => { const r = await worker.fetch(new Request('https://w.dev/media?u=' + encodeURIComponent(u), { headers: { origin: 'https://tiwary9847.github.io' } }), env); return [r.status, r.headers.get('access-control-allow-origin'), r.headers.get('content-type')] }
 ;[s, j] = [await media('https://cdn.freesound.org/previews/1/1_2-hq.mp3')]; check('relay: Freesound preview allowed, browser may read it', s[0] === 200 && s[1] === 'https://tiwary9847.github.io' && s[2] === 'audio/mpeg', JSON.stringify(s))
+const gifs = async (qs, e = env) => { const r = await worker.fetch(new Request('https://w.dev/gifs?' + qs, { headers: { origin: 'https://tiwary9847.github.io' } }), e); return [r.status, await r.json()] }
+{
+  let [st, g] = await gifs('type=gifs&q=wow', { ...env })
+  check('gifs: off until the owner adds a key', st === 503 && g.code === 'nogif')
+  ;[st, g] = await gifs('type=gifs&q=wow&cid=abc', { ...env, KLIPY_KEY: 'kk' })
+  check('gifs: KLIPY search → clean list, ads dropped', st === 200 && g.by === 'KLIPY' && g.items.length === 1 && g.items[0].url.endsWith('hd.webp') && g.items[0].thumb.endsWith('sm.webp') && g.items[0].w === 498 && g.next === true, JSON.stringify(g).slice(0, 120))
+  check('gifs: key never sent to the app', !JSON.stringify(g).includes('kk'))
+  ;[st, g] = await gifs('type=stickers', { ...env, KLIPY_KEY: 'kk' })
+  check('gifs: stickers trending', st === 200 && calls.at(-1).includes('/stickers/trending'))
+  ;[st, g] = await gifs('type=gifs&q=clap', { ...env, GIPHY_KEY: 'gg' })
+  check('gifs: GIPHY fallback', st === 200 && g.by === 'GIPHY' && g.items[0].url.endsWith('x.webp') && g.items[0].w === 480)
+  const r = await media('https://static.klipy.com/a/hd.webp')
+  check('relay: KLIPY GIF file allowed', r[0] === 200 && r[2] === 'image/webp', JSON.stringify(r))
+}
 check('relay: other sites refused', (await media('https://evil.example/x.mp3'))[0] === 400)
 check('relay: Freesound login-only download refused', (await media('https://freesound.org/apiv2/sounds/5/download/'))[0] === 400)
 check('relay: no http / tricks', (await media('http://cdn.freesound.org/previews/a.mp3'))[0] === 400 && (await media('https://user@cdn.freesound.org/previews/a.mp3'))[0] === 400)

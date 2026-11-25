@@ -336,3 +336,10 @@ Timeline bar: **✓ Select** mode (tap clips to add/remove – works on phones),
 - **Text effects**: letter spacing, line spacing, neon glow (colour + strength), double outline, custom shadow (colour, softness, offset – hard 3D shadows), box roundness and padding, “use this style for all captions/text”.
 - **Animations**: exit animations (fade, pop, slide up, zoom, blur, drop) and loops (pulse, heartbeat, float, swing, shake, jelly, blink) on top of the build-in animations.
 - All new properties are optional, so old projects look exactly the same.
+
+## v31 – GIFs tab
+- New **GIFs** tab (next to Memes): GIFs / see-through **Stickers** switch, search as you type, quick chips (Trending, Bollywood, LOL, Wow, Clap, Thank you, Cricket, Subscribe, Arrow, Like…), **Recent**, “Show more”. Tap a tile → it is placed at the playhead on a free overlay layer, selected, looping (short GIFs repeat to at least 3 s). GIFs stay animated in the preview, in exports and after reload. `src/gifs.ts`, `src/components/GifPanel.tsx`.
+- Results come from the app server (`GET /gifs`, KLIPY with `KLIPY_KEY`, else GIPHY with `GIPHY_KEY`; key never reaches the browser, results cached 10 min). Files whose host blocks browser downloads go through `GET /media` (now allows `static.klipy.com` and GIPHY media hosts, image/video types only).
+- Before the server has a key: “Add a GIF from your phone/computer”, or each user can paste their own free GIPHY key. Browsers without animated-picture support (older Safari) get the MP4 version of normal GIFs.
+- Memes → Online → **GIFs →** now opens this tab.
+
