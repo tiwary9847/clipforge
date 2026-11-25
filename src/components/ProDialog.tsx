@@ -252,6 +252,7 @@ export function ProDialog({ why, onClose }: { why: string; onClose: () => void }
   const [restore, setRestore] = useState(false)
   const [email, setEmail] = useState(() => localStorage.getItem('clipforge-email') ?? '')
   const [payId, setPayId] = useState('')
+  const [soonPick, setSoonPick] = useState<PlanId>('year')
   const [tab, setTab] = useState<'renew' | 'ai' | ''>(why.startsWith('renew') ? 'renew' : why.startsWith('ai') ? 'ai' : '')
   const play = inPlayApp()
   const open = salesOpen()
@@ -326,10 +327,16 @@ export function ProDialog({ why, onClose }: { why: string; onClose: () => void }
               <>
                 <div className="pro-offers">
                   {OFFERS.filter((o) => o.id !== 'ai100').map((o) => (
-                    <div key={o.id} className="pro-offer"><b>{o.name}</b><span className="pro-price">₹{o.price.toLocaleString('en-IN')}</span><small>{o.note}</small></div>
+                    <button key={o.id} className={'pro-offer' + (soonPick === o.id ? ' on' : '')} onClick={() => setSoonPick(o.id)}>
+                      {o.id === 'year' && <span className="pro-tag">Best value</span>}
+                      <b>{o.name}</b><span className="pro-price">₹{o.price.toLocaleString('en-IN')}</span><small>{o.note}</small>
+                    </button>
                   ))}
                 </div>
-                <div className="hint warn">Pro sales open soon. Have a licence code? Paste it below.</div>
+                <button className="btn primary full big-save" onClick={() => toast('Online payment is being switched on – it opens in a few days. Have a licence code? Paste it below.')}>
+                  Get Pro · ₹{OFFERS.find((o) => o.id === soonPick)!.price.toLocaleString('en-IN')}
+                </button>
+                <div className="hint warn">Online payment opens soon. Have a licence code? Paste it below.</div>
               </>
             )}
             <details className="chap">
