@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { MediaPanel, importFiles } from './components/MediaPanel'
+import { MediaPanel, importAndPlace } from './components/MediaPanel'
 import { Preview } from './components/Preview'
 import { Timeline } from './components/Timeline'
 import { Inspector } from './components/Inspector'
@@ -214,7 +214,7 @@ export default function App() {
         setDropping(false)
         if (e.dataTransfer.files.length) {
           e.preventDefault()
-          void importFiles(e.dataTransfer.files, (m) => setUi({ toast: m }))
+          void importAndPlace(e.dataTransfer.files, (m) => setUi({ toast: m }))
         }
       }}
     >

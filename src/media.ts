@@ -7,6 +7,8 @@ import { engine } from './engine'
 const inputs = new Map<string, Input>()
 export function getInput(a: Asset): Input {
   let i = inputs.get(a.id)
+  // a reader that was closed can't be used again – open a fresh one
+  if (i && (i as unknown as { disposed?: boolean }).disposed) i = undefined
   if (!i) {
     if (!a.blob) throw new Error(`"${a.name}" has no data to read`)
     i = new Input({ source: new BlobSource(a.blob), formats: ALL_FORMATS })
@@ -14,12 +16,12 @@ export function getInput(a: Asset): Input {
   }
   return i
 }
+/**
+ * Forgets the cached readers after an export so their memory can be freed. They are NOT closed:
+ * another task (waveforms, a tool, the next status part) may still be reading one, and closing it
+ * made that task fail with "Input has been disposed". Unused readers are freed by the browser.
+ */
 export function disposeInputs() {
-  for (const i of inputs.values()) {
-    try {
-      ;(i as any).dispose?.()
-    } catch {}
-  }
   inputs.clear()
 }
 

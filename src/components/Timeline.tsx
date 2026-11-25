@@ -528,7 +528,7 @@ export function Timeline() {
                           backgroundImage: c.kind === 'video' && a?.thumb && !film ? `url(${a.thumb})` : undefined,
                         }}
                         onPointerDown={(e) => startDrag(e, c, 'move')}
-                        title={`${c.label} · ${c.dur.toFixed(2)}s${c.speed !== 1 ? ` · ${c.speed}×` : ''}`}
+                        title={`${c.label} · ${c.dur.toFixed(2)}s${Math.abs(c.speed - 1) > 0.005 ? ` · ${+c.speed.toFixed(2)}×` : ''}`}
                       >
                         {film && <Film strip={film} from={from} to={to} w={w} h={ROW_H - 8} />}
                         {peaks && <Wave peaks={peaks} from={from} to={to} w={w} h={c.kind === 'video' ? Math.max(12, Math.round(ROW_H * 0.3)) : ROW_H - 8} low={c.kind === 'video'} />}
@@ -538,7 +538,7 @@ export function Timeline() {
                         )}
                         <span className="cl-label ell">
                           {c.kind === 'sticker' ? c.emoji : c.label}
-                          {c.speed !== 1 && <em> {c.speed}×</em>}
+                          {Math.abs(c.speed - 1) > 0.005 && <em> {+c.speed.toFixed(2)}×</em>}
                         </span>
                         {kfTimes(c).map((kt) => (
                           <i key={kt} className="kfm" style={{ left: kt * pps }} />

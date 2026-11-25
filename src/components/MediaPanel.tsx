@@ -57,6 +57,18 @@ const TABS: { id: Tab; icon: string; name: string }[] = [
   { id: 'tools', icon: 'wrench', name: 'Tools' },
 ]
 
+/** Imports files; when the timeline is still empty they also go straight onto it (like the start screen does). */
+export async function importAndPlace(files: FileList | File[], setMsg?: (m: string) => void) {
+  const empty = getState().project.clips.length === 0
+  const before = new Set(getState().assets.map((a) => a.id))
+  await importFiles(files, setMsg)
+  if (!empty) return
+  const fresh = getState().assets.filter((a) => !before.has(a.id))
+  for (const a of fresh) if (a.kind !== 'audio') addAssetClip(a.id, 'v1')
+  for (const a of fresh) if (a.kind === 'audio') addAssetClip(a.id, 'a2', 0)
+  setTimeout(() => engine.render(), 50)
+}
+
 export async function importFiles(files: FileList | File[], setMsg?: (m: string) => void) {
   for (const f of Array.from(files)) {
     try {
@@ -161,7 +173,7 @@ function MediaTab() {
     const n = list.length
     setBusy((b) => b + n)
     setMsg('')
-    await importFiles(list, setMsg)
+    await importAndPlace(list, setMsg)
     setBusy((b) => b - n)
   }
   return (
@@ -253,7 +265,7 @@ function MemeTab() {
       <button className="btn" onClick={() => fileRef.current?.click()}>
         ＋ Import my meme sound / GIF / image
       </button>
-      <input ref={fileRef} type="file" hidden multiple accept="audio/*,video/*,image/*,.gif" onChange={(e) => e.target.files && importFiles(e.target.files, (m) => setUi({ toast: m }))} />
+      <input ref={fileRef} type="file" hidden multiple accept="audio/*,video/*,image/*,.gif" onChange={(e) => { if (e.target.files) void importAndPlace(e.target.files, (m) => setUi({ toast: m })); e.target.value = '' }} />
     </>
   )
 }
