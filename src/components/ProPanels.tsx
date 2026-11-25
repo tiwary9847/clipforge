@@ -18,7 +18,7 @@ import {
 } from '../store'
 import { engine } from '../engine'
 import { RAMPS, dropProxy, makeProxy, needsProxy, analyzeStabilization, applySpeedRamp, autoDuck, cutSilences, markBeats, reduceNoise, reverseClip, setStabStrength } from '../processing'
-import { Chroma, Clip, MaskShape, TextAnim } from '../types'
+import { Chroma, Clip, MaskShape, TextAnim, TextAnimOut, TextLoop } from '../types'
 import { autoReframe, beatZoom } from '../tools2'
 import { MaskSection, SceneSplit } from './ProPanels2'
 
@@ -384,9 +384,51 @@ export function TextAnimSection({ c }: { c: Clip }) {
         <Slider label="Build-in time" value={c.text.animDur ?? 0.8} min={0.2} max={Math.max(0.3, Math.min(4, c.dur))} onChange={(v) => patchText(c.id, { animDur: v })} fmt={(v) => `${v.toFixed(1)}s`} />
       )}
       <div className="hint">Plays at the start of the text clip – scrub to its start to preview.</div>
+      <div className="sub-h">Exit (at the end)</div>
+      <Chips
+        items={TEXT_OUTS}
+        value={c.text.animOut ?? 'none'}
+        onPick={(v) => {
+          checkpoint()
+          patchText(c.id, { animOut: v })
+          engine.seek(Math.max(c.start, c.start + c.dur - 0.6))
+        }}
+      />
+      {(c.text.animOut ?? 'none') !== 'none' && (
+        <Slider label="Exit time" value={c.text.animOutDur ?? 0.4} min={0.15} max={Math.max(0.2, Math.min(2, c.dur / 2))} onChange={(v) => patchText(c.id, { animOutDur: v })} fmt={(v) => `${v.toFixed(1)}s`} />
+      )}
+      <div className="sub-h">Loop (the whole time)</div>
+      <Chips
+        items={TEXT_LOOPS}
+        value={c.text.loop ?? 'none'}
+        onPick={(v) => {
+          checkpoint()
+          patchText(c.id, { loop: v })
+        }}
+      />
     </Section>
   )
 }
+
+const TEXT_OUTS: { id: TextAnimOut; name: string }[] = [
+  { id: 'none', name: 'None' },
+  { id: 'fade', name: 'Fade out' },
+  { id: 'pop', name: 'Pop out' },
+  { id: 'slide', name: 'Slide up' },
+  { id: 'zoom', name: 'Zoom out' },
+  { id: 'blur', name: 'Blur out' },
+  { id: 'drop', name: 'Drop' },
+]
+const TEXT_LOOPS: { id: TextLoop; name: string }[] = [
+  { id: 'none', name: 'None' },
+  { id: 'pulse', name: 'Pulse' },
+  { id: 'heartbeat', name: 'Heartbeat' },
+  { id: 'float', name: 'Float' },
+  { id: 'swing', name: 'Swing' },
+  { id: 'shake', name: 'Shake' },
+  { id: 'jelly', name: 'Jelly' },
+  { id: 'blink', name: 'Blink' },
+]
 
 export function MultiPanel({ ids }: { ids: string[] }) {
   const n = ids.length

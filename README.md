@@ -329,3 +329,10 @@ Timeline bar: **✓ Select** mode (tap clips to add/remove – works on phones),
 - Bitrate now follows YouTube's upload recommendations instead of a fixed "high" preset: 1080p 30 fps ≈ 8 Mbps, 1080p 60 fps ≈ 12 Mbps, 4K 30/60 ≈ 32/48 Mbps (`qualityBitrate` in `fastExport.ts`), keyframe every 2 s. Measured on a real 60 fps phone video: SSIM 0.932 → 0.954 against a Lanczos reference (6 → 12 Mbps).
 - Frames are drawn with `imageSmoothingQuality = 'high'` (sharper when small videos are enlarged, no shimmer when 4K is shrunk).
 - Autopilot uses gentle zooms when the source is much smaller than the frame (e.g. 480 px wide), and the zip stores the shared Shorts/Reels video once (`…-shorts-and-reels.mp4`).
+
+## v30 – Text upgrade
+- **40 one-tap text styles** in 9 groups (Trending, Captions, Titles, Neon & glow, Business & sale, Fun, Elegant, Gaming, हिन्दी) – `src/textstyles.ts`. Tiles are real previews drawn by the video engine (`engine.textPreview`), so they look exactly like the result.
+- **20 display fonts** bundled from @fontsource (SIL Open Font License): Anton, Bebas Neue, Montserrat, Poppins, Oswald, Archivo Black, Kanit, Teko, Russo One, Bungee, Bangers, Luckiest Guy, Fredoka, Righteous, Permanent Marker, Caveat, Pacifico, Lobster, Dancing Script, Playfair Display (Latin subset, loaded only when used). Font menu grouped: Popular / Fun & handwritten / हिन्दी / Basic.
+- **Text effects**: letter spacing, line spacing, neon glow (colour + strength), double outline, custom shadow (colour, softness, offset – hard 3D shadows), box roundness and padding, “use this style for all captions/text”.
+- **Animations**: exit animations (fade, pop, slide up, zoom, blur, drop) and loops (pulse, heartbeat, float, swing, shake, jelly, blink) on top of the build-in animations.
+- All new properties are optional, so old projects look exactly the same.

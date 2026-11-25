@@ -25,7 +25,8 @@ import {
 } from '../store'
 import { engine } from '../engine'
 import { FILTER_PRESETS, FONTS, FX_LIST, TRANS_LIST, mkFilters } from '../library'
-import { Clip, DEFAULT_FILTERS, Ease, KfProp, PRESETS } from '../types'
+import { Clip, DEFAULT_FILTERS, Ease, KfProp, PRESETS, TextProps } from '../types'
+import { setClipsSilent as setClipsSilentX, getState as getStateX, setUi as setUiX } from '../store'
 import { Motion, evalProp, hasKeys, kfTimes } from '../anim'
 import { BeautySection } from './FacePanels'
 import { PersonSection } from './CreativePanels'
@@ -190,11 +191,20 @@ function ClipPanel({ clip: c }: { clip: Clip }) {
               P({ label: e.target.value.slice(0, 40) })
             }}
           />
-          <select className="full" value={c.text.font} onChange={(e) => { checkpoint(); patchText(c.id, { font: e.target.value }) }}>
-            {FONTS.map((f) => (
-              <option key={f.label} value={f.css}>
-                {f.label}
-              </option>
+          <select className="full" value={c.text.font} onChange={(e) => { checkpoint(); patchText(c.id, { font: e.target.value }) }} style={{ fontFamily: c.text.font }}>
+            {[
+              ['Popular for Shorts & Reels', FONTS.filter((f) => f.label.startsWith('🔥') || /Oswald|Archivo|Kanit|Teko|Russo|Bungee/.test(f.label))],
+              ['Fun & handwritten', FONTS.filter((f) => /Bangers|Luckiest|Fredoka|Righteous|Marker|Caveat|Pacifico|Lobster|Dancing|Playfair/.test(f.label))],
+              ['हिन्दी (Hindi)', FONTS.filter((f) => f.label.startsWith('हिन्दी'))],
+              ['Basic', FONTS.filter((f) => !f.label.startsWith('🔥') && !f.label.startsWith('हिन्दी') && !/Oswald|Archivo|Kanit|Teko|Russo|Bungee|Bangers|Luckiest|Fredoka|Righteous|Marker|Caveat|Pacifico|Lobster|Dancing|Playfair/.test(f.label))],
+            ].map(([g, list]) => (
+              <optgroup key={g as string} label={g as string}>
+                {(list as typeof FONTS).map((f) => (
+                  <option key={f.label} value={f.css} style={{ fontFamily: f.css }}>
+                    {f.label}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
           <Slider label="Size" value={c.text.size} min={0.02} max={0.25} onChange={(v) => patchText(c.id, { size: v })} fmt={pct} />
@@ -215,7 +225,7 @@ function ClipPanel({ clip: c }: { clip: Clip }) {
             <button className={'chip' + (c.text.bold ? ' on' : '')} onClick={() => { checkpoint(); patchText(c.id, { bold: !c.text!.bold }) }}><b>B</b></button>
             <button className={'chip' + (c.text.italic ? ' on' : '')} onClick={() => { checkpoint(); patchText(c.id, { italic: !c.text!.italic }) }}><i>I</i></button>
             <button className={'chip' + (c.text.upper ? ' on' : '')} onClick={() => { checkpoint(); patchText(c.id, { upper: !c.text!.upper }) }}>AA</button>
-            <button className={'chip' + (c.text.shadow ? ' on' : '')} onClick={() => { checkpoint(); patchText(c.id, { shadow: !c.text!.shadow }) }}>Glow</button>
+            <button className={'chip' + (c.text.shadow ? ' on' : '')} onClick={() => { checkpoint(); patchText(c.id, { shadow: !c.text!.shadow }) }}>Shadow</button>
             {(['left', 'center', 'right'] as const).map((a) => (
               <button key={a} className={'chip' + (c.text!.align === a ? ' on' : '')} onClick={() => { checkpoint(); patchText(c.id, { align: a }) }}>
                 {a === 'left' ? '⇤' : a === 'center' ? '↔' : '⇥'}
@@ -225,6 +235,7 @@ function ClipPanel({ clip: c }: { clip: Clip }) {
         </Section>
       )}
 
+      {c.kind === 'text' && c.text && <TextEffects c={c} />}
       <TextAnimSection c={c} />
       <SaveStyle c={c} />
 
@@ -442,4 +453,81 @@ function FoldAll() {
       <button onClick={() => { const t = new Set(titles()); setSettings({ closedSecs: getSettings().closedSecs.filter((x) => !t.has(x)) }) }}>Open all</button>
     </div>
   )
+}
+
+/* ---------- extra text styling ---------- */
+function TextEffects({ c }: { c: Clip }) {
+  const t = c.text!
+  const T = (p: Partial<TextProps>) => patchText(c.id, p)
+  const tog = (p: Partial<TextProps>) => {
+    checkpoint()
+    T(p)
+  }
+  const pctS = (v: number) => `${Math.round(v * 100)}%`
+  const toAll = () => {
+    checkpoint()
+    const keep = ['text', 'hlIdx', 'kwIdx', 'emoji'] as const
+    const style = Object.fromEntries(Object.entries(t).filter(([k]) => !(keep as readonly string[]).includes(k))) as Partial<TextProps>
+    const isCap = c.track === 'v4'
+    let n = 0
+    setClipsSilentX(
+      getStateX().project.clips.map((x) => {
+        if (x.kind !== 'text' || !x.text || x.id === c.id || (isCap ? x.track !== 'v4' : x.track === 'v4')) return x
+        n++
+        return { ...x, text: { ...x.text, ...style, text: x.text.text } }
+      }),
+    )
+    engine.requestRender()
+    setUiX({ toast: n ? `Style copied to ${n} other ${isCap ? 'caption' : 'text'} clip${n === 1 ? '' : 's'}.` : `No other ${isCap ? 'captions' : 'text clips'} to copy to.` })
+  }
+  return (
+    <Section title="Text effects">
+      <Slider label="Letter spacing" value={t.spacing ?? 0} min={-0.08} max={0.5} step={0.01} onChange={(v) => T({ spacing: Math.abs(v) < 0.005 ? 0 : v })} fmt={pctS} />
+      <Slider label="Line spacing" value={t.lineH ?? 1.18} min={0.8} max={2} step={0.02} onChange={(v) => T({ lineH: v })} fmt={(v) => `${v.toFixed(2)}×`} />
+
+      <div className="sub-h">Glow</div>
+      <div className="row2">
+        <label className="ochk"><input type="checkbox" checked={!!t.glow} onChange={(e) => tog({ glow: e.target.checked ? glowFor(t.color) : undefined })} /> Neon glow</label>
+        {t.glow && <label className="color"><span>Colour</span><input type="color" value={t.glow} onChange={(e) => T({ glow: e.target.value })} /></label>}
+      </div>
+      {t.glow && <Slider label="Glow strength" value={t.glowAmt ?? 0.6} min={0.1} max={1.5} onChange={(v) => T({ glowAmt: v })} fmt={pctS} />}
+
+      <div className="sub-h">Double outline</div>
+      <div className="row2">
+        <label className="ochk"><input type="checkbox" checked={!!t.stroke2} onChange={(e) => tog({ stroke2: e.target.checked ? '#ffffff' : undefined, stroke2W: 0.1, strokeW: t.strokeW || 0.1 })} /> Second outline</label>
+        {t.stroke2 && <label className="color"><span>Colour</span><input type="color" value={t.stroke2} onChange={(e) => T({ stroke2: e.target.value })} /></label>}
+      </div>
+      {t.stroke2 && <Slider label="Outer width" value={t.stroke2W ?? 0.1} min={0.02} max={0.3} onChange={(v) => T({ stroke2W: v })} fmt={pctS} />}
+
+      {t.shadow && (
+        <>
+          <div className="sub-h">Shadow</div>
+          <label className="color"><span>Colour</span><input type="color" value={t.shColor ?? '#000000'} onChange={(e) => T({ shColor: e.target.value })} /></label>
+          <Slider label="Softness" value={t.shBlur ?? 0.2} min={0} max={1} onChange={(v) => T({ shBlur: v })} fmt={pctS} />
+          <Slider label="Shift right" value={t.shX ?? 0} min={-0.3} max={0.3} onChange={(v) => T({ shX: v })} fmt={pctS} />
+          <Slider label="Shift down" value={t.shY ?? 0.04} min={-0.3} max={0.3} onChange={(v) => T({ shY: v })} fmt={pctS} />
+          <div className="hint">Tip: softness 0 and a shift of ~8% gives the hard “3D” drop shadow.</div>
+        </>
+      )}
+
+      {t.bgOpacity > 0 && (
+        <>
+          <div className="sub-h">Box</div>
+          <Slider label="Roundness" value={t.boxR ?? 0.25} min={0} max={1} onChange={(v) => T({ boxR: v })} fmt={pctS} />
+          <Slider label="Padding" value={t.boxPad ?? 1} min={0.3} max={2.5} onChange={(v) => T({ boxPad: v })} fmt={(v) => `${v.toFixed(1)}×`} />
+        </>
+      )}
+      <button className="btn sm full" onClick={toAll}>{c.track === 'v4' ? '🎨 Use this style for all captions' : '🎨 Use this style for all text'}</button>
+    </Section>
+  )
+}
+
+/** A glow that shows: white text glows cyan, dark text glows yellow, coloured text glows its own colour. */
+function glowFor(hex: string): string {
+  const n = parseInt((hex || '#ffffff').slice(1, 7).padEnd(6, '0'), 16)
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  if (lum > 0.92) return '#00e5ff'
+  if (lum < 0.35) return '#ffd400'
+  return hex
 }

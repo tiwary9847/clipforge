@@ -774,6 +774,7 @@ class Engine {
   layoutText(ctx: CanvasRenderingContext2D, tp: TextProps, W: number, H: number) {
     const fontPx = Math.max(4, tp.size * H)
     ctx.font = `${tp.italic ? 'italic ' : ''}${tp.bold ? 'bold ' : ''}${fontPx}px ${tp.font}`
+    setSpacing(ctx, tp, fontPx)
     const raw = tp.upper ? tp.text.toUpperCase() : tp.text
     const maxW = tp.maxW * W
     const lines: string[] = []
@@ -788,8 +789,8 @@ class Engine {
       }
       lines.push(cur)
     }
-    const lineH = fontPx * 1.18
-    const pad = tp.bgOpacity > 0 ? fontPx * 0.35 : 0
+    const lineH = fontPx * (tp.lineH ?? 1.18)
+    const pad = tp.bgOpacity > 0 ? fontPx * 0.35 * (tp.boxPad ?? 1) : 0
     const tw = Math.max(...lines.map((l) => ctx.measureText(l).width), 1)
     return { lines, fontPx, lineH, w: tw + pad * 2, h: lines.length * lineH + pad * 1.2, tw, pad }
   }
@@ -1021,7 +1022,7 @@ class Engine {
         ctx.restore()
       }
     } else if (tl && c.text) {
-      this.drawText(ctx, c.text, tl, lt)
+      this.drawText(ctx, c.text, tl, lt, c.dur)
     } else if (c.kind === 'sticker' && c.shape) {
       this.drawShape(ctx, c, lt, t, W, H)
     } else if (c.kind === 'sticker') {
@@ -1507,9 +1508,80 @@ class Engine {
     ctx.restore()
   }
 
-  private drawText(ctx: CanvasRenderingContext2D, tp: TextProps, tl: ReturnType<Engine['layoutText']>, lt: number) {
+  /** Draws a text style into a small preview image, exactly as the video will show it (build-in finished). */
+  textPreview(tp: TextProps, w: number, h: number, bg = '#2a2d3a'): string {
+    const cv = document.createElement('canvas')
+    cv.width = w
+    cv.height = h
+    const ctx = cv.getContext('2d')!
+    ctx.fillStyle = bg
+    ctx.fillRect(0, 0, w, h)
+    const VH = 1280
+    const tl = this.layoutText(ctx, { ...tp, maxW: Math.min(tp.maxW, 0.9) }, 720, VH)
+    const glowPad = tp.glow ? tl.fontPx * 0.6 : 0
+    const k = Math.min((w * 0.9) / (tl.w + glowPad), (h * 0.8) / (tl.h + glowPad), 1)
+    ctx.save()
+    ctx.translate(w / 2, h / 2)
+    ctx.scale(k, k)
+    this.drawText(ctx, tp, tl, 3, Infinity)
+    ctx.restore()
+    return cv.toDataURL('image/png')
+  }
+
+  /** Exit and looping animations move/fade the whole text block; the build-in animations work inside it. */
+  private drawText(ctx: CanvasRenderingContext2D, tp: TextProps, tl: ReturnType<Engine['layoutText']>, lt: number, dur = Infinity) {
+    const out = tp.animOut ?? 'none'
+    const loop = tp.loop ?? 'none'
+    if (out === 'none' && loop === 'none') return this.drawTextBody(ctx, tp, tl, lt)
+    const fp = tl.fontPx
+    ctx.save()
+    if (loop !== 'none') {
+      const s = Math.sin
+      if (loop === 'pulse') ctx.scale(1 + 0.06 * s(lt * 6), 1 + 0.06 * s(lt * 6))
+      else if (loop === 'float') ctx.translate(0, s(lt * 2.6) * fp * 0.15)
+      else if (loop === 'shake') ctx.translate(s(lt * 47) * fp * 0.05, s(lt * 39 + 1) * fp * 0.04)
+      else if (loop === 'blink') ctx.globalAlpha *= s(lt * 7) > -0.55 ? 1 : 0.15
+      else if (loop === 'swing') ctx.rotate(s(lt * 3.2) * 0.08)
+      else if (loop === 'heartbeat') {
+        const ph = (lt * 1.25) % 1
+        const k = 1 + 0.1 * Math.max(0, s(ph * Math.PI * 4)) * (ph < 0.5 ? 1 : 0)
+        ctx.scale(k, k)
+      } else if (loop === 'jelly') ctx.scale(1 + 0.05 * s(lt * 8), 1 - 0.05 * s(lt * 8))
+    }
+    if (out !== 'none' && Number.isFinite(dur)) {
+      const od = Math.max(0.1, tp.animOutDur ?? 0.4)
+      const p = Math.min(1, Math.max(0, (dur - lt) / od)) // 1 → 0 over the last od seconds
+      if (p < 1) {
+        const q = 1 - p
+        if (out === 'fade') ctx.globalAlpha *= p
+        else if (out === 'pop') {
+          const k = p < 0.3 ? p / 0.3 : 1 + 0.12 * Math.sin(((1 - p) / 0.7) * Math.PI)
+          ctx.scale(k, k)
+          ctx.globalAlpha *= Math.min(1, p * 3)
+        } else if (out === 'slide') {
+          ctx.translate(0, -q * q * fp * 1.4)
+          ctx.globalAlpha *= p
+        } else if (out === 'zoom') {
+          ctx.scale(1 + q * 0.8, 1 + q * 0.8)
+          ctx.globalAlpha *= p
+        } else if (out === 'blur') {
+          ctx.filter = `blur(${(q * fp * 0.25).toFixed(1)}px)`
+          ctx.globalAlpha *= p
+        } else if (out === 'drop') {
+          ctx.translate(0, q * q * fp * 3)
+          ctx.rotate(q * 0.25)
+          ctx.globalAlpha *= Math.min(1, p * 2)
+        }
+      }
+    }
+    this.drawTextBody(ctx, tp, tl, lt)
+    ctx.restore()
+  }
+
+  private drawTextBody(ctx: CanvasRenderingContext2D, tp: TextProps, tl: ReturnType<Engine['layoutText']>, lt: number) {
     const { lines, fontPx, lineH, w, h, tw } = tl
     ctx.font = `${tp.italic ? 'italic ' : ''}${tp.bold ? 'bold ' : ''}${fontPx}px ${tp.font}`
+    setSpacing(ctx, tp, fontPx)
     ctx.textBaseline = 'middle'
     ctx.textAlign = tp.align
     ctx.lineJoin = 'round'
@@ -1522,7 +1594,7 @@ class Engine {
       ctx.globalAlpha *= tp.bgOpacity
       ctx.fillStyle = tp.bg
       ctx.beginPath()
-      if ((ctx as any).roundRect) (ctx as any).roundRect(-w / 2, -h / 2, w, h, fontPx * 0.25)
+      if ((ctx as any).roundRect) (ctx as any).roundRect(-w / 2, -h / 2, w, h, Math.min(h / 2, fontPx * (tp.boxR ?? 0.25)))
       else ctx.rect(-w / 2, -h / 2, w, h)
       ctx.fill()
       ctx.restore()
@@ -1549,11 +1621,7 @@ class Engine {
     let charsBefore = 0
     lines.forEach((ln, i) => {
       const y = (i - (lines.length - 1) / 2) * lineH
-      if (tp.shadow) {
-        ctx.shadowColor = tp.strokeW > 0 ? tp.stroke : 'rgba(0,0,0,.6)'
-        ctx.shadowBlur = fontPx * 0.2
-        ctx.shadowOffsetY = fontPx * 0.04
-      }
+      if (tp.shadow) setShadow(ctx, tp, fontPx)
       if (perWord) {
         const words = ln.split(' ').filter(Boolean)
         const sp = ctx.measureText(' ').width
@@ -1604,13 +1672,7 @@ class Engine {
               ctx.fill()
               ctx.restore()
             }
-            if (tp.strokeW > 0 && !(hot && tp.hlStyle === 'box')) {
-              ctx.lineWidth = fontPx * tp.strokeW
-              ctx.strokeStyle = tp.stroke
-              ctx.strokeText(shown, -widths[k] / 2, 0)
-            }
-            ctx.fillStyle = hot && tp.hlStyle === 'box' ? '#ffffff' : hot ? tp.hlColor ?? '#ffe500' : kw ? tp.kwColor ?? '#22c55e' : fillAt(0)
-            ctx.fillText(shown, -widths[k] / 2, 0)
+            paintGlyphs(ctx, tp, shown, -widths[k] / 2, 0, fontPx, hot && tp.hlStyle === 'box' ? '#ffffff' : hot ? tp.hlColor ?? '#ffe500' : kw ? tp.kwColor ?? '#22c55e' : fillAt(0), !(hot && tp.hlStyle === 'box'))
             ctx.restore()
           }
           cx += widths[k] + sp
@@ -1619,13 +1681,7 @@ class Engine {
         })
         ctx.textAlign = tp.align
       } else {
-        if (tp.strokeW > 0) {
-          ctx.lineWidth = fontPx * tp.strokeW
-          ctx.strokeStyle = tp.stroke
-          ctx.strokeText(ln, x, y)
-        }
-        ctx.fillStyle = fillAt(y)
-        ctx.fillText(ln, x, y)
+        paintGlyphs(ctx, tp, ln, x, y, fontPx, fillAt(y), true)
       }
       ctx.shadowColor = 'transparent'
     })
@@ -1701,18 +1757,8 @@ class Engine {
           if (anim === 'glow') {
             ctx.shadowColor = tp.grad ?? tp.color
             ctx.shadowBlur = fontPx * (0.35 + 0.3 * Math.sin(lt * 5))
-          } else if (tp.shadow) {
-            ctx.shadowColor = tp.strokeW > 0 ? tp.stroke : 'rgba(0,0,0,.6)'
-            ctx.shadowBlur = fontPx * 0.2
-            ctx.shadowOffsetY = fontPx * 0.04
-          }
-          if (tp.strokeW > 0) {
-            ctx.lineWidth = fontPx * tp.strokeW
-            ctx.strokeStyle = tp.stroke
-            ctx.strokeText(ch, -w / 2, 0)
-          }
-          ctx.fillStyle = fill
-          ctx.fillText(ch, -w / 2, 0)
+          } else if (tp.shadow) setShadow(ctx, tp, fontPx)
+          paintGlyphs(ctx, tp, ch, -w / 2, 0, fontPx, fill, true)
           ctx.restore()
         }
         cx += w
@@ -2382,3 +2428,45 @@ async function decodeAnimated(file: Blob) {
 
 export const engine = new Engine()
 export { SFX_LIST }
+
+/* ---------- text styling helpers ---------- */
+function setSpacing(ctx: CanvasRenderingContext2D, tp: TextProps, fontPx: number) {
+  const c = ctx as CanvasRenderingContext2D & { letterSpacing?: string }
+  if ('letterSpacing' in c) c.letterSpacing = tp.spacing ? `${(tp.spacing * fontPx).toFixed(2)}px` : '0px'
+}
+function setShadow(ctx: CanvasRenderingContext2D, tp: TextProps, fontPx: number) {
+  ctx.shadowColor = tp.shColor ?? (tp.strokeW > 0 ? tp.stroke : 'rgba(0,0,0,.6)')
+  ctx.shadowBlur = fontPx * (tp.shBlur ?? 0.2)
+  ctx.shadowOffsetX = fontPx * (tp.shX ?? 0)
+  ctx.shadowOffsetY = fontPx * (tp.shY ?? 0.04)
+}
+/** Glow → outer outline → outline → fill, so every style option works with every animation. */
+function paintGlyphs(ctx: CanvasRenderingContext2D, tp: TextProps, txt: string, x: number, y: number, fontPx: number, fill: string | CanvasGradient, outline: boolean) {
+  if (!txt) return
+  if (tp.glow && (tp.glowAmt ?? 0.6) > 0) {
+    ctx.save()
+    ctx.shadowColor = tp.glow
+    ctx.shadowOffsetX = 0
+    ctx.shadowOffsetY = 0
+    const a = tp.glowAmt ?? 0.6
+    for (const b of [0.25, 0.6]) {
+      ctx.shadowBlur = fontPx * b * (0.4 + a)
+      ctx.fillStyle = tp.glow
+      ctx.fillText(txt, x, y)
+    }
+    ctx.restore()
+  }
+  if (outline && tp.stroke2 && (tp.stroke2W ?? 0) > 0) {
+    ctx.lineWidth = fontPx * (tp.strokeW + (tp.stroke2W ?? 0.12) * 2)
+    ctx.strokeStyle = tp.stroke2
+    ctx.strokeText(txt, x, y)
+    if (!tp.shadow) ctx.shadowColor = 'transparent'
+  }
+  if (outline && tp.strokeW > 0) {
+    ctx.lineWidth = fontPx * tp.strokeW
+    ctx.strokeStyle = tp.stroke
+    ctx.strokeText(txt, x, y)
+  }
+  ctx.fillStyle = fill
+  ctx.fillText(txt, x, y)
+}

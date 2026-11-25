@@ -177,7 +177,7 @@ export async function sourceFps(): Promise<number> {
 async function loadFonts() {
   const fams = new Set<string>()
   for (const c of getState().project.clips) if (c.text?.font) fams.add(c.text.font)
-  await Promise.all([...fams].map((f) => document.fonts.load(`700 40px ${f}`, 'अaक').catch(() => [])))
+  await Promise.all([...fams].flatMap((f) => ['400', '700'].map((w) => document.fonts.load(`${w} 40px ${f}`, 'अaक Aa₹').catch(() => []))))
 }
 
 export async function fastExport(onProgress: (p: number, label: string) => void, ctl: Ctl, opts: ExportOpts = {}): Promise<{ blob: Blob; ext: string; codec: string } | null> {

@@ -93,7 +93,26 @@ export interface TextProps {
   kwIdx?: number[] // keyword word indices, drawn in kwColor
   kwColor?: string
   emoji?: string // pops in above the caption
+  // ---- extra styling (all optional; old projects look the same) ----
+  spacing?: number // letter spacing, fraction of font size (-0.1..0.5)
+  lineH?: number // line height, × font size (default 1.18)
+  shColor?: string // custom shadow colour (with shadow on)
+  shBlur?: number // shadow blur, fraction of font size
+  shX?: number // shadow offset, fraction of font size
+  shY?: number
+  glow?: string // glow colour
+  glowAmt?: number // 0..1
+  stroke2?: string // second, outer outline
+  stroke2W?: number // its extra width, fraction of font size
+  boxR?: number // background box corner roundness 0..1
+  boxPad?: number // background box padding, × default
+  animOut?: TextAnimOut
+  animOutDur?: number
+  loop?: TextLoop
 }
+
+export type TextAnimOut = 'none' | 'fade' | 'pop' | 'slide' | 'zoom' | 'blur' | 'drop'
+export type TextLoop = 'none' | 'pulse' | 'float' | 'shake' | 'blink' | 'swing' | 'heartbeat' | 'jelly'
 
 export type TextAnim = 'none' | 'typewriter' | 'pop' | 'fade' | 'slide' | 'wave' | 'letters' | 'bounce' | 'glow' | 'rainbow'
 export type Ease = 'smooth' | 'linear' | 'in' | 'out' | 'bounce' | 'elastic' | 'hold'

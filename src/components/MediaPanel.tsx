@@ -29,6 +29,7 @@ import { extractMono16k } from '../media'
 import { startVoiceover } from '../processing'
 import { PACK_TEMPLATES, TEMPLATES, TEMPLATE_PACKS, applyTemplate } from '../templates'
 import { requirePro, usePro } from '../plan'
+import { STYLE_GROUPS, StyleGroup, TEXT_STYLES } from '../textstyles'
 import { ToolsTab } from './ToolsTab'
 import { StockPanel } from './StockPanel'
 import { addShape } from '../store'
@@ -316,12 +317,55 @@ function TemplateTab() {
   )
 }
 
+const previewCache = new Map<string, string>()
+function StylePreview({ id, tp }: { id: string; tp: TextProps }) {
+  const [src, setSrc] = useState(() => previewCache.get(id) ?? '')
+  useEffect(() => {
+    if (previewCache.has(id)) return
+    let gone = false
+    // wait for the style's font so the preview shows the real letters
+    void document.fonts.load(`700 40px ${tp.font}`, 'Aa अ₹').catch(() => []).then(() => {
+      if (gone) return
+      const url = engine.textPreview(tp, 300, 150)
+      previewCache.set(id, url)
+      setSrc(url)
+    })
+    return () => {
+      gone = true
+    }
+  }, [id, tp])
+  return src ? <img src={src} alt="" /> : <span className="ts-ph" />
+}
+
+function StyleLibrary() {
+  const [g, setG] = useState<StyleGroup>('Trending')
+  return (
+    <>
+      <div className="chips ts-groups">
+        {STYLE_GROUPS.map((x) => (
+          <button key={x} className={'chip' + (g === x ? ' on' : '')} onClick={() => setG(x)}>{x}</button>
+        ))}
+      </div>
+      <div className="ts-grid">
+        {TEXT_STYLES.filter((x) => x.group === g).map((p) => (
+          <button key={p.id} className="ts-tile" title={p.name} onClick={() => { addText(p); engine.requestRender() }}>
+            <StylePreview id={p.id} tp={p.props} />
+            <small>{p.name}</small>
+          </button>
+        ))}
+      </div>
+    </>
+  )
+}
+
 function TextTab() {
   useStore((s) => s.toast + s.project.clips.length) // re-render when styles change
   const mine = loadStyles()
   return (
     <>
-      <div className="hint">Click a style to add it at the playhead. Edit the words in the right panel or drag it on the canvas.</div>
+      <div className="hint">Tap a style to add it at the playhead. Change the words, font, colours, glow and animation in the right panel.</div>
+      <StyleLibrary />
+      <div className="group-h">Classic</div>
       <div className="presets">
         {TEXT_PRESETS.map((p) => (
           <button key={p.id} className="tpreset" onClick={() => addText(p)}>
