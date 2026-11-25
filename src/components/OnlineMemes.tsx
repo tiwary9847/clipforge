@@ -25,31 +25,37 @@ const getKey = () => {
 const LICENSE: Record<string, string> = { cc0: 'CC0 (public domain)', pdm: 'Public domain', by: 'CC BY – credit the creator', 'by-sa': 'CC BY-SA – credit the creator', 'by-nc': 'CC BY-NC – non-commercial only', 'by-nd': 'CC BY-ND', 'by-nc-sa': 'CC BY-NC-SA – non-commercial only', 'by-nc-nd': 'CC BY-NC-ND – non-commercial only' }
 
 async function searchSounds(q: string, commercialOnly: boolean): Promise<Hit[]> {
-  const u = new URL('https://api.openverse.org/v1/audio/')
-  u.searchParams.set('q', q)
-  // Openverse answers 401 to apps without an account that ask for more than 20 results a page
-  u.searchParams.set('page_size', '20')
-  u.searchParams.set('category', 'sound_effect')
-  if (commercialOnly) u.searchParams.set('license_type', 'commercial')
-  let r = await fetch(u)
-  if (r.status === 401) {
-    // in case the limit gets lower again: use Openverse's own default size
-    u.searchParams.delete('page_size')
-    r = await fetch(u)
+  // Most sound effects on Openverse come from Freesound and many have no category (category: null),
+  // so filtering by category=sound_effect alone finds almost nothing. Search Freesound first, then wider.
+  const tries: Record<string, string>[] = [{ source: 'freesound' }, { category: 'sound_effect' }, {}]
+  for (const extra of tries) {
+    const u = new URL('https://api.openverse.org/v1/audio/')
+    u.searchParams.set('q', q)
+    // Openverse answers 401 to apps without an account that ask for more than 20 results a page
+    u.searchParams.set('page_size', '20')
+    for (const [k, v] of Object.entries(extra)) u.searchParams.set(k, v)
+    if (commercialOnly) u.searchParams.set('license_type', 'commercial')
+    let r = await fetch(u)
+    if (r.status === 401) {
+      u.searchParams.delete('page_size')
+      r = await fetch(u)
+    }
+    if (r.status === 429) throw new Error('Too many sound searches right now – wait a minute and try again.')
+    if (!r.ok) throw new Error(`Sound search failed (${r.status}). Try again in a moment.`)
+    const j = await r.json()
+    const hits: Hit[] = (j.results ?? [])
+      .filter((x: { url?: string }) => x.url)
+      .map((x: { id: string; title: string; url: string; license: string; creator?: string; duration?: number; foreign_landing_url?: string }) => ({
+        id: x.id,
+        title: x.title || 'Sound',
+        sub: `${x.duration ? (x.duration / 1000).toFixed(1) + 's · ' : ''}${LICENSE[x.license] ?? x.license.toUpperCase()}${x.creator ? ' · ' + x.creator : ''}`,
+        url: x.url,
+        kind: 'audio' as const,
+        page: x.foreign_landing_url,
+      }))
+    if (hits.length) return hits
   }
-  if (r.status === 429) throw new Error('Too many sound searches right now – wait a minute and try again.')
-  if (!r.ok) throw new Error(`Sound search failed (${r.status}). Try again in a moment.`)
-  const j = await r.json()
-  return (j.results ?? [])
-    .filter((x: { url?: string }) => x.url)
-    .map((x: { id: string; title: string; url: string; license: string; creator?: string; duration?: number; thumbnail?: string; foreign_landing_url?: string }) => ({
-      id: x.id,
-      title: x.title || 'Sound',
-      sub: `${x.duration ? (x.duration / 1000).toFixed(1) + 's · ' : ''}${LICENSE[x.license] ?? x.license.toUpperCase()}${x.creator ? ' · ' + x.creator : ''}`,
-      url: x.url,
-      kind: 'audio' as const,
-      page: x.foreign_landing_url,
-    }))
+  return []
 }
 
 async function searchGifs(q: string, key: string, stickers: boolean): Promise<Hit[]> {

@@ -100,18 +100,27 @@ export interface SearchOpts {
 
 /** Searches Openverse. No key needed. */
 export async function searchMusic(o: SearchOpts): Promise<{ tracks: Track[]; more: boolean }> {
-  const p = new URLSearchParams({ q: o.q.trim() || (o.kind === 'music' ? 'background music' : 'whoosh'), category: o.kind, license: o.noCredit ? 'cc0,pdm' : SAFE_LICENSES, page_size: '20', page: String(o.page ?? 1), filter_dead: 'true', mature: 'false' })
-  if (o.length) p.set('length', o.length)
-  let r: Response
-  try {
-    r = await fetch(`${API}?${p}`, { headers: { Accept: 'application/json' } })
-  } catch {
-    throw new Error('Couldn’t reach the free music library – check your internet connection.')
+  const base = { q: o.q.trim() || (o.kind === 'music' ? 'background music' : 'whoosh'), license: o.noCredit ? 'cc0,pdm' : SAFE_LICENSES, page_size: '20', page: String(o.page ?? 1), filter_dead: 'true', mature: 'false' }
+  // Many Openverse items have no category (most Freesound sound effects show category: null), so a
+  // category filter alone can return nothing. Try the most precise filter first, then wider ones.
+  const tries: Record<string, string>[] = o.kind === 'music' ? [{ category: 'music' }, { source: 'jamendo' }, {}] : [{ source: 'freesound' }, { category: 'sound_effect' }, {}]
+  let j: { results?: OvResult[]; page_count?: number } = {}
+  let tracks: Track[] = []
+  for (const extra of tries) {
+    const p = new URLSearchParams({ ...base, ...extra })
+    if (o.length) p.set('length', o.length)
+    let r: Response
+    try {
+      r = await fetch(`${API}?${p}`, { headers: { Accept: 'application/json' } })
+    } catch {
+      throw new Error('Couldn’t reach the free music library – check your internet connection.')
+    }
+    if (r.status === 429) throw new Error('The music library is busy (too many searches) – wait a minute and try again.')
+    if (!r.ok) throw new Error(`The music library didn’t answer (${r.status}). Try again in a moment.`)
+    j = (await r.json()) as { results?: OvResult[]; page_count?: number }
+    tracks = (j.results ?? []).map(toTrack).filter((x): x is Track => !!x)
+    if (tracks.length || (o.page ?? 1) > 1) break
   }
-  if (r.status === 429) throw new Error('The music library is busy (too many searches) – wait a minute and try again.')
-  if (!r.ok) throw new Error(`The music library didn’t answer (${r.status}). Try again in a moment.`)
-  const j = (await r.json()) as { results?: OvResult[]; page_count?: number }
-  const tracks = (j.results ?? []).map(toTrack).filter((x): x is Track => !!x)
   return { tracks, more: (o.page ?? 1) < Math.min(j.page_count ?? 1, 12) }
 }
 
