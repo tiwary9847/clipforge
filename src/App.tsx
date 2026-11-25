@@ -5,6 +5,7 @@ import { Timeline } from './components/Timeline'
 import { Inspector } from './components/Inspector'
 import { ExportDialog } from './components/ExportDialog'
 import { AutoEditDialog } from './components/AutoEditDialog'
+import { AutopilotDialog } from './components/AutopilotDialog'
 import { Icon } from './components/Icon'
 import { Tour, startTour } from './components/Tour'
 import { SettingsDialog } from './components/SettingsDialog'
@@ -42,6 +43,7 @@ import { restoreProject, startAutosave } from './db'
 export default function App() {
   const [exporting, setExporting] = useState(false)
   const [autoOpen, setAutoOpen] = useState(false)
+  const [pilot, setPilot] = useState(false)
   const [theme, setThemeState] = useState(currentTheme())
   useEffect(() => {
     const on = () => setThemeState(currentTheme())
@@ -59,6 +61,8 @@ export default function App() {
     const onExp = () => setExporting(true)
     const onAsk = (e: Event) => { setSheet(null); setAsk(String((e as CustomEvent).detail ?? '')) }
     window.addEventListener('cf:assistant', onAsk)
+    const onPilot = () => { setSheet(null); setPilot(true) }
+    window.addEventListener('cf:autopilot', onPilot)
     const onPro = (e: Event) => { setSheet(null); setProWhy(String((e as CustomEvent).detail ?? '')) }
     window.addEventListener('cf:pro', onPro)
     window.addEventListener('cf:export', onExp)
@@ -233,6 +237,7 @@ export default function App() {
         </span>
         <div className="spacer" />
         <button className="btn sm ae-btn" onClick={() => setAutoOpen(true)} title="Upload clips, set the order – we edit it for you"><Icon name="sparkles" size={15} /> {t('Auto-edit')}</button>
+        <button className="btn sm ap-btn hide-phone" onClick={() => setPilot(true)} title="Pro: one tap from raw video to finished files – or many videos at once">🚀 Autopilot{!pro && <span className="pro-mini">PRO</span>}</button>
           <button className={'btn pro-btn' + (pro ? ' is-pro' : '')} onClick={() => openPro()} title={pro ? 'You have ClipForge Pro' : 'ClipForge Pro – no mark, 4K, built-in AI'}>{pro ? '★ Pro' : 'Go Pro'}</button>
         <button className="btn sm hide-phone" onClick={() => setConfirmNew(true)} title="Start a new project"><Icon name="plus" size={15} /> {t('New')}</button>
         <select
@@ -266,6 +271,7 @@ export default function App() {
               <div className="more-menu" onClick={() => setMore(false)}>
                 <button onClick={() => setSettingsOpen(true)}><Icon name="gear" size={17} /> {t('Settings')}</button>
                 {installable && <button onClick={() => void install()}>📲 Install app</button>}
+                <button onClick={() => setPilot(true)}>🚀 Autopilot{pro ? '' : ' (Pro)'}</button>
                 <button onClick={() => openPro()}>⭐ {pro ? 'ClipForge Pro ✓' : 'Go Pro'}</button>
                 <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}><Icon name={theme === 'light' ? 'moon' : 'sun'} size={17} /> {theme === 'light' ? t('Dark mode') : t('Light mode')}</button>
                 <button onClick={() => openGuide()}><Icon name="book" size={17} /> {t('Guide')}</button>
@@ -300,6 +306,7 @@ export default function App() {
       {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
       {exporting && <ExportDialog onClose={() => setExporting(false)} />}
       {autoOpen && <AutoEditDialog onClose={() => setAutoOpen(false)} />}
+      {pilot && <AutopilotDialog onClose={() => setPilot(false)} />}
       <Tour />
       {confirmNew && (
         <div className="modal-bg" onPointerDown={(e) => e.target === e.currentTarget && setConfirmNew(false)}>

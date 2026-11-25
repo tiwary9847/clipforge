@@ -107,6 +107,6 @@ GitHub Actions on your account is locked because of a billing issue (every autom
 
 ### What's already in the app
 - **Free:** everything except the Pro features, **no ads**, a small “Made with ClipForge” mark (bottom-right, above the Shorts/Reels buttons).
-- **Pro (₹99 / 30 days, ₹699 / year, ₹1,999 lifetime):** no mark, built-in AI without a key (300 requests a month, +100 for ₹49), **Hindi AI voices**, **one-tap upload kit** (Shorts + YouTube + Reels files with titles, description, hashtags and thumbnail each), **7 premium caption styles**, **premium template packs** (wedding, festival, travel, devotional), 4K export, all formats at once, brand kit.
+- **Pro (₹99 / 30 days, ₹699 / year, ₹1,999 lifetime):** **🚀 Autopilot** (one tap: raw video → edited Shorts/YouTube/Reels files with titles, hashtags and thumbnails; batch many videos; auto-post or schedule on YouTube; saved recipes), no mark, built-in AI without a key (300 requests a month, +100 for ₹49), **Hindi AI voices**, **one-tap upload kit** (Shorts + YouTube + Reels files with titles, description, hashtags and thumbnail each), **7 premium caption styles**, **premium template packs** (wedding, festival, travel, devotional), 4K export, all formats at once, brand kit.
 - Licences are signed and checked in the app (works offline, can't be faked); “Get it back” restores Pro on a new phone with email + payment ID; Pro can be copied to another device with the licence code.
 - Until steps 3–4 are done, the Pro screen says “Pro sales open soon” and accepts licence codes.

@@ -245,6 +245,7 @@ function AIMeter() {
 
 /** Where each Pro feature lives – so a buyer can jump straight to it. */
 const OPEN_FEATURE: Record<string, () => void> = {
+  '🚀': () => window.dispatchEvent(new CustomEvent('cf:autopilot')),
   '🤖': () => window.dispatchEvent(new CustomEvent('cf:assistant')),
   '🗣': () => tool('tts'),
   '📦': () => tool('uploadkit'),

@@ -16,6 +16,7 @@ export const CATS: { id: Cat; name: string; short: string }[] = [
 
 // title prefix → id, categories, one-line description, extra search words
 export const TOOL_META: [string, string, Cat[], string, string][] = [
+  ['Autopilot', 'autopilot', ['ai', 'publish'], 'One tap: raw video → edited, files made, posted', 'automate automatic everything batch bulk youtube post schedule recipe one tap'],
   ['AI assistant', 'assistant', ['ai'], 'Say what you want – it edits for you', 'ai chat ask help karo bana do edit karo voice'],
   ['Retention coach', 'retention', ['ai', 'fix'], 'Where viewers swipe away – and one-tap fixes', 'retention boring drop off swipe watch time viewers'],
   ['Blur strangers', 'blur', ['ai', 'fix'], 'Blur faces of people around you, keep yours', 'privacy face blur pixelate crowd market strangers'],

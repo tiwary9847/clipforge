@@ -71,6 +71,8 @@ export function ToolsTab() {
         </button>
       </div>
       <ToolCards>
+      <div className="group-h">🚀 Autopilot</div>
+      <AutopilotCard />
       <div className="group-h">🤖 AI assistant</div>
       <AssistantCard />
       <div className="group-h">📈 Retention coach</div>
@@ -294,6 +296,16 @@ function addBrandOutro(b: Brand) {
 }
 
 /* ---------- one-tap upload kit (Pro) ---------- */
+
+function AutopilotCard() {
+  const pro = usePro()
+  return (
+    <>
+      <div className="hint">One tap from raw video to finished files: pauses and bad takes cut, captions, hook, zooms, sound effects, music, logo, ending text, loudness and retention fixes – then Shorts / YouTube / Reels files with titles, hashtags and thumbnails, and (if you like) posted to YouTube. Run it on many videos at once with Batch, and save your own recipes.</div>
+      <button className="btn primary full" onClick={() => window.dispatchEvent(new CustomEvent('cf:autopilot'))}>🚀 Open Autopilot{pro ? '' : ' (Pro)'}</button>
+    </>
+  )
+}
 
 function UploadKit() {
   const [sel, setSel] = useState<Record<KitTarget, boolean>>({ shorts: true, yt: true, reels: true })

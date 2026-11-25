@@ -33,7 +33,8 @@ const HOP = 0.25
 async function envelope(dur: number, status: (m: string) => void): Promise<Float32Array> {
   const n = Math.ceil(dur / HOP)
   const out = new Float32Array(n).fill(-90)
-  const clips = getState().project.clips
+  // listen to the voice only (main video + voice-over); music and sound effects would hide the pauses
+  const clips = getState().project.clips.filter((c) => c.track === 'v1' || (c.track === 'a1' && c.kind === 'audio'))
   for (let t0 = 0; t0 < dur; t0 += 30) {
     status(`Listening… ${Math.round((t0 / dur) * 100)}%`)
     const t1 = Math.min(dur, t0 + 30)
@@ -71,7 +72,9 @@ function visualEvents(): number[] {
 }
 
 export async function analyse(status: (m: string) => void, ai?: { provider: 'gemini' | 'claude'; key: string }): Promise<Report> {
-  const dur = projectDuration()
+  // only the video itself counts – music or text running past the last shot isn't something viewers watch
+  const mainEnd = getState().project.clips.filter((c) => c.track === 'v1').reduce((m, c) => Math.max(m, c.start + c.dur), 0)
+  const dur = mainEnd > 0 ? Math.min(mainEnd, projectDuration()) : projectDuration()
   if (dur < 3) throw new Error('Add a video of at least a few seconds first.')
   const P = getPreset()
   const short = P.h > P.w
@@ -179,7 +182,8 @@ Reply only JSON: {"parts":[{"from":12.3,"to":19.0,"why":"max 10 words, in the cr
   const merged: Issue[] = []
   for (const s of issues.sort((a, b) => a.from - b.from)) {
     const last = [...merged].reverse().find((m) => m.kind === s.kind)
-    if (last && s.from <= last.to + 0.5) {
+    // pauses and the slow start are cut exactly as found – merging them would swallow the words in between
+    if (last && s.kind !== 'pause' && s.kind !== 'start' && s.from <= last.to + 0.5) {
       last.to = Math.max(last.to, s.to)
       last.weight += s.weight * 0.5
       if (last.kind === 'flat') last.why = `same tone and loudness for ${Math.round(last.to - last.from)} s – sounds flat`
@@ -196,10 +200,13 @@ Reply only JSON: {"parts":[{"from":12.3,"to":19.0,"why":"max 10 words, in the cr
 const mainAt = (t: number) => getState().project.clips.find((c) => c.track === 'v1' && (c.kind === 'video' || c.kind === 'image') && t >= c.start && t < c.start + c.dur)
 
 /** Removes [a, b] from everything (silence is trimmed with a little breathing room). */
+export const MAX_SAFE_CUT = 6
 export function fixCut(s: Issue): string {
   const pad = s.kind === 'pause' ? 0.15 : 0
   const a = s.kind === 'start' ? 0 : s.from + pad
   const b = s.to - pad
+  // safety: a "pause" or slow start this long is almost surely talking that was quiet – never cut it blindly
+  if ((s.kind === 'pause' || s.kind === 'start') && b - a > MAX_SAFE_CUT) return `Skipped ${fmt(s.from)}–${fmt(s.to)}: too long to be a pause – check it by hand.`
   const removed = cutTimeline([[a, Math.max(a, b)]])
   return `Cut ${removed.toFixed(1)} s. Everything after moved up.`
 }

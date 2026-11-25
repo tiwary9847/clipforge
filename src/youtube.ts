@@ -30,7 +30,15 @@ function loadGsi(): Promise<any> {
   })
 }
 
+// one sign-in is reused for about an hour, so a batch of uploads asks only once
+let cached: { tok: string; until: number; id: string } | null = null
 async function token(clientId: string): Promise<string> {
+  if (cached && cached.id === clientId && cached.until > Date.now()) return cached.tok
+  const tok = await freshToken(clientId)
+  cached = { tok, until: Date.now() + 50 * 60e3, id: clientId }
+  return tok
+}
+async function freshToken(clientId: string): Promise<string> {
   const google = await loadGsi()
   return new Promise((res, rej) => {
     const client = google.accounts.oauth2.initTokenClient({
@@ -43,14 +51,22 @@ async function token(clientId: string): Promise<string> {
   })
 }
 
-export async function uploadToYouTube(
-  blob: Blob,
-  meta: { title: string; description: string; privacy: 'private' | 'unlisted' | 'public' },
-  onProgress: (p: number) => void,
-): Promise<string> {
+export interface YtMeta {
+  title: string
+  description: string
+  privacy: 'private' | 'unlisted' | 'public'
+  tags?: string[]
+  /** ISO time to go public; the video stays private until then (YouTube requires that). */
+  publishAt?: string
+  shorts?: boolean
+}
+export async function uploadToYouTube(blob: Blob, meta: YtMeta, onProgress: (p: number) => void): Promise<string> {
   const clientId = getClientId()
   if (!clientId) throw new Error('Paste your Google OAuth client ID first.')
   const tok = await token(clientId)
+  const tags = (meta.tags ?? []).map((t) => t.replace(/^#/, '')).filter(Boolean).slice(0, 25)
+  const status: Record<string, unknown> = { privacyStatus: meta.publishAt ? 'private' : meta.privacy, selfDeclaredMadeForKids: false }
+  if (meta.publishAt) status.publishAt = meta.publishAt
   const init = await fetch('https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status', {
     method: 'POST',
     headers: {
@@ -60,8 +76,8 @@ export async function uploadToYouTube(
       'X-Upload-Content-Length': String(blob.size),
     },
     body: JSON.stringify({
-      snippet: { title: meta.title.slice(0, 100) || 'My video', description: meta.description },
-      status: { privacyStatus: meta.privacy, selfDeclaredMadeForKids: false },
+      snippet: { title: meta.title.slice(0, 100) || 'My video', description: meta.description.slice(0, 4900), tags, categoryId: '22' },
+      status,
     }),
   })
   if (!init.ok) throw new Error(`YouTube refused the upload (${init.status}). ${(await init.text()).slice(0, 200)}`)
@@ -84,4 +100,12 @@ export async function uploadToYouTube(
     }
     xhr.send(blob)
   })
+}
+
+/** Sets a custom thumbnail (needs a verified YouTube channel – otherwise YouTube refuses and the video keeps its own). */
+export async function setYouTubeThumbnail(videoUrl: string, jpg: Blob): Promise<void> {
+  const id = videoUrl.split('/').pop()
+  const tok = await token(getClientId())
+  const r = await fetch(`https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=${id}`, { method: 'POST', headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'image/jpeg' }, body: jpg })
+  if (!r.ok) throw new Error(r.status === 403 ? 'Custom thumbnails need a verified YouTube channel (youtube.com/verify).' : `YouTube refused the thumbnail (${r.status}).`)
 }
