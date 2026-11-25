@@ -27,10 +27,17 @@ const LICENSE: Record<string, string> = { cc0: 'CC0 (public domain)', pdm: 'Publ
 async function searchSounds(q: string, commercialOnly: boolean): Promise<Hit[]> {
   const u = new URL('https://api.openverse.org/v1/audio/')
   u.searchParams.set('q', q)
-  u.searchParams.set('page_size', '24')
+  // Openverse answers 401 to apps without an account that ask for more than 20 results a page
+  u.searchParams.set('page_size', '20')
   u.searchParams.set('category', 'sound_effect')
   if (commercialOnly) u.searchParams.set('license_type', 'commercial')
-  const r = await fetch(u)
+  let r = await fetch(u)
+  if (r.status === 401) {
+    // in case the limit gets lower again: use Openverse's own default size
+    u.searchParams.delete('page_size')
+    r = await fetch(u)
+  }
+  if (r.status === 429) throw new Error('Too many sound searches right now – wait a minute and try again.')
   if (!r.ok) throw new Error(`Sound search failed (${r.status}). Try again in a moment.`)
   const j = await r.json()
   return (j.results ?? [])
