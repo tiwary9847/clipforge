@@ -18,6 +18,9 @@ export const CATS: { id: Cat; name: string; short: string }[] = [
 export const TOOL_META: [string, string, Cat[], string, string][] = [
   ['Autopilot', 'autopilot', ['ai', 'publish'], 'One tap: raw video → edited, files made, posted', 'automate automatic everything batch bulk youtube post schedule recipe one tap'],
   ['AI assistant', 'assistant', ['ai'], 'Say what you want – it edits for you', 'ai chat ask help karo bana do edit karo voice'],
+  ['Comment preview', 'comments', ['ai', 'publish'], 'See the comments your reel will get – before posting', 'comments predict audience reaction viewers feedback troll before post review'],
+  ['Mute check', 'mutecheck', ['fix', 'publish'], 'How your reel looks with the sound off – fix the lost parts', 'mute muted sound off silent captions understand'],
+  ['Ghost re-take', 'ghost', ['fix', 'create'], 'Fix a mistake mid-video – re-record only from there', 'retake re-take mistake galti record again camera ghost align'],
   ['Retention coach', 'retention', ['ai', 'fix'], 'Where viewers swipe away – and one-tap fixes', 'retention boring drop off swipe watch time viewers'],
   ['Blur strangers', 'blur', ['ai', 'fix'], 'Blur faces of people around you, keep yours', 'privacy face blur pixelate crowd market strangers'],
   ['Ready to post', 'ready', ['fix', 'publish'], 'Score your video and fix problems in one tap', 'check score viral hook safe zone loudness'],

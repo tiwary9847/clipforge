@@ -4,7 +4,7 @@
 //   POST /restore  {email, payment_id}                    → the licence again (new phone)
 //   POST /webhook  Razorpay "payment.captured"            → records payments even if the buyer closed the tab
 //   POST /play     {sku, purchaseToken}                   → checks a Google Play purchase, returns a licence
-//   POST /ai       {prompt, json}  + Bearer <licence>     → built-in AI for Pro (monthly limit)
+//   POST /ai       {prompt, json, images?} + Bearer       → built-in AI for Pro (monthly limit); with frames = 2 requests
 //   POST /tts      {text, voice}   + Bearer <licence>     → Hindi/English AI voice (Gemini TTS), counts as 5 AI requests
 //   POST /usage    + Bearer <licence>                     → AI used / left this month
 //   POST /price    {plan, coupon, current}                → price after coupon, renewal start
@@ -178,8 +178,9 @@ async function googleToken(env) {
 }
 
 /* ---- AI ---- */
-async function gemini(env, prompt, json) {
-  const body = JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { ...(json ? { responseMimeType: 'application/json' } : {}), temperature: 0.9 } })
+async function gemini(env, prompt, json, images = []) {
+  const parts = [...images.map((d) => ({ inlineData: { mimeType: 'image/jpeg', data: d } })), { text: prompt }]
+  const body = JSON.stringify({ contents: [{ parts }], generationConfig: { ...(json ? { responseMimeType: 'application/json' } : {}), temperature: 0.9 } })
   let r
   for (const m of GEMINI_MODELS) {
     r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${env.GEMINI_KEY}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body })
@@ -532,9 +533,13 @@ export default {
         }
         const prompt = String(body.prompt || '')
         if (!prompt || prompt.length > 20000) return reply(h, 400, { error: 'Request too long' })
-        const text = await gemini(env, prompt, !!body.json)
-        await spendAI(env, lic.sub, cost)
-        return reply(h, 200, { text, left: u.left - cost })
+        // up to 6 small JPEG frames (base64) so the AI can see the video – counts as 2 requests
+        const images = Array.isArray(body.images) ? body.images.filter((x) => typeof x === 'string' && /^[A-Za-z0-9+/=]+$/.test(x) && x.length <= 300000).slice(0, 6) : []
+        const used = images.length ? 2 : 1
+        if (u.left < used) return reply(h, 429, { error: `You’ve used this month’s ${u.limit} AI requests. Add 100 more for ₹49 in ClipForge Pro, or wait for the 1st.` })
+        const text = await gemini(env, prompt, !!body.json, images)
+        await spendAI(env, lic.sub, used)
+        return reply(h, 200, { text, left: u.left - used })
       }
       return reply(h, 404, { error: 'Not found' })
     } catch (e) {

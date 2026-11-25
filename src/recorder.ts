@@ -5,7 +5,7 @@ import { addAsset, addClipsBatch, baseClip, clipEnd, getState } from './store'
 export type RecMode = 'screen' | 'camera' | 'both'
 
 const MIMES = ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
-const pickMime = () => MIMES.find((m) => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(m)) ?? ''
+export const pickMime = () => MIMES.find((m) => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(m)) ?? ''
 
 export const canRecordScreen = () => !!navigator.mediaDevices?.getDisplayMedia
 export const canRecordCamera = () => !!navigator.mediaDevices?.getUserMedia

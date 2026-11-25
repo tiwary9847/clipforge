@@ -181,8 +181,8 @@ if (typeof document !== 'undefined' && document.referrer.startsWith('android-app
 
 /** Built-in AI (through the ClipForge server) for Pro users without their own key. */
 export const builtinAI = () => !!(current && CONFIG.server)
-export async function askBuiltin(prompt: string, json: boolean): Promise<string> {
-  const j = await post<{ text?: string }>('/ai', { prompt, json }, true)
+export async function askBuiltin(prompt: string, json: boolean, images: string[] = []): Promise<string> {
+  const j = await post<{ text?: string }>('/ai', { prompt, json, ...(images.length ? { images } : {}) }, true)
   return j.text ?? ''
 }
 /** Hindi / English AI voice (Gemini TTS on the server). Returns mono samples. */

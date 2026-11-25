@@ -29,6 +29,7 @@ globalThis.fetch = async (url, init = {}) => {
   if (url.startsWith('https://static.klipy.com/')) return new Response(new Uint8Array(900), { status: 200, headers: { 'content-type': 'image/webp', 'content-length': '900' } })
   if (url.startsWith('https://cdn.freesound.org/')) return new Response(new Uint8Array(3000), { status: 200, headers: { 'content-type': 'audio/mpeg', 'content-length': '3000' } })
   if (url.includes('-tts')) return url.includes('gemini-3.8-flash-tts') ? J({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/L16;codec=pcm;rate=24000', data: 'AAAA' } }] } }] }) : J({}, 404)
+  if (url.includes('generativelanguage') && init.body) globalThis.lastGem = JSON.parse(init.body)
   if (url.includes('generativelanguage')) return url.includes('gemini-flash-latest') ? J({ candidates: [{ content: { parts: [{ text: '{"ok":1}' }] } }] }) : J({}, 404)
   return J({ error: 'unexpected ' + url }, 500)
 }
@@ -145,5 +146,14 @@ const gifs = async (qs, e = env) => { const r = await worker.fetch(new Request('
 check('relay: other sites refused', (await media('https://evil.example/x.mp3'))[0] === 400)
 check('relay: Freesound login-only download refused', (await media('https://freesound.org/apiv2/sounds/5/download/'))[0] === 400)
 check('relay: no http / tricks', (await media('http://cdn.freesound.org/previews/a.mp3'))[0] === 400 && (await media('https://user@cdn.freesound.org/previews/a.mp3'))[0] === 400)
+{
+  const lic = await makeLicence(env, 'frames@x.in', 'razorpay', 'year')
+  const img = Buffer.from('fakejpeg').toString('base64')
+  const [s1, j1] = await call('/ai', { prompt: 'what do viewers say', json: true, images: [img, img, img, 'not base64!!'] }, { authorization: 'Bearer ' + lic })
+  const parts = globalThis.lastGem?.contents?.[0]?.parts ?? []
+  check('AI with video frames: frames reach Gemini, bad ones dropped, counts as 2', s1 === 200 && parts.filter((p) => p.inlineData).length === 3 && parts.at(-1).text === 'what do viewers say' && j1.left === 0, JSON.stringify({ s1, n: parts.length, left: j1.left }))
+  const [s2] = await call('/ai', { prompt: 'again', images: [img] }, { authorization: 'Bearer ' + lic })
+  check('AI with frames refused when not enough requests left', s2 === 429)
+}
 console.log(`\n${pass} passed, ${fail} failed`)
 process.exit(fail ? 1 : 0)

@@ -502,10 +502,12 @@ class Engine {
     m.voiceId = c.voice ?? 'none'
   }
 
+  /** Mute check: plays the video the way people scrolling with the sound off see it. */
+  previewMute = false
   private applyLoud() {
     if (!this.master) return
     const db = getState().project.loudDb
-    const v = db ? Math.pow(10, db / 20) : 1
+    const v = this.previewMute ? 0 : db ? Math.pow(10, db / 20) : 1
     if (Math.abs(this.master.gain.value - v) > 1e-3) this.master.gain.value = v
   }
 

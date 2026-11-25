@@ -11,6 +11,7 @@ import { ProGate } from './ProDialog'
 import { requirePro, usePro } from '../plan'
 import { KIT_TARGETS, KitItem, KitTarget, aiKit, canAI, kitMeta, kitSpoken, kitText, kitThumb, kitVideos } from '../uploadkit'
 import { AssistantCard, BlurStrangers, RetentionCoach } from './AIPanels'
+import { CommentPreview, GhostRetakeCard, MuteCheck } from './NovelPanels'
 import { RecMode, Recording, canRecordCamera, canRecordScreen, startRecording } from '../recorder'
 import { LAYOUTS, addAdjustmentLayer, applyLayout } from '../looks'
 import { DubSection, SpeakersSection } from './VoicePanels'
@@ -75,6 +76,12 @@ export function ToolsTab() {
       <AutopilotCard />
       <div className="group-h">🤖 AI assistant</div>
       <AssistantCard />
+      <div className="group-h">💬 Comment preview</div>
+      <CommentPreview />
+      <div className="group-h">🔇 Mute check</div>
+      <MuteCheck />
+      <div className="group-h">👻 Ghost re-take</div>
+      <GhostRetakeCard />
       <div className="group-h">📈 Retention coach</div>
       <RetentionCoach />
       <div className="group-h">✅ Ready to post?</div>

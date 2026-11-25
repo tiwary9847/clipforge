@@ -134,7 +134,7 @@ const aiOpts = (): { provider: 'gemini' | 'claude'; key: string } | null => {
   return key ? { provider, key } : builtinAI() ? { provider, key: '' } : null
 }
 
-function addCta(text: string) {
+export function addCta(text: string) {
   const end = projectDuration()
   if (end <= 0 || !text.trim()) throw new Error('nothing to add')
   const p = TEXT_PRESETS.find((x) => x.id === 'title') ?? TEXT_PRESETS[0]

@@ -228,13 +228,15 @@ export const GEMINI_MODELS = ['gemini-flash-latest', 'gemini-3.5-flash', 'gemini
 
 import { askBuiltin, builtinAI } from './plan'
 
-export async function askAI(provider: 'gemini' | 'claude', key: string, prompt: string, json = true): Promise<string> {
+/** images: optional base64 JPEG frames (no data: prefix) so the AI can see the video. */
+export async function askAI(provider: 'gemini' | 'claude', key: string, prompt: string, json = true, images: string[] = []): Promise<string> {
   // Pro without a key of their own: the ClipForge server answers (built-in AI)
-  if (!key && builtinAI()) return askBuiltin(prompt, !!json)
+  if (!key && builtinAI()) return askBuiltin(prompt, !!json, images)
   if (provider === 'gemini') {
     // Google retires model versions (gemini-2.0-flash shut down 1 June 2026): use the auto-updating
     // "latest Flash" alias first, then fixed current models if that alias is ever unavailable.
-    const body = JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { ...(json ? { responseMimeType: 'application/json' } : {}), temperature: 0.9 } })
+    const parts = [...images.map((d) => ({ inlineData: { mimeType: 'image/jpeg', data: d } })), { text: prompt }]
+    const body = JSON.stringify({ contents: [{ parts }], generationConfig: { ...(json ? { responseMimeType: 'application/json' } : {}), temperature: 0.9 } })
     let r: Response | null = null
     for (const model of GEMINI_MODELS) {
       r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body })
@@ -248,7 +250,7 @@ export async function askAI(provider: 'gemini' | 'claude', key: string, prompt: 
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-    body: JSON.stringify({ model: 'claude-haiku-5-5', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] }),
+    body: JSON.stringify({ model: 'claude-haiku-5-5', max_tokens: 2000, messages: [{ role: 'user', content: images.length ? [...images.map((d) => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: d } })), { type: 'text', text: prompt }] : prompt }] }),
   })
   if (!r.ok) throw new Error(`Claude said ${r.status} – check the key.`)
   const j = await r.json()

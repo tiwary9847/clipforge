@@ -12,14 +12,14 @@ import { builtinAI } from '../plan'
 const toast = (m: string) => setUi({ toast: m })
 const ownKey = () => ({ provider: ((localStorage.getItem('clipforge-ai-prov') as 'gemini' | 'claude') || 'gemini') as 'gemini' | 'claude', key: localStorage.getItem('clipforge-ai-key') ?? '' })
 /** The AI to use: your own key, else Pro's built-in AI (askAI routes an empty key to the server), else none. */
-const aiKey = () => {
+export const aiKey = () => {
   const o = ownKey()
   return o.key ? o : builtinAI() ? { provider: o.provider, key: '' , builtin: true } : { ...o, builtin: false }
 }
-const hasAI = () => !!ownKey().key || builtinAI()
+export const hasAI = () => !!ownKey().key || builtinAI()
 
 /** Shared "your own AI key" box (Gemini has a free key). */
-function KeyBox({ note }: { note: string }) {
+export function KeyBox({ note }: { note: string }) {
   const [prov, setProv] = useState(ownKey().provider)
   const [key, setKey] = useState(ownKey().key)
   const save = (k: string, p = prov) => {

@@ -27,10 +27,10 @@ export interface Report {
   short: boolean
 }
 
-const HOP = 0.25
+export const HOP = 0.25
 
 /** Loudness envelope (dB) of the whole mix, one value per 0.25 s. */
-async function envelope(dur: number, status: (m: string) => void): Promise<Float32Array> {
+export async function envelope(dur: number, status: (m: string) => void): Promise<Float32Array> {
   const n = Math.ceil(dur / HOP)
   const out = new Float32Array(n).fill(-90)
   // listen to the voice only (main video + voice-over); music and sound effects would hide the pauses
