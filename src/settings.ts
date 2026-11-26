@@ -149,6 +149,46 @@ export function activeSkin(): Skin {
   return state.skin || (prefersLight() ? state.lastLight : state.lastDark)
 }
 
+/* ---------- colour helpers: keep white text readable on accent colours ---------- */
+const lum = (hex: string) => {
+  const n = parseInt(hex.slice(1), 16)
+  const f = (v: number) => {
+    v /= 255
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)
+  }
+  return 0.2126 * f((n >> 16) & 255) + 0.7152 * f((n >> 8) & 255) + 0.0722 * f(n & 255)
+}
+export const contrastWithWhite = (hex: string) => 1.05 / (lum(hex) + 0.05)
+/** The same hue, darkened only as much as needed for white text at ≥ 4.6:1 (HSL lightness, so it stays vivid). */
+export function whiteSafe(hex: string): string {
+  if (contrastWithWhite(hex) >= 4.6) return hex
+  const n = parseInt(hex.slice(1), 16)
+  const R = ((n >> 16) & 255) / 255
+  const G = ((n >> 8) & 255) / 255
+  const B = (n & 255) / 255
+  const mx = Math.max(R, G, B)
+  const mn = Math.min(R, G, B)
+  let h = 0
+  const d = mx - mn
+  let l = (mx + mn) / 2
+  const sat = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1))
+  if (d) h = mx === R ? ((G - B) / d) % 6 : mx === G ? (B - R) / d + 2 : (R - G) / d + 4
+  h *= 60
+  const hsl = (L: number) => {
+    const c = (1 - Math.abs(2 * L - 1)) * sat
+    const x = c * (1 - Math.abs(((h / 60) % 2) - 1))
+    const m = L - c / 2
+    const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x]
+    return '#' + [r, g, b].map((v) => Math.round(Math.max(0, Math.min(1, v + m)) * 255).toString(16).padStart(2, '0')).join('')
+  }
+  let out = hex
+  while (l > 0.05 && contrastWithWhite(out) < 4.6) {
+    l -= 0.01
+    out = hsl(l)
+  }
+  return out
+}
+
 export function applySettings() {
   const root = document.documentElement
   const skin = activeSkin()
@@ -169,9 +209,17 @@ export function applySettings() {
   st.setProperty('--acc-rgb', rgb(A.a))
   st.setProperty('--acc2-rgb', rgb(A.b))
   st.setProperty('--acc3-rgb', rgb(A.c))
+  // Readable on every theme: white text sits on shades darkened just enough for 4.5:1 (WCAG AA);
+  // the bright originals stay for decoration (logo, glows). Light themes also use the safe shade for accent text.
+  const fa = whiteSafe(A.a)
+  const fb = whiteSafe(A.b)
+  const fc = whiteSafe(A.c)
+  st.setProperty('--accent-fill', fa)
+  if (!sk.dark) st.setProperty('--accent', fa)
   st.setProperty('--acc-soft', sk.dark ? A.soft : A.deep)
   st.setProperty('--acc-deep', A.deep)
-  st.setProperty('--grad', `linear-gradient(135deg, ${A.a} 0%, ${A.b} 55%, ${A.c} 100%)`)
+  st.setProperty('--grad', `linear-gradient(135deg, ${fa} 0%, ${fb} 55%, ${fc} 100%)`)
+  st.setProperty('--grad-bright', `linear-gradient(135deg, ${A.a} 0%, ${A.b} 55%, ${A.c} 100%)`)
   st.setProperty('--glow', `0 0 0 1px rgba(${rgb(A.a)}, 0.45), 0 8px 28px -6px rgba(${rgb(A.a)}, 0.55)`)
   const phone = typeof matchMedia !== 'undefined' && matchMedia('(max-width: 820px)').matches
   st.setProperty('--tl-h', `${timelineHeight(false)}px`)

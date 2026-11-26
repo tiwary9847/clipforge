@@ -360,3 +360,9 @@ Timeline bar: **✓ Select** mode (tap clips to add/remove – works on phones),
 - **Link previews**: Open Graph / X tags + `public/og.jpg` (1200×630); the address comes from `VITE_SITE_URL` in `.env`.
 - Monthly plan label says “no auto-renewal” (it never renews), matching the refund policy.
 
+## v35 – UI polish (readability, touch, motion)
+- **Readable colours everywhere**: `whiteSafe()` in `settings.ts` darkens each accent (in HSL, so it stays vivid) just enough for white text at ≥ 4.6:1; `--grad` and `--accent-fill` use those shades for buttons and filled chips, light themes use them for accent text, and `--grad-bright` keeps the original for the logo. Gold PRO badge has dark text; amber warnings, “Saved”, timeline numbers and Warm-paper grey text darkened. Audit (every visible text, 5 themes × 7 accents, laptop + phone, gradients judged against every colour stop): 0 failures.
+- **Phones: ~44 px touch areas**: small controls get an invisible larger hit area (`::after`, same layout); section headers, keyframe diamonds, tip buttons, sliders and checkboxes are also bigger on touch screens.
+- **Calmer top bar**: Export is the one solid button; Auto-edit soft-tinted, Autopilot outlined, Go Pro gold outline.
+- **Springy motion** (Android 16 / Material 3 Expressive style): CSS `linear()` spring for dialogs, menus, phone sheets, selected chips/tabs and a press-down on buttons; off with Settings → Animations or the system's reduce-motion.
+

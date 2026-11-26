@@ -28,6 +28,7 @@
   --acc3: #ff5c9a;
   --acc-soft: #d2c6ff;
   --acc-deep: #5b3fe0;
+  --accent-fill: #7753ff;
   --accent2: var(--acc3, #ff5c9a);
   --accent3: #31d0ff;
   --grad: linear-gradient(135deg, #8b6cff 0%, #c25cff 55%, var(--acc3, #ff5c9a) 100%);
@@ -272,7 +273,7 @@ input[type='range']:hover::-webkit-slider-thumb { transform: scale(1.15); }
 .tab.on .ic { color: var(--acc-soft); filter: drop-shadow(0 0 6px rgba(var(--acc-rgb), 0.7)); }
 .logo-mark .ic { margin-left: 2px; color: #fff; }
 .logo-txt { font-weight: 500; letter-spacing: -0.3px; }
-.logo-txt b { font-weight: 800; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.logo-txt b { font-weight: 800; background: var(--grad-bright, var(--grad)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .ico.play .ic { margin-left: 1px; }
 
 /* track headers with colour-coded icons */

@@ -148,7 +148,7 @@ textarea { resize: vertical; }
 .chips, .toggles { display: flex; flex-wrap: wrap; gap: 5px; }
 .chip { background: var(--panel2); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; font-size: 12px; }
 .chip:hover { border-color: #444a6a; }
-.chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chip.on { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
 
 /* timeline */
 .timeline { min-width: 0; background: var(--panel); border-top: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
@@ -308,7 +308,7 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .msearch{width:100%;margin:6px 0;padding:7px 9px;border-radius:8px;border:1px solid var(--line,#333);background:rgba(255,255,255,.05);color:inherit}
 .mcats{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
 .mcat{padding:4px 9px;border-radius:999px;border:1px solid var(--line,#333);background:transparent;color:inherit;font-size:12px;cursor:pointer}
-.mcat.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.mcat.on{background:var(--accent-fill);border-color:var(--accent-fill);color:#fff}
 .memes{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}
 .meme{position:relative}
 .meme-go{width:100%;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 6px;border-radius:10px;border:1px solid var(--line,#333);background:rgba(255,255,255,.04);color:inherit;cursor:pointer;text-align:center}
@@ -347,7 +347,7 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 /* online memes */
 .osrc{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}
 .osrc button,.osrc a{padding:5px 10px;border-radius:999px;border:1px solid var(--line,#333);background:transparent;color:inherit;font-size:12px;cursor:pointer;text-decoration:none}
-.osrc button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.osrc button.on{background:var(--accent-fill);border-color:var(--accent-fill);color:#fff}
 .msub{margin-top:0}
 .osearch{display:flex;gap:6px;margin:6px 0}
 .osearch input,.okey input{flex:1;min-width:0;padding:7px 9px;border-radius:8px;border:1px solid var(--line,#333);background:rgba(255,255,255,.05);color:inherit}
@@ -390,7 +390,7 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .tw{cursor:pointer;border-radius:4px;padding:1px 0}
 .tw:hover{background:rgba(255,255,255,.08)}
 .tw.fill{text-decoration:underline wavy #ffb020;text-underline-offset:4px}
-.tw.sel{background:var(--accent);color:#fff}
+.tw.sel{background:var(--accent-fill);color:#fff}
 .tw.cut{opacity:.35;text-decoration:line-through}
 .tw.now{outline:2px solid #ffd400}
 
