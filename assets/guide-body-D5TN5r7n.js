@@ -48,12 +48,13 @@ const e=`<h1 class="part"><span class="n">1</span>Getting started</h1>
 
 <h2>On a phone</h2>
 <div class="two">
-  <figure><img src="guide/phone_main.webp" width="591" height="1280" loading="lazy" alt=""><figcaption>Phone layout: preview on top, timeline below.</figcaption></figure>
-  <figure><img src="guide/phone_add.webp" width="591" height="1280" loading="lazy" alt=""><figcaption>Tap <b>Add</b> to open the tabs as a sheet.</figcaption></figure>
+  <figure><img src="guide/phone_home.webp" width="591" height="1280" loading="lazy" alt=""><figcaption>The phone home screen: Create, quick tools and templates.</figcaption></figure>
+  <figure><img src="guide/phone_main.webp" width="591" height="1280" loading="lazy" alt=""><figcaption>The editor: preview on top, timeline below.</figcaption></figure>
 </div>
 <ul>
-  <li>The first screen says <b>Tap to add videos, photos or music</b> – tap it to pick from your gallery. The timeline appears once something is added.</li>
-  <li>The bottom bar has <b>Add</b> (all the tabs), <b>Edit</b> (settings for the selected clip, or <b>Project</b> when nothing is selected), <b>Play</b> and <b>Export</b>.</li>
+  <li>The <b>home screen</b> opens first. Tap the big <span class="ui">＋ Create</span> to pick videos and photos from your gallery – they go on the timeline in the order you picked them. Next to it: <b>Auto-edit</b> and <b>Script to video</b>.</li>
+  <li>Below are one-tap tools – <b>Auto captions</b>, <b>Camera</b>, <b>Remove “um, uh”</b>, <b>Batch trim</b>, <b>Memes</b>, <b>GIFs</b>, <b>Photo enhance</b> and <b>More tools</b> – then the format and the <b>template cards</b>.</li>
+  <li>The bottom bar has <b>Home</b>, <b>Edit</b> (settings for the selected clip, or <b>Project</b> when nothing is selected), the big <b>＋ Add</b> in the middle (all the tabs), <b>Play</b> and <b>Export</b>. Home shows <b>Continue editing</b> to go back to your video.</li>
   <li>Tap a clip on the timeline and the Edit sheet opens. Tap <b>Close</b> to put it away.</li>
   <li>Pinch on the preview to make a clip bigger or smaller.</li>
 </ul>
@@ -515,8 +516,20 @@ const e=`<h1 class="part"><span class="n">1</span>Getting started</h1>
   <li><b>👯 2 of me / 3 of me</b> – copies of you side by side, each a little behind in time. Put a background on the Main track behind them.</li>
 </ul>
 
-<h2>🎞 Video templates – fill with your clips</h2>
-<p class="where">Templates tab → top</p>
+<h2>🎞 Template cards</h2>
+<p class="where">Phone home screen, or the top of the Templates tab</p>
+<p>Scroll the rows of picture cards – <b>Fill with your clips</b>, <b>Wedding</b>, <b>Festival</b>, <b>Travel</b>, <b>Devotional</b> and <b>Text layouts</b> – and tap <span class="ui">Use</span>. For a <i>fill with your clips</i> template you pick your videos or photos and it’s made at once on a built-in beat. Text layouts go straight over the video you already have (or ask for one first). Wedding, Festival, Travel and Devotional are part of Pro.</p>
+
+<h2>✂️ Batch trim</h2>
+<p class="where">Tools → Batch trim (or the home screen on a phone)</p>
+<ol>
+  <li>Pick several videos (or use the ones already on the timeline). Each gets a row with its own <b>start and end handles</b> – drag them and the preview jumps there so you see the cut.</li>
+  <li>Or do all of them at once: <span class="ui">🔇 Cut silent ends</span>, <span class="ui">✂ ½ s off both ends</span>, or <span class="ui">Max 3s / 5s / 10s</span>.</li>
+  <li>Clips stay in order with no gaps, and text or stickers placed over a clip move with it. One <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes each change.</li>
+</ol>
+
+<h2>🎞 Video templates – choose clips and song yourself</h2>
+<p class="where">Templates tab → under the template cards</p>
 <ol>
   <li>Pick a template: <b>Beat drop</b>, <b>Travel diary</b>, <b>Day in my life</b>, <b>Before / after</b>, <b>Squad montage</b> or <b>Festival vibes</b>.</li>
   <li>Tap your clips/photos in the order you want (numbers show the order). Fewer clips than spots? They repeat, using a different part each time.</li>
