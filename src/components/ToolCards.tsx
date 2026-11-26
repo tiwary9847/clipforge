@@ -16,6 +16,7 @@ export const CATS: { id: Cat; name: string; short: string }[] = [
 
 // title prefix → id, categories, one-line description, extra search words
 export const TOOL_META: [string, string, Cat[], string, string][] = [
+  ['Batch trim', 'batchtrim', ['fix', 'create'], 'Trim many clips at once – cut silent ends, set a max length', 'trim cut many clips bulk batch shorten length silence start end'],
   ['Autopilot', 'autopilot', ['ai', 'publish'], 'One tap: raw video → edited, files made, posted', 'automate automatic everything batch bulk youtube post schedule recipe one tap'],
   ['AI assistant', 'assistant', ['ai'], 'Say what you want – it edits for you', 'ai chat ask help karo bana do edit karo voice'],
   ['Comment preview', 'comments', ['ai', 'publish'], 'See the comments your reel will get – before posting', 'comments predict audience reaction viewers feedback troll before post review'],

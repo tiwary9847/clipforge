@@ -1,4 +1,5 @@
 import { LegalLinks } from './LegalLinks'
+import { PhoneHome, usePhone } from './PhoneHome'
 import { useRef, useState } from 'react'
 import { Icon } from './Icon'
 import { startTour } from './Tour'
@@ -34,6 +35,7 @@ export function Welcome() {
   const [busy, setBusy] = useState(0)
   const [over, setOver] = useState(false)
   const file = useRef<HTMLInputElement>(null)
+  const phone = usePhone()
   const take = async (files: FileList | File[]) => {
     const before = new Set(getState().assets.map((a) => a.id))
     setBusy(Array.from(files).length)
@@ -45,6 +47,7 @@ export function Welcome() {
     for (const a of fresh) if (a.kind === 'audio') addAssetClip(a.id, 'a2', 0)
     setTimeout(() => engine.render(), 50)
   }
+  if (phone) return <div className="welcome ph-host"><PhoneHome /></div>
   return (
     <div
       className={'welcome' + (over ? ' over' : '')}

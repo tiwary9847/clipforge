@@ -464,3 +464,23 @@ textarea.desc{min-height:120px;resize:vertical}
 .take-row small { opacity: .7; }
 .take-row .bad { text-decoration: line-through; opacity: .7; }
 .take-row .good { color: #16a34a; }
+
+/* Batch trim */
+.bt { display: flex; flex-direction: column; gap: 8px; }
+.bt-list { display: flex; flex-direction: column; gap: 6px; max-height: 420px; overflow: auto; }
+.bt-row { display: grid; grid-template-columns: 52px 1fr; gap: 10px; align-items: center; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel2); }
+.bt-thumb { position: relative; width: 52px; height: 52px; border-radius: 8px; overflow: hidden; border: 0; padding: 0; background: #000; color: #fff; display: grid; place-items: center; font-weight: 700; }
+.bt-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.bt-thumb i { position: absolute; inset: auto 3px 3px auto; font-style: normal; font-size: 10px; background: rgba(0, 0, 0, 0.6); border-radius: 4px; padding: 1px 4px; }
+.bt-main { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.bt-top { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; }
+.bt-top b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bt-top span { color: var(--muted); flex: none; font-variant-numeric: tabular-nums; }
+.bt-range { position: relative; height: 28px; }
+.bt-range::before { content: ''; position: absolute; left: 0; right: 0; top: 11px; height: 6px; border-radius: 3px; background: var(--line); }
+.bt-range::after { content: ''; position: absolute; left: var(--a); right: calc(100% - var(--b)); top: 11px; height: 6px; border-radius: 3px; background: var(--grad, var(--accent)); }
+.bt-range input { position: absolute; inset: 0; width: 100%; margin: 0; background: none; pointer-events: none; -webkit-appearance: none; appearance: none; z-index: 1; height: 28px; }
+.bt-range input::-webkit-slider-runnable-track { background: none; border: 0; }
+.bt-range input::-moz-range-track { background: none; border: 0; }
+.bt-range input::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto; width: 14px; height: 26px; border-radius: 5px; background: #fff; border: 2px solid var(--accent-fill, var(--accent)); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4); cursor: ew-resize; }
+.bt-range input::-moz-range-thumb { pointer-events: auto; width: 12px; height: 24px; border-radius: 5px; background: #fff; border: 2px solid var(--accent-fill, var(--accent)); cursor: ew-resize; }

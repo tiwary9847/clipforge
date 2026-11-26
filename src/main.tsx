@@ -29,6 +29,8 @@ import * as speakers from './speakers'
 import * as dub from './dub'
 import * as dspx from './dsp'
 import * as creative from './creative'
+import * as templates from './templates'
+import * as batchtrim from './batchtrim'
 import * as studio from './studio'
 import * as inp from './inpaint'
 import * as looks2 from './looks2'
@@ -51,7 +53,7 @@ import * as autopilot from './autopilot'
 import { setVizReady } from './viz'
 
 // Small handle for automated tests and for power users poking around in the console.
-;(window as any).__cf = { store, processing, dsp, engine, fastExport, library, tools2, pro, grade, multicam, media, looks, viz, anim, shorts, faces, speakers, dub, dspx, creative, studio, inp, looks2, depth3d, s2v, musicgen, autoedit2, broll, videoobj, retakes, hooks, postcheck, social, musiclib, assistant, retention, privacy, plan, autopilot }
+;(window as any).__cf = { store, processing, dsp, engine, fastExport, library, tools2, pro, grade, multicam, media, looks, viz, anim, shorts, faces, speakers, dub, dspx, creative, studio, inp, looks2, depth3d, s2v, musicgen, autoedit2, broll, videoobj, retakes, hooks, postcheck, social, musiclib, assistant, retention, privacy, plan, autopilot, templates, batchtrim }
 
 createRoot(document.getElementById('root')!).render(<App />)
 

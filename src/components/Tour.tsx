@@ -17,7 +17,7 @@ interface Step {
 
 const STEPS: Step[] = [
   {
-    sel: ['.wl-drop', '.left .tab:nth-child(1)', '.mnav button:nth-child(1)'],
+    sel: ['.wl-drop', '.ph-create', '.left .tab:nth-child(1)', '.mnav button:nth-child(1)'],
     icon: 'upload',
     title: '1 · Add your video',
     text: 'Click here and pick a video (or a few clips). It goes straight onto the timeline – nothing is uploaded, it all stays on your device.',
@@ -38,7 +38,7 @@ const STEPS: Step[] = [
     phone: 'Double-tap any text on the video to change it, drag to move. Tap “Add” for text, captions, GIFs and music.',
   },
   {
-    sel: ['.top .btn.primary', '.mnav button:nth-child(4)'],
+    sel: ['.top .btn.primary', '.mnav .mn-export'],
     icon: 'upload',
     title: '4 · Export & post',
     text: 'Export makes an MP4 ready for Reels, Shorts and YouTube. Tip: Tools → 💬 Comment preview shows the comments you’d get – fix them before you post.',

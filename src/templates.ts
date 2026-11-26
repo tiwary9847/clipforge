@@ -57,7 +57,7 @@ export const TEMPLATES: Template[] = [
     desc: 'Classic impact-font caption above and below the picture.',
     needsVideo: true,
     make: (D) => ({
-      clips: [text('meme-top', 'WHEN YOU…', 0, D, 0.12), text('meme-bottom', 'BUT THEN THIS HAPPENS', 0, D, 0.88, {}, 'v3')],
+      clips: [text('meme-top', 'WHEN YOU…', 0, D, 0.12), text('meme-bottom', 'BUT THEN THIS HAPPENS', 0, D, 0.8, {}, 'v3')],
     }),
   },
   {

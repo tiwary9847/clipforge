@@ -29,7 +29,7 @@ export interface Settings {
 
 /* ---------- Basic mode: what stays visible ---------- */
 export const BASIC_TABS = ['media', 'text', 'captions', 'audio', 'memes', 'gifs', 'tools']
-export const BASIC_TOOLS = ['autopilot', 'ready', 'comments', 'mutecheck', 'ghost', 'music', 'musiclib', 'zooms', 'thumb', 'titles']
+export const BASIC_TOOLS = ['batchtrim', 'autopilot', 'ready', 'comments', 'mutecheck', 'ghost', 'music', 'musiclib', 'zooms', 'thumb', 'titles']
 export const BASIC_SECS = new Set(['Canvas · platform', 'Quick start', 'Timing', 'Text', 'Text animation', 'Sticker', 'Transform', 'Crop', 'Speed', 'Audio', 'Volume (all audio clips)', 'Filters & colour', 'Transitions', '🎙 Studio voice'])
 export const isBasic = () => state.mode === 'basic'
 export const useBasic = () => useSettings((s) => s.mode === 'basic')

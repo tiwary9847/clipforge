@@ -5,6 +5,7 @@ import { addAsset, addAssetClip, getClip, getPreset, getState, patchText, projec
 import { startVoiceover } from '../processing'
 import { PRESETS } from '../types'
 import { TextEditDialog } from './TextEditDialog'
+import { BatchTrim } from './BatchTrim'
 import { Icon } from './Icon'
 import { useT } from '../i18n'
 import { ProGate } from './ProDialog'
@@ -72,6 +73,8 @@ export function ToolsTab() {
         </button>
       </div>
       <ToolCards>
+      <div className="group-h">✂️ Batch trim</div>
+      <BatchTrim />
       <div className="group-h">🚀 Autopilot</div>
       <AutopilotCard />
       <div className="group-h">🤖 AI assistant</div>

@@ -8,6 +8,7 @@ import { AutoEditDialog } from './components/AutoEditDialog'
 import { AutopilotDialog } from './components/AutopilotDialog'
 import { Icon } from './components/Icon'
 import { Tour, startTour } from './components/Tour'
+import { PhoneHome } from './components/PhoneHome'
 import { SettingsDialog } from './components/SettingsDialog'
 import { GuideDialog, openGuide } from './components/GuideDialog'
 import { ConvertDialog } from './components/ConvertDialog'
@@ -55,10 +56,11 @@ export default function App() {
     const phone = () => matchMedia('(max-width: 820px)').matches
     const on = (e: Event) => {
       const d = (e as CustomEvent).detail
+      setHome(false)
       if (d === 'auto') setAutoOpen(true)
       else if (phone()) setSheet('add') // panels and tools open in the bottom sheet on phones
     }
-    const onTool = () => phone() && setSheet('add')
+    const onTool = () => { setHome(false); if (phone()) setSheet('add') }
     const onExp = () => setExporting(true)
     const onAsk = (e: Event) => { setSheet(null); setAsk(String((e as CustomEvent).detail ?? '')) }
     window.addEventListener('cf:assistant', onAsk)
@@ -136,6 +138,13 @@ export default function App() {
   }, [])
   const [compatOpen, setCompatOpen] = useState(true)
   const [sheet, setSheet] = useState<null | 'add' | 'edit'>(null)
+  const [home, setHome] = useState(false)
+  const nClips = useStore((s) => s.project.clips.length)
+  useEffect(() => {
+    const on = (e: Event) => { const v = !!(e as CustomEvent).detail; setHome(v); if (v) setSheet(null) }
+    window.addEventListener('cf:home', on)
+    return () => window.removeEventListener('cf:home', on)
+  }, [])
   const hasSel = useStore((s) => s.selIds.length > 0)
   const [playing, setPlaying] = useState(false)
   useEffect(() => engine.onTick((_t, p) => setPlaying((o) => (o === p ? o : p))), [])
@@ -309,11 +318,13 @@ export default function App() {
       </div>
       <Timeline />
       <nav className="mnav">
-        <button className={sheet === 'add' ? 'on' : ''} onClick={() => setSheet(sheet === 'add' ? null : 'add')}><Icon name="plus" size={21} /><span>{t('Add')}</span></button>
-        <button className={sheet === 'edit' ? 'on' : ''} onClick={() => setSheet(sheet === 'edit' ? null : 'edit')}><Icon name="edit" size={20} /><span>{hasSel ? t('Edit') : t('Project')}</span></button>
-        <button onClick={() => engine.toggle()}>{playing ? <Icon name="pause" size={20} /> : <Icon name="play" size={20} />}<span>{playing ? t('Pause') : t('Play')}</span></button>
-        <button onClick={() => setExporting(true)}><Icon name="upload" size={20} /><span>{t('Export')}</span></button>
+        <button className={home || !nClips ? 'on' : ''} onClick={() => { setSheet(null); setHome(!home && nClips > 0) }}><Icon name="layout" size={20} /><span>{t('Home')}</span></button>
+        <button className={sheet === 'edit' ? 'on' : ''} onClick={() => { setHome(false); setSheet(sheet === 'edit' ? null : 'edit') }}><Icon name="edit" size={20} /><span>{hasSel ? t('Edit') : t('Project')}</span></button>
+        <button className={'mn-add' + (sheet === 'add' ? ' on' : '')} onClick={() => { setHome(false); setSheet(sheet === 'add' ? null : 'add') }} aria-label={t('Add')}><i><Icon name="plus" size={24} /></i><span>{t('Add')}</span></button>
+        <button onClick={() => { setHome(false); engine.toggle() }}>{playing ? <Icon name="pause" size={20} /> : <Icon name="play" size={20} />}<span>{playing ? t('Pause') : t('Play')}</span></button>
+        <button className="mn-export" onClick={() => setExporting(true)}><Icon name="upload" size={20} /><span>{t('Export')}</span></button>
       </nav>
+      {home && nClips > 0 && <div className="ph-layer"><PhoneHome overlay /></div>}
       {sheet && <button className="sheet-x" onClick={() => setSheet(null)} aria-label="Close panel"><i />{t('Close')}</button>}
       <ConvertDialog />
       {proWhy !== null && <ProDialog why={proWhy} onClose={() => setProWhy(null)} />}

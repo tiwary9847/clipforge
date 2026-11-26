@@ -42,6 +42,7 @@ import { OnlineMemes } from './OnlineMemes'
 import { GifPanel } from './GifPanel'
 import { FaceStickers } from './FacePanels'
 import { Slideshow, VideoTemplates } from './CreativePanels'
+import { TemplateFeed } from './TemplateFeed'
 import { MusicMaker } from './AutoPanels'
 import { MusicLibrary } from './MusicLibrary'
 import { SPEAKER_COLORS, clipHasSpeakers, findSpeakers, speakerDuring } from '../speakers'
@@ -314,6 +315,7 @@ function PremiumPacks() {
 function TemplateTab() {
   return (
     <>
+      <TemplateFeed />
       <PremiumPacks />
       <VideoTemplates />
       <Slideshow />
