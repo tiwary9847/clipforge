@@ -7,7 +7,7 @@ import { setUi } from '../store'
 const toast = (m: string) => setUi({ toast: m })
 const done = (ok: boolean) => {
   engine.requestRender()
-  if (ok) toast('🎉 Pro is on – thank you for supporting ClipForge!')
+  if (ok) toast('🎉 Pro is on – thank you for supporting ViralKaro!')
 }
 
 /** Shows its children for Pro, otherwise a small locked card. */
@@ -17,8 +17,8 @@ export function ProGate({ what, children }: { what: string; children: ReactNode 
   return (
     <div className="pro-lock">
       <span className="pro-badge">PRO</span>
-      <div className="hint">{what} is part of ClipForge Pro.</div>
-      <button className="btn primary sm" onClick={() => openPro(`${what} is part of ClipForge Pro.`)}>Unlock with Pro</button>
+      <div className="hint">{what} is part of ViralKaro Pro.</div>
+      <button className="btn primary sm" onClick={() => openPro(`${what} is part of ViralKaro Pro.`)}>Unlock with Pro</button>
     </div>
   )
 }
@@ -60,7 +60,7 @@ async function buyRazorpay(plan: PlanId, email: string, coupon: string): Promise
       order_id: order.order_id,
       amount: order.amount,
       currency: 'INR',
-      name: 'ClipForge',
+      name: 'ViralKaro',
       description: PLAN_NAME[plan],
       prefill: { email },
       theme: { color: '#7c5cff' },
@@ -87,7 +87,7 @@ const SKU: Record<string, string> = { month: 'pro_month', year: 'pro_year', life
 /** Play Store app: Google Play Billing through the Digital Goods API. */
 async function buyPlay(plan: PlanId): Promise<Paid | null> {
   const gds = (window as any).getDigitalGoodsService
-  if (!gds) throw new Error('Play Billing isn’t available – update the ClipForge app from the Play Store.')
+  if (!gds) throw new Error('Play Billing isn’t available – update the ViralKaro app from the Play Store.')
   const service = await gds('https://play.google.com/billing')
   const [item] = await service.getDetails([SKU[plan]])
   if (!item) throw new Error('This plan isn’t on sale yet.')
@@ -133,7 +133,7 @@ async function apply(r: Paid): Promise<string> {
   if (r.licence && (await activate(r.licence))) {
     engine.requestRender()
     const l = licence()!
-    return l.exp ? `🎉 Pro is on until ${fmtDate(l.exp)} – thank you for supporting ClipForge!` : '🎉 Lifetime Pro is on – thank you for supporting ClipForge!'
+    return l.exp ? `🎉 Pro is on until ${fmtDate(l.exp)} – thank you for supporting ViralKaro!` : '🎉 Lifetime Pro is on – thank you for supporting ViralKaro!'
   }
   throw new Error('Payment received, but the licence didn’t check out. Use “Get Pro back” with your payment ID.')
 }
@@ -316,7 +316,7 @@ export function ProDialog({ why, onClose }: { why: string; onClose: () => void }
       <div className="modal pro-modal">
         <div className="pro-head">
           <span className="pro-badge big">PRO</span>
-          <h3>ClipForge Pro</h3>
+          <h3>ViralKaro Pro</h3>
         </div>
         {pro && lic ? (
           <>
@@ -349,7 +349,7 @@ export function ProDialog({ why, onClose }: { why: string; onClose: () => void }
             <Receipts />
             <details className="chap">
               <summary>Use Pro on another phone or computer</summary>
-              <div className="hint">Copy your licence code and paste it in ClipForge Pro → “I have a licence code” on the other device.</div>
+              <div className="hint">Copy your licence code and paste it in ViralKaro Pro → “I have a licence code” on the other device.</div>
               <button className="btn sm" onClick={() => { void navigator.clipboard.writeText(licenceText()); toast('Licence code copied.') }}>📋 Copy licence code</button>
             </details>
             <div className="modal-actions">
@@ -419,7 +419,7 @@ export function ExpiryBanner() {
   if (dl === null || dl > 5 || hide) return null
   return (
     <div className="exp-banner" role="status">
-      <span>⏳ Your ClipForge Pro ends {dl === 0 ? 'today' : `in ${dl} day${dl === 1 ? '' : 's'}`}. Renew now – the days you have left are kept.</span>
+      <span>⏳ Your ViralKaro Pro ends {dl === 0 ? 'today' : `in ${dl} day${dl === 1 ? '' : 's'}`}. Renew now – the days you have left are kept.</span>
       <button className="btn sm primary" onClick={() => openPro('renew')}>Renew</button>
       <button className="btn sm ghost" aria-label="Hide" onClick={() => { sessionStorage.setItem('cf-exp-hide', '1'); setHide(true) }}>✕</button>
     </div>

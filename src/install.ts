@@ -1,4 +1,4 @@
-// Phone-app bits: the Install button, files shared into ClipForge from other apps, and app-icon shortcuts.
+// Phone-app bits: the Install button, files shared into ViralKaro from other apps, and app-icon shortcuts.
 import { useSyncExternalStore } from 'react'
 import { importFiles } from './components/MediaPanel'
 import { engine } from './engine'
@@ -17,7 +17,7 @@ if (typeof window !== 'undefined') {
   window.addEventListener('appinstalled', () => {
     deferred = null
     emit()
-    setUi({ toast: '📲 ClipForge is installed – open it from your home screen.' })
+    setUi({ toast: '📲 ViralKaro is installed – open it from your home screen.' })
   })
 }
 export const standalone = () => matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true || document.referrer.startsWith('android-app://')

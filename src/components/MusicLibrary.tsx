@@ -71,7 +71,7 @@ export function MusicLibrary({ compact = false }: { compact?: boolean }) {
     <div className="mlib">
       <div className="hint">
         Free {kind === 'music' ? 'music' : 'sound effects'} from Openverse (Jamendo, Freesound, Wikimedia Commons and more). Only licences that are safe in monetised videos are shown.{' '}
-        <b>CC0</b> tracks need no credit; <b>CC BY</b> tracks need a credit line, which ClipForge adds to your description.
+        <b>CC0</b> tracks need no credit; <b>CC BY</b> tracks need a credit line, which ViralKaro adds to your description.
       </div>
       <div className="chips">
         <button className={'chip' + (kind === 'music' ? ' on' : '')} onClick={() => { setKind('music'); setList([]) }}>🎵 Music</button>
@@ -98,7 +98,7 @@ export function MusicLibrary({ compact = false }: { compact?: boolean }) {
       {busy && <div className="hint">{busy}</div>}
       {blocked && (
         <div className="warn-box">
-          <b>This site doesn’t let apps download “{blocked.title}” directly.</b> Download it, then drag the file into ClipForge.
+          <b>This site doesn’t let apps download “{blocked.title}” directly.</b> Download it, then drag the file into ViralKaro.
           <div className="chips">
             <a className="btn sm" href={blocked.url} target="_blank" rel="noopener" download>⬇ Download</a>
             <a className="btn sm" href={blocked.page} target="_blank" rel="noopener">Open its page</a>
@@ -135,7 +135,7 @@ export function MusicLibrary({ compact = false }: { compact?: boolean }) {
       <details className="chap">
         <summary>Using YouTube’s Audio Library?</summary>
         <div className="hint">
-          YouTube doesn’t let other apps search its Audio Library, but you can still use it: open YouTube Studio → <b>Audio Library</b>, download a track, then drag the file into ClipForge. If the track says “Attribution required”, copy its credit text into your description.
+          YouTube doesn’t let other apps search its Audio Library, but you can still use it: open YouTube Studio → <b>Audio Library</b>, download a track, then drag the file into ViralKaro. If the track says “Attribution required”, copy its credit text into your description.
         </div>
       </details>
     </div>

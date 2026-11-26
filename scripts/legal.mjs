@@ -55,14 +55,14 @@ const PAGES = [
 ]
 const nav = (cur) => PAGES.map(([id, t]) => (id === cur ? `<b>${t}</b>` : `<a href="./${id}.html">${t}</a>`)).join(' · ')
 const page = (id, title, body) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(title)} – ClipForge</title><meta name="description" content="${esc(title)} for ClipForge, the in-browser video editor.">
+<title>${esc(title)} – ViralKaro</title><meta name="description" content="${esc(title)} for ViralKaro, the in-browser video editor.">
 <style>body{margin:0;font:16px/1.6 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#1d2033;background:#f6f6fb}main{max-width:760px;margin:0 auto;padding:28px 20px 60px}
 header{display:flex;align-items:center;gap:10px;margin-bottom:18px}header a{font-weight:800;color:#1d2033;text-decoration:none;font-size:20px}header i{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#7c5cff,#c04dff);display:inline-grid;place-items:center}header i:after{content:"";border-left:11px solid #fff;border-top:7px solid transparent;border-bottom:7px solid transparent;margin-left:3px}
 h1{font-size:28px;line-height:1.2;margin:8px 0 6px}a{color:#5b3fe0}li{margin:6px 0}nav{font-size:14px;margin-top:36px;padding-top:16px;border-top:1px solid #dcdcea;color:#555}code{background:#ebe9f7;padding:1px 5px;border-radius:4px}
 @media (prefers-color-scheme:dark){body{background:#0f1117;color:#e7e8f2}header a{color:#fff}a{color:#a996ff}nav{border-color:#2a2d3d;color:#aaa}code{background:#23263a}}</style></head>
-<body><main><header><i></i><a href="../">ClipForge</a></header>
+<body><main><header><i></i><a href="../">ViralKaro</a></header>
 ${body}
-<nav>${nav(id)} · <a href="../">Open ClipForge</a></nav></main></body></html>
+<nav>${nav(id)} · <a href="../">Open ViralKaro</a></nav></main></body></html>
 `
 mkdirSync(out, { recursive: true })
 for (const [id, title] of PAGES) {
@@ -70,5 +70,5 @@ for (const [id, title] of PAGES) {
   if (/\[[a-z ,]+\]/i.test(md.replace(/\[[^\]]+\]\(https?:[^)]+\)/g, ''))) throw new Error(`legal: ${id}.md still has a […] blank`)
   writeFileSync(`${out}/${id}.html`, page(id, title, md2html(md)))
 }
-writeFileSync(`${out}/index.html`, page('', 'Policies', `<h1>ClipForge policies</h1><ul>${PAGES.map(([id, t]) => `<li><a href="./${id}.html">${t}</a></li>`).join('')}</ul>`))
+writeFileSync(`${out}/index.html`, page('', 'Policies', `<h1>ViralKaro policies</h1><ul>${PAGES.map(([id, t]) => `<li><a href="./${id}.html">${t}</a></li>`).join('')}</ul>`))
 console.log('legal: published', PAGES.map((p) => p[0]).join(', '))

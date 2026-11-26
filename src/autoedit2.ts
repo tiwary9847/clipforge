@@ -143,7 +143,7 @@ export function autoSfx(o: SfxOpts): string {
   let words = 0
   if (o.words) {
     const said = spokenFromCaptions()
-    if (!said.length && !o.cuts) throw new Error('Make captions first (Captions tab) so ClipForge knows your words.')
+    if (!said.length && !o.cuts) throw new Error('Make captions first (Captions tab) so ViralKaro knows your words.')
     for (const s of said) {
       const ws = s.text.split(/\s+/)
       for (let i = 0; i < ws.length; i++) {

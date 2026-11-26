@@ -6,7 +6,7 @@ import { join } from 'node:path'
 
 // Two builds:
 //  • `vite build`               → dist/: the website. The editor loads first; tools, fonts, models and the guide load when needed.
-//  • `vite build --mode single` → dist-single/index.html: one self-contained file (clipforge.html) that works offline.
+//  • `vite build --mode single` → dist-single/index.html: one self-contained file (viralkaro.html) that works offline.
 
 /** Lists the website's build files so the service worker can store them for offline use. */
 function precacheList(): Plugin {

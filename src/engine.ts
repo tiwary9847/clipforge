@@ -650,7 +650,7 @@ class Engine {
     if (!isPro() && project.clips.length) this.drawMark(ctx, W, H)
   }
 
-  /** Free version: a small “Made with ClipForge” mark in the bottom-right corner (removed with Pro). */
+  /** Free version: a small “Made with ViralKaro” mark in the bottom-right corner (removed with Pro). */
   private drawMark(ctx: CanvasRenderingContext2D, W: number, H: number) {
     const s = Math.min(W, H) / 1080
     const fs = Math.round(26 * s)
@@ -659,7 +659,7 @@ class Engine {
     ctx.globalAlpha = 0.82
     ctx.filter = 'none'
     ctx.font = `700 ${fs}px Inter, system-ui, sans-serif`
-    const label = 'Made with ClipForge'
+    const label = 'Made with ViralKaro'
     const tw = ctx.measureText(label).width
     const pad = 12 * s
     const bw = tw + fs * 1.4 + pad * 2
@@ -2246,14 +2246,14 @@ class Engine {
         } catch {}
         URL.revokeObjectURL(url)
         if (codec && codec !== 'unknown') {
-          // ClipForge can convert it in the app: the import code opens the converter
+          // ViralKaro can convert it in the app: the import code opens the converter
           const er = new Error(`its picture format (${codec === 'hevc' ? 'HEVC / “High Efficiency”' : codec.toUpperCase()}) can’t be played by this browser`) as Error & { convertible?: boolean }
           er.convertible = true
           throw er
         }
         if (codec === 'hevc')
           throw new Error(
-            'it is HEVC / “High Efficiency” video, which this browser can’t play. Fix: on iPhone set Settings → Camera → Formats → “Most Compatible” (on Samsung turn off “High efficiency video”), or open ClipForge in Chrome/Edge on Windows 11, Mac or Android – those can play HEVC',
+            'it is HEVC / “High Efficiency” video, which this browser can’t play. Fix: on iPhone set Settings → Camera → Formats → “Most Compatible” (on Samsung turn off “High efficiency video”), or open ViralKaro in Chrome/Edge on Windows 11, Mac or Android – those can play HEVC',
           )
         if (v.duration > 0 && isFinite(v.duration) && !codec) throw new Error('only its sound could be read, the picture format isn’t supported by this browser')
         throw new Error(`its video format${codec ? ` (${codec.toUpperCase()})` : ''} isn’t supported by this browser`)

@@ -224,7 +224,7 @@ export function addHook(h: Hook, text: string) {
 import { TEXT_PRESETS } from './library'
 const defaultTitle = () => ({ ...(TEXT_PRESETS.find((p) => p.id === 'title') ?? TEXT_PRESETS[0]).props })
 
-/* ---------- backup / restore (.clipforge) ---------- */
+/* ---------- backup / restore (.viralkaro; older .clipforge files open too – same format) ---------- */
 
 const MAGIC = 'CFGP1'
 
@@ -244,7 +244,7 @@ export async function exportBackup(): Promise<Blob> {
 
 export async function importBackup(file: File): Promise<string> {
   const head = new Uint8Array(await file.slice(0, 9).arrayBuffer())
-  if (new TextDecoder().decode(head.slice(0, 5)) !== MAGIC) throw new Error('This is not a ClipForge backup file.')
+  if (new TextDecoder().decode(head.slice(0, 5)) !== MAGIC) throw new Error('This is not a ViralKaro backup file.')
   const hl = new DataView(head.buffer).getUint32(5)
   const header = JSON.parse(new TextDecoder().decode(new Uint8Array(await file.slice(9, 9 + hl).arrayBuffer())))
   let off = 9 + hl

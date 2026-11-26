@@ -1,4 +1,4 @@
-// AI edit assistant: "Isko 30 second ki reel bana do, captions lagao, upbeat music" → a plan of ClipForge
+// AI edit assistant: "Isko 30 second ki reel bana do, captions lagao, upbeat music" → a plan of ViralKaro
 // tools, run in a sensible order. Understands English and Hinglish on its own (rules); with a Gemini/Claude
 // key it understands anything and explains its plan. Everything it does can be undone in one tap.
 import { askAI } from './chapters'
@@ -121,7 +121,7 @@ export async function aiPlan(text: string, provider: 'gemini' | 'claude', key: s
   const r = await askAI(
     provider,
     key,
-    `You are the assistant inside ClipForge, a video editor for Indian creators (YouTube, Instagram, Facebook).
+    `You are the assistant inside ViralKaro, a video editor for Indian creators (YouTube, Instagram, Facebook).
 ${ctx}
 The creator asks (English, Hindi or Hinglish): """${text.slice(0, 600)}"""
 Choose the editing steps from this list only:

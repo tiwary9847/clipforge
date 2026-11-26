@@ -2,7 +2,7 @@
    Runs ffmpeg's WebAssembly build in a worker. The ~32 MB core is fetched only the first time it is used
    and then comes from the browser cache. Nothing is uploaded: the file is read straight from your disk. */
 
-const REMOTE = 'https://tiwary9847.github.io/clipforge/ffmpeg/'
+const REMOTE = import.meta.env.VITE_SITE_URL + 'ffmpeg/'
 
 export type ConvertQuality = 'quick' | 'full'
 export interface ConvertInfo {
@@ -12,7 +12,7 @@ export interface ConvertInfo {
   codec: string
 }
 
-/** Where the ffmpeg core lives: next to the app when it's served from a website, otherwise the ClipForge site. */
+/** Where the ffmpeg core lives: next to the app when it's served from a website, otherwise the ViralKaro site. */
 let baseP: Promise<string> | null = null
 export function coreBase(): Promise<string> {
   return (baseP ??= (async () => {

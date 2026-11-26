@@ -1,8 +1,8 @@
 {
-  "packageId": "io.github.tiwary9847.clipforge",
+  "packageId": "io.github.tiwary9847.viralkaro",
   "host": "tiwary9847.github.io",
-  "name": "ClipForge – Video Editor",
-  "launcherName": "ClipForge",
+  "name": "ViralKaro – Video Editor",
+  "launcherName": "ViralKaro",
   "display": "standalone",
   "orientation": "default",
   "themeColor": "#7c5cff",
@@ -16,7 +16,7 @@
   "iconUrl": "https://tiwary9847.github.io/clipforge/icon-512.png",
   "maskableIconUrl": "https://tiwary9847.github.io/clipforge/icon-512.png",
   "splashScreenFadeOutDuration": 300,
-  "signingKey": { "path": "./android.keystore", "alias": "clipforge" },
+  "signingKey": { "path": "./android.keystore", "alias": "viralkaro" },
   "appVersionName": "1.0.0",
   "appVersionCode": 1,
   "shortcuts": [

@@ -8,7 +8,7 @@ const rsa = await crypto.subtle.generateKey({ name: 'RSASSA-PKCS1-v1_5', modulus
 const pkcs8 = Buffer.from(await crypto.subtle.exportKey('pkcs8', rsa.privateKey)).toString('base64')
 const env = {
   DB, RAZORPAY_KEY_ID: 'rzp_test_x', RAZORPAY_KEY_SECRET: 'secret123', RAZORPAY_WEBHOOK_SECRET: 'whsec', GEMINI_KEY: 'g', AI_MONTHLY: '2', ADMIN_TOKEN: 'adm-secret-1',
-  LICENCE_PRIVATE_JWK: fs.readFileSync(jwkFile, 'utf8'), PLAY_PACKAGE: 'io.github.tiwary9847.clipforge',
+  LICENCE_PRIVATE_JWK: fs.readFileSync(jwkFile, 'utf8'), PLAY_PACKAGE: 'io.github.tiwary9847.viralkaro',
   PLAY_SERVICE_ACCOUNT: JSON.stringify({ client_email: 'sa@x.iam', private_key: `-----BEGIN PRIVATE KEY-----\n${pkcs8}\n-----END PRIVATE KEY-----` }),
 }
 const orders = {}

@@ -1,4 +1,4 @@
-// ClipForge payment + AI server (Cloudflare Worker, free plan).
+// ViralKaro payment + AI server (Cloudflare Worker, free plan).
 //   POST /order    {plan, email}                          → Razorpay order
 //   POST /verify   {plan, email, razorpay_*}              → checks the payment, returns a signed Pro licence
 //   POST /restore  {email, payment_id}                    → the licence again (new phone)
@@ -512,17 +512,17 @@ export default {
       const auth = async () => readLicence(env, (req.headers.get('authorization') || '').replace(/^Bearer /, ''))
       if (path === '/usage') {
         const lic = await auth()
-        if (!lic) return reply(h, 401, { error: 'Built-in AI is part of ClipForge Pro.' })
+        if (!lic) return reply(h, 401, { error: 'Built-in AI is part of ViralKaro Pro.' })
         return reply(h, 200, await aiLeft(env, lic.sub))
       }
 
       if (path === '/ai' || path === '/tts') {
         const lic = await auth()
-        if (!lic) return reply(h, 401, { error: 'Built-in AI is part of ClipForge Pro.' })
+        if (!lic) return reply(h, 401, { error: 'Built-in AI is part of ViralKaro Pro.' })
         if (lic.pid && (await env.DB.get('rev:' + lic.pid))) return reply(h, 401, { error: 'This Pro licence was cancelled.' })
         const cost = path === '/tts' ? 5 : 1
         const u = await aiLeft(env, lic.sub)
-        if (u.left < cost) return reply(h, 429, { error: `You’ve used this month’s ${u.limit} AI requests. Add 100 more for ₹49 in ClipForge Pro, or wait for the 1st.` })
+        if (u.left < cost) return reply(h, 429, { error: `You’ve used this month’s ${u.limit} AI requests. Add 100 more for ₹49 in ViralKaro Pro, or wait for the 1st.` })
         if (path === '/tts') {
           const text = String(body.text || '').trim()
           if (!text || text.length > 3000) return reply(h, 400, { error: 'Text 1–3000 characters' })
@@ -536,7 +536,7 @@ export default {
         // up to 6 small JPEG frames (base64) so the AI can see the video – counts as 2 requests
         const images = Array.isArray(body.images) ? body.images.filter((x) => typeof x === 'string' && /^[A-Za-z0-9+/=]+$/.test(x) && x.length <= 300000).slice(0, 6) : []
         const used = images.length ? 2 : 1
-        if (u.left < used) return reply(h, 429, { error: `You’ve used this month’s ${u.limit} AI requests. Add 100 more for ₹49 in ClipForge Pro, or wait for the 1st.` })
+        if (u.left < used) return reply(h, 429, { error: `You’ve used this month’s ${u.limit} AI requests. Add 100 more for ₹49 in ViralKaro Pro, or wait for the 1st.` })
         const text = await gemini(env, prompt, !!body.json, images)
         await spendAI(env, lic.sub, used)
         return reply(h, 200, { text, left: u.left - used })

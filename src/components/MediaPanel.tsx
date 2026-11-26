@@ -300,7 +300,7 @@ function PremiumPacks() {
       </div>
       <div className="tmpls">
         {PACK_TEMPLATES.filter((t) => t.pack === pack).map((t) => (
-          <button key={t.id} className="tmpl" onClick={() => requirePro(`The ${TEMPLATE_PACKS.find((p) => p.id === pack)!.name} template pack is part of ClipForge Pro.`) && setUi({ toast: applyTemplate(t.id) })}>
+          <button key={t.id} className="tmpl" onClick={() => requirePro(`The ${TEMPLATE_PACKS.find((p) => p.id === pack)!.name} template pack is part of ViralKaro Pro.`) && setUi({ toast: applyTemplate(t.id) })}>
             <span className="em">{t.emoji}</span>
             <b>{t.name}{!pro && <span className="pro-mini">PRO</span>}</b>
             <small>{t.desc}</small>
@@ -1022,7 +1022,7 @@ function CaptionTab() {
       <div className="chips">
         <span className="hint" style={{ alignSelf: 'center' }}>Style:</span>
         {CAPTION_STYLES.map((s) => (
-          <button key={s.id} className={'chip' + (style === s.id ? ' on' : '')} onClick={() => (!s.pro || requirePro(`The “${s.name.replace(/^\S+ /, '')}” caption style is part of ClipForge Pro.`)) && setStyle(s.id)}>
+          <button key={s.id} className={'chip' + (style === s.id ? ' on' : '')} onClick={() => (!s.pro || requirePro(`The “${s.name.replace(/^\S+ /, '')}” caption style is part of ViralKaro Pro.`)) && setStyle(s.id)}>
             {s.name}
             {s.pro && !pro && <span className="pro-mini">PRO</span>}
           </button>

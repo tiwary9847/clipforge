@@ -267,7 +267,7 @@ export function OnlineMemes() {
       <div className="osites">
         <b>Want the viral Indian meme clips?</b>
         <div className="hint">
-          Sites like memes.co.in have no public API and their clips belong to their creators, so ClipForge can’t pull them in automatically. Download the clips you like there (check each item’s license), then add them here:
+          Sites like memes.co.in have no public API and their clips belong to their creators, so ViralKaro can’t pull them in automatically. Download the clips you like there (check each item’s license), then add them here:
         </div>
         <div className="osrc">
           <a className="btn sm" href="https://memes.co.in/" target="_blank" rel="noreferrer">Open memes.co.in ↗</a>

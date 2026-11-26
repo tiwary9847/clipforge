@@ -145,7 +145,7 @@ const D: Record<string, [string, string]> = {
   'Undo everything': ['Sab wapas karo', 'सब वापस करें'],
   'Ask for something else': ['Kuch aur bolo', 'कुछ और कहें'],
   'Tell me what to do… e.g. “30 second ki reel bana do, captions aur music ke saath”': ['Batao kya karna hai… jaise “30 second ki reel bana do, captions aur music ke saath”', 'बताइए क्या करना है… जैसे “30 सेकंड की रील बना दो, कैप्शन और म्यूज़िक के साथ”'],
-  'Install ClipForge on this phone': ['ClipForge phone mein install karo', 'ClipForge फ़ोन में इंस्टॉल करें'],
+  'Install ViralKaro on this phone': ['ViralKaro phone mein install karo', 'ViralKaro फ़ोन में इंस्टॉल करें'],
   '– opens like an app, works offline': ['– app jaisa khulega, bina internet bhi chalega', '– ऐप जैसा खुलेगा, बिना इंटरनेट भी चलेगा'],
   'Edit by text': ['Text se edit', 'टेक्स्ट से एडिट'],
 }

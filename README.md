@@ -1,11 +1,11 @@
 <div align="center">
 
-# ▶ ClipForge
+# ▶ ViralKaro
 
 **A free, in-browser video editor for YouTube Shorts, Instagram Reels, Facebook and YouTube.**
 Memes with sound, auto-edit, Hinglish captions, multicam, colour grading and more – everything runs on your device. Nothing is uploaded.
 
-**Live app:** https://tiwary9847.github.io/clipforge/ · **User guide (PDF):** [docs/ClipForge-User-Guide.pdf](docs/ClipForge-User-Guide.pdf)
+**Live app:** https://tiwary9847.github.io/clipforge/ · **User guide (PDF):** [docs/ViralKaro-User-Guide.pdf](docs/ViralKaro-User-Guide.pdf)
 
 </div>
 
@@ -28,7 +28,7 @@ Memes with sound, auto-edit, Hinglish captions, multicam, colour grading and mor
 ```bash
 npm install
 npm run dev      # development server
-npm run build    # dist/ = the website (loads in parts); dist-single/index.html = one self-contained file (also copied to dist/clipforge.html)
+npm run build    # dist/ = the website (loads in parts); dist-single/index.html = one self-contained file (also copied to dist/viralkaro.html)
 ```
 
 Requires Node 18+. Best in Chrome or Edge (desktop or Android); Safari and Firefox work with a few features disabled (the app tells you which).
@@ -55,7 +55,7 @@ Downloaded only when you use the feature: Whisper (MIT), MODNet (Apache-2.0), Ko
 
 
 ## Use it
-- Easiest: open `clipforge.html` in Chrome or Edge (double-click).
+- Easiest: open `viralkaro.html` in Chrome or Edge (double-click).
 - Developers: `npm install && npm run dev` (edit in `src/`), `npm run build` → `dist/index.html`.
 
 ## Included
@@ -250,8 +250,8 @@ Line-icon set replacing emoji controls (tabs, header, transport, timeline toolba
 ## v22 – the guide inside the app
 - **📖 Guide window**: press **?** in the header, **F1**, or on phones ⋯ → Guide. The whole user guide (18 chapters, 67 sections, 34 screenshots) with a chapter list that follows where you are, **search** with highlighted matches, and **⬇ PDF** for the printable copy. Follows your theme and text size; full screen on phones.
 - **📖 How to use** button in every tool's panel jumps straight to that tool's section.
-- Works offline: the text is built into the app; pictures and the PDF are cached after the first view. Opened as a single `clipforge.html` file, pictures and the PDF load from the website when online and are simply left out offline.
-- Guide source now lives in the repo: `docs/guide/guide.html` (+ `img/`). After editing it run `python3 docs/guide/render.py` (PDF) and `python3 scripts/build-guide.py` (in-app copy: `src/guide/guide-body.html`, `public/guide/*.webp`, `public/ClipForge-User-Guide.pdf`).
+- Works offline: the text is built into the app; pictures and the PDF are cached after the first view. Opened as a single `viralkaro.html` file, pictures and the PDF load from the website when online and are simply left out offline.
+- Guide source now lives in the repo: `docs/guide/guide.html` (+ `img/`). After editing it run `python3 docs/guide/render.py` (PDF) and `python3 scripts/build-guide.py` (in-app copy: `src/guide/guide-body.html`, `public/guide/*.webp`, `public/ViralKaro-User-Guide.pdf`).
 - Screenshots retaken with the new UI; new sections for AI voice-over, Settings and the tool tiles.
 
 ## v23 – more music
@@ -262,7 +262,7 @@ Line-icon set replacing emoji controls (tabs, header, transport, timeline toolba
 ## v24 – weak spots fixed
 - **60 fps export.** Export → *Smoothness*: **Same as my video** (default – reads each clip's real frame rate and snaps to 24/25/30/50/60), 30, 60 or 24 fps. A 60 fps phone clip now exports as true 60 fps (checked: 1080 distinct frames for 18 s). Applies to fast export and parts; real-time recording stays at 30.
 - **HEVC / “High Efficiency” videos convert inside the app.** When the browser can't play a clip (iPhone/Samsung HEVC or another codec) a *Convert this video?* box appears: ⚡ Quick 720p or 💎 Full quality (up to 1080p) → H.264/AAC MP4, added to your media (and to the timeline if it's empty). Uses ffmpeg's WebAssembly build in a worker, reading the file straight from disk (nothing uploaded). The converter (~32 MB, 10–30 MB to download) is fetched only the first time and then cached; from the single file it comes from the GitHub Pages site. Measured on a 2-core machine: a 20 s 1080p clip took 33 s (Quick) / 87 s (Full).
-- **Faster first load.** The website now loads in parts: the editor starts with ~470 KB (gzip) of script instead of 2 MB; face tracking, noise removal, fonts, map outlines and the guide text load when first used. The service worker then stores every part in the background, so the whole editor still works offline after the first visit. `clipforge.html` (single file, ~4.7 MB) is still built for fully offline use and is offered on the site at `/clipforge.html`.
+- **Faster first load.** The website now loads in parts: the editor starts with ~470 KB (gzip) of script instead of 2 MB; face tracking, noise removal, fonts, map outlines and the guide text load when first used. The service worker then stores every part in the background, so the whole editor still works offline after the first visit. `viralkaro.html` (single file, ~4.7 MB) is still built for fully offline use and is offered on the site at `/viralkaro.html`.
 
 ### v24.1 – performance pass
 Scripted performance test of start-up, playback, 600-clip timelines, 27 tools, a 10-minute 1080p vlog and 11 exports on a 2-core machine with no GPU. Fixes:
@@ -290,11 +290,11 @@ Reviewed as a first-time creator on a phone, then fixed:
 Timeline bar: **✓ Select** mode (tap clips to add/remove – works on phones), **All / None** (skips locked tracks), an “N selected” chip; click a track name (phone: track menu → Select all clips here) to select that track; deleting several shows “Deleted N clips – Undo to bring them back”.
 
 ## v27 – Free / Pro, payments, phone app
-- **Free / Pro** (`src/plan.ts`): free has everything except Pro, no ads, and a small “Made with ClipForge” mark (engine `drawMark`, bottom-right above the Shorts/Reels buttons, in preview and exports). **Pro** (₹99 / 30 days, ₹699 / 12 months, ₹1,999 lifetime; passes don't auto-renew): no mark, built-in AI without a key (300 requests/month through the server), 4K export, all formats at once, brand kit. **Go Pro** in the top bar and ⋯ menu; Pro features show a locked card.
+- **Free / Pro** (`src/plan.ts`): free has everything except Pro, no ads, and a small “Made with ViralKaro” mark (engine `drawMark`, bottom-right above the Shorts/Reels buttons, in preview and exports). **Pro** (₹99 / 30 days, ₹699 / 12 months, ₹1,999 lifetime; passes don't auto-renew): no mark, built-in AI without a key (300 requests/month through the server), 4K export, all formats at once, brand kit. **Go Pro** in the top bar and ⋯ menu; Pro features show a locked card.
 - **Licences**: `payload.signature` signed with ECDSA P-256; the app verifies with the embedded public key (offline, can't be edited). The private key is **not** in the repo (owner keeps it). `server/make-licence.mjs` makes owner/gift licences. Licence code can be copied to another device; restore with email + payment ID.
 - **Payment server** (`server/worker.js`, Cloudflare Worker + KV): Razorpay orders/verify (plan and amount taken from the order, not the browser), webhook backup, restore, Google Play purchase check (Digital Goods API in the TWA; passes consumed, lifetime acknowledged), built-in AI proxy with a monthly limit. `node server/test.mjs <key> <pub>`: 23 checks incl. forged signatures, relabelled orders, wrong-email restores, fake webhooks, edited licences, AI limit.
 - **Pro screen** (`components/ProDialog.tsx`): plans, Razorpay Checkout (UPI/card) on the web, Play Billing in the Android app, licence code, restore. Shows “Pro sales open soon” until `CONFIG.server` / `CONFIG.razorpayKey` are set.
-- **Phone app**: Install button (welcome screen + ⋯ menu; iPhone instructions), **Share → ClipForge** from Gallery/WhatsApp (manifest `share_target` + service worker), app-icon shortcuts (New Short, New YouTube, Ask AI). Android Trusted Web Activity config `android/twa-manifest.json` (+ Play Billing) and a manual GitHub workflow; PWABuilder route in MONEY-SETUP.md.
+- **Phone app**: Install button (welcome screen + ⋯ menu; iPhone instructions), **Share → ViralKaro** from Gallery/WhatsApp (manifest `share_target` + service worker), app-icon shortcuts (New Short, New YouTube, Ask AI). Android Trusted Web Activity config `android/twa-manifest.json` (+ Play Billing) and a manual GitHub workflow; PWABuilder route in MONEY-SETUP.md.
 - **Licence clean-up for selling**: removed the MMS voices (CC BY-NC). ffmpeg core (HEVC converter) is GPL-2.0-or-later and runs as a separate program in a worker; its source is at github.com/ffmpegwasm/ffmpeg.wasm.
 - The “Deploy to GitHub Pages” workflow now runs only by hand: GitHub Actions on the account is locked for billing, so it failed on every push. The site publishes from the gh-pages branch as before.
 - **Setup for the owner:** see **MONEY-SETUP.md** (Razorpay, Cloudflare, Gemini, PWABuilder/Play Console, policy pages in `docs/legal-templates/`).

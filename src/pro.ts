@@ -545,7 +545,7 @@ function ask<T>(msg: Record<string, unknown>, want: string, status?: Status, tra
 /* ---------- AI voices ---------- */
 
 export const VOICES: { id: string; name: string; commercial: boolean; pro?: boolean; hindi?: boolean }[] = [
-  // Pro: natural Hindi / Hinglish voices from Gemini TTS, through the ClipForge server
+  // Pro: natural Hindi / Hinglish voices from Gemini TTS, through the ViralKaro server
   { id: 'cloud:Kore', name: '⭐ Hindi · Kavya (female, warm)', commercial: true, pro: true, hindi: true },
   { id: 'cloud:Aoede', name: '⭐ Hindi · Meera (female, bright)', commercial: true, pro: true, hindi: true },
   { id: 'cloud:Leda', name: '⭐ Hindi · Anaya (female, young)', commercial: true, pro: true, hindi: true },
@@ -593,8 +593,8 @@ export async function synth(text: string, voice: string, status?: Status): Promi
   if (mock) return mock(t, voice)
   const [eng, id] = voice.split(':')
   if (eng === 'cloud') {
-    if (!requirePro('Hindi AI voices are part of ClipForge Pro.')) throw new Error('Hindi AI voices are part of ClipForge Pro.')
-    if (!CONFIG.server && !(window as any).__cfMockCloudTts) throw new Error('Hindi voices need the ClipForge server, which isn’t switched on yet.')
+    if (!requirePro('Hindi AI voices are part of ViralKaro Pro.')) throw new Error('Hindi AI voices are part of ViralKaro Pro.')
+    if (!CONFIG.server && !(window as any).__cfMockCloudTts) throw new Error('Hindi voices need the ViralKaro server, which isn’t switched on yet.')
     status?.('Making the voice…')
     return ttsBuiltin(t, id)
   }

@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from './Icon'
 import { startTour } from './Tour'
 
-// Where the app is hosted – used for pictures and the PDF when ClipForge is opened as a single file.
-const ONLINE = 'https://tiwary9847.github.io/clipforge/'
+// Where the app is hosted – used for pictures and the PDF when ViralKaro is opened as a single file.
+const ONLINE = import.meta.env.VITE_SITE_URL as string
 const fromFile = () => location.protocol === 'file:'
-const PDF = () => (fromFile() ? ONLINE : '') + 'ClipForge-User-Guide.pdf'
+const PDF = () => (fromFile() ? ONLINE : '') + 'ViralKaro-User-Guide.pdf'
 
 interface Sec {
   id: string
@@ -183,16 +183,16 @@ export function GuideDialog({ topic, onClose }: { topic: string; onClose: () => 
 
   return (
     <div className="modal-bg guide-bg" onPointerDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal cf-guide" role="dialog" aria-label="ClipForge guide">
+      <div className="modal cf-guide" role="dialog" aria-label="ViralKaro guide">
         <div className="gd-h">
           <button className="ico gd-menu" onClick={() => setMenu(!menu)} aria-label="Chapters" aria-expanded={menu}><Icon name="list" size={17} /></button>
           <span className="gd-logo">📖</span>
           <div className="gd-ht">
-            <b>ClipForge guide</b>
+            <b>ViralKaro guide</b>
             <small>{curSec ? `${curSec.part} › ${clean(curSec.title)}` : 'Every feature, step by step'}</small>
           </div>
           <button className="btn sm hide-phone" onClick={() => { onClose(); setTimeout(startTour, 150) }}><Icon name="help" size={14} /> Quick tour</button>
-          <a className="btn sm" href={PDF()} target="_blank" rel="noopener" download="ClipForge-User-Guide.pdf" title="The same guide as a printable PDF (needs internet the first time)"><Icon name="download" size={14} /><span className="hide-phone"> PDF</span></a>
+          <a className="btn sm" href={PDF()} target="_blank" rel="noopener" download="ViralKaro-User-Guide.pdf" title="The same guide as a printable PDF (needs internet the first time)"><Icon name="download" size={14} /><span className="hide-phone"> PDF</span></a>
           <button className="ico" onClick={onClose} aria-label="Close guide"><Icon name="x" size={16} /></button>
         </div>
         <div className="gd-main">
@@ -237,7 +237,7 @@ export function GuideDialog({ topic, onClose }: { topic: string; onClose: () => 
           <div className="gd-body" ref={box}>
             {body ? <article className="gd" dangerouslySetInnerHTML={{ __html: body }} /> : <div className="hint" style={{ padding: 24 }}>Opening the guide…</div>}
             <div className="gd-end">
-              <a className="btn" href={PDF()} target="_blank" rel="noopener" download="ClipForge-User-Guide.pdf"><Icon name="download" size={15} /> Download the PDF guide</a>
+              <a className="btn" href={PDF()} target="_blank" rel="noopener" download="ViralKaro-User-Guide.pdf"><Icon name="download" size={15} /> Download the PDF guide</a>
             </div>
           </div>
         </div>

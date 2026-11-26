@@ -230,7 +230,7 @@ import { askBuiltin, builtinAI } from './plan'
 
 /** images: optional base64 JPEG frames (no data: prefix) so the AI can see the video. */
 export async function askAI(provider: 'gemini' | 'claude', key: string, prompt: string, json = true, images: string[] = []): Promise<string> {
-  // Pro without a key of their own: the ClipForge server answers (built-in AI)
+  // Pro without a key of their own: the ViralKaro server answers (built-in AI)
   if (!key && builtinAI()) return askBuiltin(prompt, !!json, images)
   if (provider === 'gemini') {
     // Google retires model versions (gemini-2.0-flash shut down 1 June 2026): use the auto-updating

@@ -58,7 +58,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
   }, [])
 
   const start = async () => {
-    if (Math.min(preset.w, preset.h) > 1100 && !isPro() && !requirePro('4K export is part of ClipForge Pro. Pick a 1080p format, or get Pro.')) return
+    if (Math.min(preset.w, preset.h) > 1100 && !isPro() && !requirePro('4K export is part of ViralKaro Pro. Pick a 1080p format, or get Pro.')) return
     setPhase('running')
     setErr('')
     setProg(0)
@@ -97,7 +97,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
     } else onClose()
   }
 
-  const name = `${getState().projectName.replace(/[^\w\- ]+/g, '').trim() || 'clipforge'}-${preset.id}.${result?.ext ?? 'mp4'}`
+  const name = `${getState().projectName.replace(/[^\w\- ]+/g, '').trim() || 'viralkaro'}-${preset.id}.${result?.ext ?? 'mp4'}`
 
   return (
     <div className="modal-bg" onPointerDown={(e) => e.target === e.currentTarget && phase !== 'running' && onClose()}>
@@ -235,7 +235,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
               {yt.open && (
                 <div className="yt-box">
                   {!uploadSupported() ? (
-                    <div className="hint warn">Direct upload only works when ClipForge is opened from a web address (https://…), not from a file on your computer. Download the video and upload it in YouTube Studio, or host this page (e.g. on GitHub Pages) and add that address to your Google OAuth client.</div>
+                    <div className="hint warn">Direct upload only works when ViralKaro is opened from a web address (https://…), not from a file on your computer. Download the video and upload it in YouTube Studio, or host this page (e.g. on GitHub Pages) and add that address to your Google OAuth client.</div>
                   ) : (
                     <>
                       {!builtInClientId() ? (

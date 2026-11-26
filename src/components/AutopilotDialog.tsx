@@ -177,7 +177,7 @@ export function AutopilotDialog({ onClose }: { onClose: () => void }) {
   }
 
   const runOne = async () => {
-    if (!requirePro('Autopilot is part of ClipForge Pro.')) return
+    if (!requirePro('Autopilot is part of ViralKaro Pro.')) return
     ctl.current = { cancelled: false }
     setRep(null)
     setKit(null)
@@ -211,7 +211,7 @@ export function AutopilotDialog({ onClose }: { onClose: () => void }) {
   }
 
   const runBatch = async () => {
-    if (!requirePro('Batch Autopilot is part of ClipForge Pro.')) return
+    if (!requirePro('Batch Autopilot is part of ViralKaro Pro.')) return
     if (!queue.length) return
     if (getState().project.clips.length && !confirm('Batch mode edits each video in its own fresh project. Your current timeline will be replaced (save a version first if you need it). Continue?')) return
     ctl.current = { cancelled: false }

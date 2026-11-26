@@ -1,4 +1,4 @@
-# Earning with ClipForge – setup guide
+# Earning with ViralKaro – setup guide
 
 Everything in the app is built. These are the steps only you can do (they need your identity, bank account or payment). Do them in order. Each step says what to send back to Claude, if anything.
 
@@ -23,7 +23,7 @@ Many employers (including large consulting firms) have rules about outside busin
 You received **`clipforge-licence-private.jwk.json`**. It's the key that creates Pro licences.
 - Save it somewhere safe and private (a password manager, or an encrypted drive). **Never** put it in GitHub, WhatsApp or email.
 - If someone gets it, they can make free Pro licences. If you lose it, existing licences keep working, but you'd need a new key and an app update to sell more.
-- You also received **`owner-licence.txt`** – your own lifetime Pro. Open ClipForge → Go Pro → “I have a licence code” → paste it. Do the same on each of your devices.
+- You also received **`owner-licence.txt`** – your own lifetime Pro. Open ViralKaro → Go Pro → “I have a licence code” → paste it. Do the same on each of your devices.
 - To gift Pro (Seema, testers, collaborators), you can run this on a computer with Node.js:
   `node server/make-licence.mjs clipforge-licence-private.jwk.json "friend@email.com" year gift`
   (or ask Claude to do it).
@@ -38,7 +38,7 @@ Put your **full name, city, state and email** (phone optional) in **`legal.json`
 3. Complete KYC (PAN, bank account, address).
 4. While waiting, you can test: **Settings → API Keys → Test mode → Generate key**. Note the **Key ID** (`rzp_test_…`) and **Key Secret**.
 5. After activation, generate **Live** keys (`rzp_live_…`).
-6. **Webhooks** (Settings → Webhooks → Add): URL `https://clipforge-pay.<your-subdomain>.workers.dev/webhook`, events **payment.captured** and **refund.processed**, and set a secret (any long random text). Note the **Webhook Secret**. (`refund.processed` is what switches Pro off when you refund someone.)
+6. **Webhooks** (Settings → Webhooks → Add): URL `https://viralkaro-pay.<your-subdomain>.workers.dev/webhook`, events **payment.captured** and **refund.processed**, and set a secret (any long random text). Note the **Webhook Secret**. (`refund.processed` is what switches Pro off when you refund someone.)
 
 GST: as an individual, you usually don't need GST registration until your yearly turnover crosses the threshold. Ask a CA once income starts.
 
@@ -55,7 +55,7 @@ npx wrangler secret put RAZORPAY_WEBHOOK_SECRET
 npx wrangler secret put GEMINI_KEY                 # step 5
 npx wrangler secret put ADMIN_TOKEN                # a long password you choose – for your seller dashboard
 npx wrangler secret put KLIPY_KEY                  # step 5b – turns on the GIFs tab for everyone
-npx wrangler deploy                                # prints https://clipforge-pay.<you>.workers.dev
+npx wrangler deploy                                # prints https://viralkaro-pay.<you>.workers.dev
 ```
 Send Claude the **workers.dev address** and your **Razorpay Key ID** (not the secret). Claude puts them in `src/plan.ts` (`CONFIG.server`, `CONFIG.razorpayKey`) and deploys. Then the “Get Pro” button goes live.
 
@@ -76,20 +76,20 @@ The **GIFs** tab searches millions of GIFs and see-through stickers. It needs on
 
 ## 5c. YouTube posting for everyone (Google sign-in)
 So users can post straight to YouTube without any setup, the app needs one Google sign-in ID of yours:
-1. console.cloud.google.com → create a project “ClipForge” → **APIs & Services → Library** → enable **YouTube Data API v3**.
-2. **OAuth consent screen**: app name ClipForge, your email, home page = the app's address, privacy policy = `…/legal/privacy.html`, terms = `…/legal/terms.html`; add the scope `…/auth/youtube.upload`.
+1. console.cloud.google.com → create a project “ViralKaro” → **APIs & Services → Library** → enable **YouTube Data API v3**.
+2. **OAuth consent screen**: app name ViralKaro, your email, home page = the app's address, privacy policy = `…/legal/privacy.html`, terms = `…/legal/terms.html`; add the scope `…/auth/youtube.upload`.
 3. **Credentials → Create credentials → OAuth client ID → Web application** → Authorised JavaScript origins: `https://tiwary9847.github.io` (plus your own domain later). Copy the client ID (`…apps.googleusercontent.com`).
 4. Send it to Claude (or put it in `googleClientId` in `src/plan.ts`). It is not a secret.
 5. Until Google **verifies** the app (needed because of the upload permission; can take a few weeks, they review the privacy page and a short screen recording of the sign-in), only up to 100 test users you add can sign in, and they see an “unverified app” warning. Submit for verification as soon as the policy pages are live.
 
 ## 6. Android app (PWABuilder – no Android Studio needed)
 1. Go to **pwabuilder.com**, enter `https://tiwary9847.github.io/clipforge/` → *Package for stores* → **Android** → *Google Play*.
-2. Package ID: `io.github.tiwary9847.clipforge` · App name: `ClipForge – Video Editor` · Launcher name: `ClipForge`.
+2. Package ID: `io.github.tiwary9847.viralkaro` · App name: `ViralKaro – Video Editor` · Launcher name: `ViralKaro`.
 3. Under *Signing key* choose **Create new** and fill your name. Download the zip.
 4. **Keep the `signing.keystore` and `signing-key-info.txt` from the zip forever**, with the licence key. Every app update must be signed with them.
 5. The zip has an `.apk` (install on your phone to test – allow “install unknown apps”) and an `.aab` (for the Play Store).
 6. The zip also has **`assetlinks.json`**. Without it, the app shows a small address bar at the top. To remove it: on GitHub create a public repository named exactly **`tiwary9847.github.io`**, add the file at `.well-known/assetlinks.json`, and in that repo's Settings → Pages publish from the main branch. (Or send Claude the file and the repository and Claude will do it.)
-7. Turn on **Play Billing** in PWABuilder's options if shown – ClipForge uses it for in-app Pro.
+7. Turn on **Play Billing** in PWABuilder's options if shown – ViralKaro uses it for in-app Pro.
 
 The same app setup is in `android/twa-manifest.json` for GitHub's automatic build (step 9).
 
@@ -97,11 +97,11 @@ The same app setup is in `android/twa-manifest.json` for GitHub's automatic buil
 1. play.google.com/console → developer account ($25 once, identity check).
 2. Create app → upload the `.aab`. Fill in the store listing (Claude can write the description and screenshots), content rating and data safety (“no data collected” except purchase email – see the privacy page).
 3. **In-app products** (Monetize → Products → In-app products), all *Managed products*:
-   - `pro_month` – ₹99 – “ClipForge Pro – 30 days”
-   - `pro_year` – ₹699 – “ClipForge Pro – 12 months”
-   - `pro_life` – ₹1,999 – “ClipForge Pro – Lifetime”
+   - `pro_month` – ₹99 – “ViralKaro Pro – 30 days”
+   - `pro_year` – ₹699 – “ViralKaro Pro – 12 months”
+   - `pro_life` – ₹1,999 – “ViralKaro Pro – Lifetime”
 4. **Server access to purchases:** Google Cloud → create a *service account* → in Play Console → Users and permissions → invite its email with “View financial data / manage orders”. Download its JSON key, then:
-   `npx wrangler secret put PLAY_SERVICE_ACCOUNT` (paste the JSON) and `npx wrangler secret put PLAY_PACKAGE` (`io.github.tiwary9847.clipforge`).
+   `npx wrangler secret put PLAY_SERVICE_ACCOUNT` (paste the JSON) and `npx wrangler secret put PLAY_PACKAGE` (`io.github.tiwary9847.viralkaro`).
 5. New personal developer accounts must run a closed test with at least 12 testers for 14 days before going public – friends and family can join.
 
 Inside the Play app, Pro is bought through Google Play (Play's policy). In India Google currently keeps 15% of your first $1M a year; it has started lower fees and web-payment links in the US, UK and EEA, and says more markets will follow. Razorpay on the website takes about 2%.
@@ -126,7 +126,7 @@ GitHub Actions on your account is locked because of a billing issue (every autom
 ---
 
 ### What's already in the app
-- **Free:** everything except the Pro features, **no ads**, a small “Made with ClipForge” mark (bottom-right, above the Shorts/Reels buttons).
+- **Free:** everything except the Pro features, **no ads**, a small “Made with ViralKaro” mark (bottom-right, above the Shorts/Reels buttons).
 - **Pro (₹99 / 30 days, ₹699 / year, ₹1,999 lifetime):** **🚀 Autopilot** (one tap: raw video → edited Shorts/YouTube/Reels files with titles, hashtags and thumbnails; batch many videos; auto-post or schedule on YouTube; saved recipes), no mark, built-in AI without a key (300 requests a month, +100 for ₹49), **Hindi AI voices**, **one-tap upload kit** (Shorts + YouTube + Reels files with titles, description, hashtags and thumbnail each), **7 premium caption styles**, **premium template packs** (wedding, festival, travel, devotional), 4K export, all formats at once, brand kit.
 - Licences are signed and checked in the app (works offline, can't be faked); “Get it back” restores Pro on a new phone with email + payment ID; Pro can be copied to another device with the licence code.
 - Until steps 3–4 are done, the Pro screen says “Pro sales open soon” and accepts licence codes.

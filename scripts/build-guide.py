@@ -2,7 +2,7 @@
 
 - src/guide/guide-body.html : the guide's content (no cover / print styles), images pointing at guide/<name>.webp
 - public/guide/*.webp       : screenshots, resized for screens
-- public/ClipForge-User-Guide.pdf : the printable guide (from docs/)
+- public/ViralKaro-User-Guide.pdf : the printable guide (from docs/)
 Run after editing the guide:  python3 scripts/build-guide.py
 """
 import pathlib, re, shutil
@@ -36,6 +36,6 @@ body = re.sub(r'src="guide/([\w\-]+)\.webp"', lambda m: f'src="guide/{m.group(1)
 
 (root / 'src' / 'guide').mkdir(exist_ok=True)
 (root / 'src' / 'guide' / 'guide-body.html').write_text(body.strip() + '\n')
-shutil.copy(root / 'docs' / 'ClipForge-User-Guide.pdf', root / 'public' / 'ClipForge-User-Guide.pdf')
+shutil.copy(root / 'docs' / 'ViralKaro-User-Guide.pdf', root / 'public' / 'ViralKaro-User-Guide.pdf')
 kb = sum(f.stat().st_size for f in out_img.glob('*.webp')) // 1024
 print(f'guide: {len(body)//1024} KB text, {len(used)} images ({kb} KB)')

@@ -141,7 +141,7 @@ export async function searchMusic(o: SearchOpts): Promise<{ tracks: Track[]; mor
 
 /**
  * Downloads an audio file. Some libraries (Freesound's previews) let the browser play a file but
- * not download it into a web app (no CORS header), so then it comes through ClipForge's own server.
+ * not download it into a web app (no CORS header), so then it comes through ViralKaro's own server.
  */
 export async function fetchAudio(url: string): Promise<Blob> {
   try {

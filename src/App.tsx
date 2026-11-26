@@ -245,7 +245,7 @@ export default function App() {
       )}
       <header className="top">
         <div className="logo">
-          <span className="logo-mark"><Icon name="play" size={14} /></span><span className="logo-txt">Clip<b>Forge</b></span>
+          <span className="logo-mark"><Icon name="play" size={14} /></span><span className="logo-txt">Viral<b>Karo</b></span>
         </div>
         <input className="proj-name" value={name} onChange={(e) => setUi({ projectName: e.target.value })} />
         <span className="save-st" title="Your project and media are saved in this browser automatically">
@@ -254,7 +254,7 @@ export default function App() {
         <div className="spacer" />
         <button className="btn sm ae-btn" onClick={() => setAutoOpen(true)} title="Upload clips, set the order – we edit it for you"><Icon name="sparkles" size={15} /> {t('Auto-edit')}</button>
         <button className="btn sm ap-btn hide-phone" onClick={() => setPilot(true)} title="Pro: one tap from raw video to finished files – or many videos at once">🚀 Autopilot{!pro && <span className="pro-mini">PRO</span>}</button>
-          <button className={'btn pro-btn' + (pro ? ' is-pro' : '')} onClick={() => openPro()} title={pro ? 'You have ClipForge Pro' : 'ClipForge Pro – no mark, 4K, built-in AI'}>{pro ? '★ Pro' : 'Go Pro'}</button>
+          <button className={'btn pro-btn' + (pro ? ' is-pro' : '')} onClick={() => openPro()} title={pro ? 'You have ViralKaro Pro' : 'ViralKaro Pro – no mark, 4K, built-in AI'}>{pro ? '★ Pro' : 'Go Pro'}</button>
         <button className="btn sm hide-phone" onClick={() => setConfirmNew(true)} title="Start a new project"><Icon name="plus" size={15} /> {t('New')}</button>
         <select
           className={'preset-sel' + (empty ? ' hide-empty' : '')}
@@ -288,7 +288,7 @@ export default function App() {
                 <button onClick={() => setSettingsOpen(true)}><Icon name="gear" size={17} /> {t('Settings')}</button>
                 {installable && <button onClick={() => void install()}>📲 Install app</button>}
                 <button onClick={() => setPilot(true)}>🚀 Autopilot{pro ? '' : ' (Pro)'}</button>
-                <button onClick={() => openPro()}>⭐ {pro ? 'ClipForge Pro ✓' : 'Go Pro'}</button>
+                <button onClick={() => openPro()}>⭐ {pro ? 'ViralKaro Pro ✓' : 'Go Pro'}</button>
                 <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}><Icon name={theme === 'light' ? 'moon' : 'sun'} size={17} /> {theme === 'light' ? t('Dark mode') : t('Light mode')}</button>
                 <button onClick={() => openGuide()}><Icon name="book" size={17} /> {t('Guide')}</button>
                 <button onClick={startTour}><Icon name="help" size={17} /> {t('Quick tour')}</button>

@@ -1,3 +1,3 @@
-// The website also offers the single-file version for download (dist/clipforge.html).
+// The website also offers the single-file version for download (dist/viralkaro.html).
 import { copyFileSync } from 'node:fs'
-copyFileSync('dist-single/index.html', 'dist/clipforge.html')
+copyFileSync('dist-single/index.html', 'dist/viralkaro.html')

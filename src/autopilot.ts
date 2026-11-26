@@ -1,5 +1,5 @@
 // Pro Autopilot: one tap from a raw video to finished files (and optionally YouTube).
-// It only chains tools that already exist in ClipForge, in a sensible order, and keeps going
+// It only chains tools that already exist in ViralKaro, in a sensible order, and keeps going
 // when one step can't run (it says why), so a single missing piece never stops the whole job.
 import { zipSync } from 'fflate'
 import { cutSilences } from './processing'

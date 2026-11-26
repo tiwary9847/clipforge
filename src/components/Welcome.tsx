@@ -83,7 +83,7 @@ export function Welcome() {
         </div>
 
         {installable && touch() && (
-          <button className="wl-install" onClick={() => void install()}>📲 {t('Install ClipForge on this phone')} <small>{t('– opens like an app, works offline')}</small></button>
+          <button className="wl-install" onClick={() => void install()}>📲 {t('Install ViralKaro on this phone')} <small>{t('– opens like an app, works offline')}</small></button>
         )}
         <div className="wl-label">{t('Or start with')} <button className="lnk wl-tour" onClick={startTour}>{t('· New here? Make your first reel in 60 seconds')}</button></div>
         <div className="wl-actions">

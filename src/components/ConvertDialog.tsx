@@ -60,7 +60,7 @@ export function ConvertDialog() {
         <h2>🔄 Convert this video?</h2>
         <p>
           <b>{job.file.name}</b> is {info?.codec === 'hevc' ? <>“High Efficiency” (HEVC) video</> : <>in a format ({(info?.codec || 'unknown').toUpperCase()})</>} that this browser can’t play.
-          ClipForge can turn it into a normal MP4 right here – nothing is uploaded.
+          ViralKaro can turn it into a normal MP4 right here – nothing is uploaded.
         </p>
         {!info ? (
           <div className="hint warn">⚠ This file couldn’t be read at all, so it can’t be converted. Try exporting it again from your phone’s gallery.</div>

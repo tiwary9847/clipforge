@@ -39,7 +39,7 @@ const download = (blob: Blob, name: string) => {
   setTimeout(() => URL.revokeObjectURL(url), 4000)
 }
 const toast = (m: string) => setUi({ toast: m })
-const safeName = () => getState().projectName.replace(/[^\w\- ]+/g, '').trim() || 'clipforge'
+const safeName = () => getState().projectName.replace(/[^\w\- ]+/g, '').trim() || 'viralkaro'
 
 export function ToolsTab() {
   const t = useT()
@@ -472,7 +472,7 @@ function Backup() {
           className="chip"
           onClick={async () => {
             try {
-              download(await exportBackup(), `${safeName()}.clipforge`)
+              download(await exportBackup(), `${safeName()}.viralkaro`)
               setMsg('Backup downloaded.')
             } catch (e) {
               setMsg((e as Error).message)
@@ -485,7 +485,7 @@ function Backup() {
         <input
           ref={fileRef}
           type="file"
-          accept=".clipforge"
+          accept=".viralkaro,.clipforge"
           hidden
           onChange={async (e) => {
             const f = e.target.files?.[0]
@@ -690,9 +690,9 @@ function AiVoice() {
   const pro = usePro()
   return (
     <>
-      <div className="hint">{v.pro ? 'Type in Hindi (देवनागरी), Hinglish or English – the Pro voices read all three naturally. Made on the ClipForge server; uses 5 of your monthly AI requests.' : 'Type a script and get a voice-over at the playhead. Runs on your device; the voice downloads once (~80 MB) and is cached.'}</div>
+      <div className="hint">{v.pro ? 'Type in Hindi (देवनागरी), Hinglish or English – the Pro voices read all three naturally. Made on the ViralKaro server; uses 5 of your monthly AI requests.' : 'Type a script and get a voice-over at the playhead. Runs on your device; the voice downloads once (~80 MB) and is cached.'}</div>
       <textarea className="full" rows={3} placeholder={v.hindi ? 'नमस्ते दोस्तों, आज हम… / Namaste dosto, aaj hum…' : 'Hey guys, welcome back…'} value={text} onChange={(e) => setText(e.target.value)} />
-      <select className="full" value={voice} onChange={(e) => { const nv = VOICES.find((x) => x.id === e.target.value)!; if (nv.pro && !requirePro('Hindi AI voices are part of ClipForge Pro.')) return; setVoice(nv.id) }}>
+      <select className="full" value={voice} onChange={(e) => { const nv = VOICES.find((x) => x.id === e.target.value)!; if (nv.pro && !requirePro('Hindi AI voices are part of ViralKaro Pro.')) return; setVoice(nv.id) }}>
         <optgroup label={pro ? 'Hindi & Hinglish (Pro)' : 'Hindi & Hinglish – Pro'}>{VOICES.filter((x) => x.pro).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</optgroup>
         <optgroup label="English (free, on your device)">{VOICES.filter((x) => !x.pro).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</optgroup>
       </select>

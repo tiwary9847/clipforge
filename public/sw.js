@@ -23,7 +23,7 @@ self.addEventListener('activate', (e) => {
 })
 self.addEventListener('fetch', (e) => {
   const u = new URL(e.request.url)
-  // Share → ClipForge from the gallery, WhatsApp or camera: keep the files, then open the editor
+  // Share → ViralKaro from the gallery, WhatsApp or camera: keep the files, then open the editor
   if (e.request.method === 'POST' && u.pathname.endsWith('/share-target')) {
     e.respondWith(
       (async () => {

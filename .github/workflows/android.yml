@@ -28,8 +28,8 @@ jobs:
           cd android
           if [ -n "$KS" ]; then echo "$KS" | base64 -d > android.keystore; echo "REAL=1" >> $GITHUB_ENV
           else
-            keytool -genkeypair -keystore android.keystore -alias clipforge -keyalg RSA -keysize 2048 -validity 10000 \
-              -storepass testtest -keypass testtest -dname "CN=ClipForge test build"
+            keytool -genkeypair -keystore android.keystore -alias viralkaro -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass testtest -keypass testtest -dname "CN=ViralKaro test build"
             echo "::warning::No signing secrets – this is a TEST build. Use your permanent key for the Play Store."
           fi
       - name: Build
@@ -40,11 +40,11 @@ jobs:
           cd android
           bubblewrap update --skipVersionUpgrade
           bubblewrap build --skipPwaValidation
-          keytool -list -v -keystore android.keystore -alias clipforge -storepass "$BUBBLEWRAP_KEYSTORE_PASSWORD" | grep SHA256: | head -1 > fingerprint.txt
+          keytool -list -v -keystore android.keystore -alias viralkaro -storepass "$BUBBLEWRAP_KEYSTORE_PASSWORD" | grep SHA256: | head -1 > fingerprint.txt
           cat fingerprint.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: clipforge-android
+          name: viralkaro-android
           path: |
             android/app-release-signed.apk
             android/app-release-bundle.aab

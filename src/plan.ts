@@ -1,4 +1,4 @@
-// Free / Pro. A Pro licence is a small signed text (payload.signature, ECDSA P-256) issued by the ClipForge
+// Free / Pro. A Pro licence is a small signed text (payload.signature, ECDSA P-256) issued by the ViralKaro
 // server after a payment (or by the owner). The app checks the signature itself with the public key below,
 // so Pro works offline and can't be faked by editing the page. Only the owner holds the private key.
 import { useSyncExternalStore } from 'react'
@@ -7,7 +7,7 @@ const PUBLIC_KEY = 'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEsSC8Y37yDHPrYH7ZKx/oYuIm
 
 /* ---- set these after creating the accounts (see MONEY-SETUP.md) ---- */
 export const CONFIG = {
-  server: '', // e.g. https://clipforge-pay.<you>.workers.dev – the payment + AI server
+  server: '', // e.g. https://viralkaro-pay.<you>.workers.dev – the payment + AI server
   razorpayKey: '', // Razorpay key id (rzp_live_… or rzp_test_…)
   googleClientId: '', // Google OAuth "Web" client ID (…apps.googleusercontent.com) – YouTube posting for everyone
 }
@@ -26,7 +26,7 @@ export const OFFERS: PlanOffer[] = [
   { id: 'ai100', name: '+100 AI', price: 49, note: 'this month' },
 ]
 export const PRO_FEATURES: [string, string][] = [
-  ['🚫', 'No “Made with ClipForge” mark on your videos'],
+  ['🚫', 'No “Made with ViralKaro” mark on your videos'],
   ['🚀', 'Autopilot – one tap from raw video to edited Shorts, YouTube and Reels files with titles and thumbnails; batch many videos; auto-post to YouTube; your own saved recipes'],
   ['🤖', 'Built-in AI – assistant, hooks, titles, retention check – no key needed (300 AI requests a month)'],
   ['🗣️', 'Hindi AI voice-over – natural Hindi and Hinglish voices'],
@@ -128,7 +128,7 @@ export function saveReceipt(r: Receipt) {
   const all = receipts().filter((x) => x.payment_id !== r.payment_id)
   localStorage.setItem(RKEY, JSON.stringify([r, ...all].slice(0, 50)))
 }
-export const PLAN_NAME: Record<string, string> = { month: 'ClipForge Pro – 30 days', year: 'ClipForge Pro – 1 year', life: 'ClipForge Pro – lifetime', ai100: '100 extra AI requests' }
+export const PLAN_NAME: Record<string, string> = { month: 'ViralKaro Pro – 30 days', year: 'ViralKaro Pro – 1 year', life: 'ViralKaro Pro – lifetime', ai100: '100 extra AI requests' }
 /** Opens a printable receipt (save as PDF from the print dialog). */
 export function printReceipt(r: Receipt) {
   const w = window.open('', '_blank')
@@ -136,7 +136,7 @@ export function printReceipt(r: Receipt) {
   const d = new Date(r.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
   const esc = (x: string) => x.replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c]!)
   w.document.write(`<!doctype html><meta charset="utf-8"><title>Receipt ${esc(r.payment_id)}</title><style>body{font:15px system-ui,sans-serif;max-width:560px;margin:40px auto;color:#111}h1{font-size:22px;margin:0 0 4px}table{width:100%;border-collapse:collapse;margin:24px 0}td{padding:8px 0;border-bottom:1px solid #ddd}td:last-child{text-align:right}.muted{color:#666;font-size:13px}button{margin-top:16px;padding:8px 14px}@media print{button{display:none}}</style>
-<h1>ClipForge – receipt</h1><div class="muted">https://tiwary9847.github.io/clipforge/</div>
+<h1>ViralKaro – receipt</h1><div class="muted">${import.meta.env.VITE_SITE_URL}</div>
 <table><tr><td>Date</td><td>${d}</td></tr><tr><td>Item</td><td>${esc(PLAN_NAME[r.plan] || r.plan)}</td></tr>${r.coupon ? `<tr><td>Coupon</td><td>${esc(r.coupon)}</td></tr>` : ''}<tr><td><b>Paid</b></td><td><b>₹${r.amount}</b></td></tr><tr><td>Payment ID</td><td>${esc(r.payment_id)}</td></tr>${r.email ? `<tr><td>Email</td><td>${esc(r.email)}</td></tr>` : ''}</table>
 <div class="muted">Paid through Razorpay. Keep this payment ID – with your email it restores Pro on a new phone or computer.</div><button onclick="print()">Print / save as PDF</button>`)
   w.document.close()
@@ -180,7 +180,7 @@ export const openPro = (why = '') => window.dispatchEvent(new CustomEvent('cf:pr
 export const inPlayApp = () => document.referrer.startsWith('android-app://') || sessionStorage.getItem('cf-twa') === '1'
 if (typeof document !== 'undefined' && document.referrer.startsWith('android-app://')) sessionStorage.setItem('cf-twa', '1')
 
-/** Built-in AI (through the ClipForge server) for Pro users without their own key. */
+/** Built-in AI (through the ViralKaro server) for Pro users without their own key. */
 export const builtinAI = () => !!(current && CONFIG.server)
 export async function askBuiltin(prompt: string, json: boolean, images: string[] = []): Promise<string> {
   const j = await post<{ text?: string }>('/ai', { prompt, json, ...(images.length ? { images } : {}) }, true)
