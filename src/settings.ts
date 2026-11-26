@@ -24,7 +24,15 @@ export interface Settings {
   motion: boolean
   lang: 'en' | 'hinglish' | 'hi' // interface language
   nextSteps: boolean // the 'Next:' tip row under the preview
+  mode: 'basic' | 'advanced' // Basic shows only the everyday tabs, tools and options
 }
+
+/* ---------- Basic mode: what stays visible ---------- */
+export const BASIC_TABS = ['media', 'text', 'captions', 'audio', 'memes', 'gifs', 'tools']
+export const BASIC_TOOLS = ['autopilot', 'ready', 'comments', 'mutecheck', 'ghost', 'music', 'musiclib', 'zooms', 'thumb', 'titles']
+export const BASIC_SECS = new Set(['Canvas · platform', 'Quick start', 'Timing', 'Text', 'Text animation', 'Sticker', 'Transform', 'Crop', 'Speed', 'Audio', 'Volume (all audio clips)', 'Filters & colour', 'Transitions', '🎙 Studio voice'])
+export const isBasic = () => state.mode === 'basic'
+export const useBasic = () => useSettings((s) => s.mode === 'basic')
 
 export const SKINS: { id: Skin; name: string; dark: boolean; sw: [string, string, string] }[] = [
   { id: 'aurora', name: 'Aurora', dark: true, sw: ['#08090d', '#12141c', '#8b6cff'] },
@@ -67,6 +75,7 @@ const DEFAULTS: Settings = {
   hidden: [],
   closedSecs: [],
   motion: true,
+  mode: 'basic',
 }
 
 let state: Settings = load()
@@ -81,6 +90,13 @@ function load(): Settings {
     // the old fixed defaults become "auto", so the video gets more room on smaller screens
     if (s.tlH === 312) s.tlH = 0
     if (s.tlHm === 290) s.tlHm = 0
+    // Basic/Advanced came later: people who already used the app keep everything (Advanced);
+    // brand-new visitors start in Basic. Decided once and saved.
+    if (!s.mode) {
+      const used = Object.keys(s).length > 0 || Object.keys(localStorage).some((k) => k.startsWith('clipforge-') && k !== KEY)
+      s.mode = used ? 'advanced' : 'basic'
+      localStorage.setItem(KEY, JSON.stringify({ ...DEFAULTS, ...s }))
+    }
     return { ...DEFAULTS, ...s }
   } catch {
     return { ...DEFAULTS }
@@ -143,6 +159,7 @@ export function applySettings() {
   root.dataset.hints = state.hints ? 'on' : 'off'
   root.dataset.motion = state.motion ? 'on' : 'off'
   root.dataset.tall = state.tall ? 'on' : 'off'
+  root.dataset.mode = state.mode
   const A = ACCENTS.find((a) => a.id === state.accent) ?? ACCENTS[0]
   // pure black looks best with a softer accent ring; light skins use the deeper shade for text
   const st = root.style

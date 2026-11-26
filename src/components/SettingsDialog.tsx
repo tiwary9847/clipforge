@@ -96,6 +96,13 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
             <>
               <div className="set-row">
                 <div>
+                  <b>Simple mode (Basic)</b>
+                  <small>Show only the everyday tabs, tools and options. Turn off to see every tool (Advanced).</small>
+                </div>
+                <Switch label="Simple mode" on={s.mode === 'basic'} onChange={(v) => setSettings({ mode: v ? 'basic' : 'advanced' })} />
+              </div>
+              <div className="set-row">
+                <div>
                   <b>Text & button size</b>
                   <small>Side panels, timeline toolbar and windows</small>
                 </div>

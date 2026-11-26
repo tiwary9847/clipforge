@@ -758,3 +758,17 @@ body:has(.tdrawer.open) .sheet-x { display: none !important; }
 .gh-row input{flex:1}
 .gh-btns{display:flex;gap:8px}
 .gh-btns .btn.primary{flex:1}
+
+/* ---------- Basic / Advanced ---------- */
+.mode-sw{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin:8px 10px 2px;padding:3px;border-radius:11px;background:var(--panel2,rgba(127,127,127,.12))}
+.mode-sw button{border:0;border-radius:8px;padding:6px 4px;background:transparent;color:inherit;font:600 12.5px/1.2 inherit;cursor:pointer;opacity:.75}
+.mode-sw button.on{background:var(--panel,#fff);opacity:1;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+[data-theme="dark"] .mode-sw button.on{background:rgba(255,255,255,.14)}
+.more-adv{display:flex;flex-direction:column;gap:3px;width:100%;margin:12px 0 4px;padding:12px 14px;border-radius:12px;border:1px dashed color-mix(in srgb,var(--accent) 55%,transparent);background:color-mix(in srgb,var(--accent) 7%,transparent);color:inherit;text-align:left;cursor:pointer}
+.more-adv b{color:var(--accent);font-size:13.5px}
+.more-adv small{font-size:12px;opacity:.78;line-height:1.35}
+.tour-top{flex-wrap:wrap}
+.tour-sub{display:block;flex-basis:100%;order:3;margin:-6px 0 0 38px;font-size:11.5px;opacity:.7;font-weight:500}
+/* the guide never blocks the app: you can do each step for real (only the card takes clicks) */
+.tour{pointer-events:none}
+.tour-card{pointer-events:auto}

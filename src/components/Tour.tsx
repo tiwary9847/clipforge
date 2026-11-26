@@ -1,8 +1,10 @@
 import { useEffect, useLayoutEffect, useState } from 'react'
 import { Icon } from './Icon'
+import { getState } from '../store'
 
-// A 5-step first-run walkthrough: import → edit → memes → captions → export.
+// First-run guide: make your first reel in 60 seconds – add a video → one-tap Auto-edit → change anything → export.
 // Each step spotlights the first visible element from its selector list (desktop and phone layouts differ).
+// Step 1 moves on by itself as soon as a video is on the timeline.
 
 interface Step {
   sel: string[]
@@ -10,43 +12,37 @@ interface Step {
   title: string
   text: string
   phone?: string
+  waitFor?: () => boolean // moves on by itself when this becomes true
 }
 
 const STEPS: Step[] = [
   {
-    sel: ['.wl-drop', '.left .btn.primary', '.mnav button:nth-child(1)'],
+    sel: ['.wl-drop', '.left .tab:nth-child(1)', '.mnav button:nth-child(1)'],
     icon: 'upload',
-    title: '1 · Import your clips',
-    text: 'Drop videos, photos or music here (or click to browse). They go straight onto the timeline. Nothing is uploaded – everything stays on your device.',
-    phone: 'Tap here to pick videos, photos or music from your phone. Nothing is uploaded.',
+    title: '1 · Add your video',
+    text: 'Click here and pick a video (or a few clips). It goes straight onto the timeline – nothing is uploaded, it all stays on your device.',
+    phone: 'Tap here and pick a video from your gallery. Nothing is uploaded.',
+    waitFor: () => getState().project.clips.length > 0,
   },
   {
-    sel: ['.timeline .tl-scroll', '.timeline'],
-    icon: 'scissors',
-    title: '2 · Edit on the timeline',
-    text: 'Drag a clip to move it, drag its edges to trim, press S to split at the playhead. Click any clip to change its look, speed, colour and sound on the right.',
-    phone: 'Drag clips to move, drag their edges to trim. Tap a clip, then “Edit” to change it.',
+    sel: ['.ae-btn'],
+    icon: 'sparkles',
+    title: '2 · One tap: Auto-edit',
+    text: 'Auto-edit cuts the dead air and adds music, memes, transitions and an ending for you. Prefer to do it yourself? Just press Next.',
   },
   {
-    sel: ['.left .tab:nth-child(2)', '.mnav button:nth-child(1)'],
-    icon: 'smile',
-    title: '3 · Add memes with sound',
-    text: 'Open Memes and tap one – the sound, stickers, caption and effect drop in at the playhead. Tap 🔈 to hear it first.',
-    phone: 'Tap “Add”, then “Memes”. One tap drops a meme with sound at the playhead.',
-  },
-  {
-    sel: ['.left .tab:nth-child(7)', '.mnav button:nth-child(1)'],
-    icon: 'captions',
-    title: '4 · Auto-captions',
-    text: 'Captions turns speech into on-screen text automatically – Hindi can be shown in English letters (Hinglish), with word-by-word highlight.',
-    phone: 'Tap “Add”, then “Captions” to turn speech into text automatically.',
+    sel: ['.stage canvas', '.stage'],
+    icon: 'type',
+    title: '3 · Change anything',
+    text: 'Double-click any text on the video to change the words, drag it to move it. Add your own text, captions, GIFs and music from the tabs on the left.',
+    phone: 'Double-tap any text on the video to change it, drag to move. Tap “Add” for text, captions, GIFs and music.',
   },
   {
     sel: ['.top .btn.primary', '.mnav button:nth-child(4)'],
     icon: 'upload',
-    title: '5 · Export & share',
-    text: 'Export makes an MP4 ready for YouTube, Instagram and Facebook. Need a different shape? Change the format at the top – your edit adapts.',
-    phone: 'Tap Export for an MP4 ready for YouTube, Instagram, Facebook and WhatsApp.',
+    title: '4 · Export & post',
+    text: 'Export makes an MP4 ready for Reels, Shorts and YouTube. Tip: Tools → 💬 Comment preview shows the comments you’d get – fix them before you post.',
+    phone: 'Tap Export for an MP4 ready for Reels, Shorts, YouTube and WhatsApp.',
   },
 ]
 
@@ -99,6 +95,14 @@ export function Tour() {
     }
   }, [step])
 
+  // "do it" steps: move on as soon as it's done
+  useEffect(() => {
+    const w = step >= 0 ? STEPS[step].waitFor : undefined
+    if (!w) return
+    const id = setInterval(() => w() && setStep((x) => (x === step ? x + 1 : x)), 400)
+    return () => clearInterval(id)
+  }, [step])
+
   const close = () => {
     setStep(-1)
     try {
@@ -140,12 +144,13 @@ export function Tour() {
   }
 
   return (
-    <div className="tour" role="dialog" aria-label="Quick tour">
+    <div className="tour" role="dialog" aria-label="Make your first reel">
       {hole ? <div className="tour-hole" style={hole} /> : <div className="tour-dim" />}
       <div className="tour-card" style={{ ...pos, width: CW }} key={step}>
         <div className="tour-top">
           <span className="tour-ic"><Icon name={s.icon} size={18} /></span>
           <b>{s.title}</b>
+          {step === 0 && <small className="tour-sub">Your first reel in 60 seconds</small>}
           <button className="tour-x" onClick={close} aria-label="Close tour"><Icon name="x" size={16} /></button>
         </div>
         <p>{phone && s.phone ? s.phone : s.text}</p>
@@ -156,7 +161,7 @@ export function Tour() {
           <button className="lnk" onClick={close}>Skip</button>
           {step > 0 && <button className="btn sm" onClick={() => setStep(step - 1)}>Back</button>}
           <button className="btn sm primary" onClick={() => (step < STEPS.length - 1 ? setStep(step + 1) : close())}>
-            {step < STEPS.length - 1 ? 'Next' : 'Start editing 🎬'}
+            {step < STEPS.length - 1 ? (s.waitFor && !s.waitFor() ? 'Skip this step' : 'Next') : 'Done 🎬'}
           </button>
         </div>
       </div>

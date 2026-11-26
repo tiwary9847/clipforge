@@ -1,6 +1,6 @@
 import { Children, isValidElement, ReactElement, ReactNode, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { getSettings, togglePin, useSettings } from '../settings'
+import { BASIC_TOOLS, getSettings, setSettings, togglePin, useBasic, useSettings } from '../settings'
 import { Icon } from './Icon'
 import { openGuide } from './GuideDialog'
 import { t as tr, toolText, useT } from '../i18n'
@@ -139,13 +139,18 @@ export function ToolCards({ children }: { children: ReactNode }) {
       return n
     })
 
-  const visible = tools.filter((t) => !hidden.includes(t.id))
+  const basic = useBasic()
   const words = q.toLowerCase().split(/\s+/).filter(Boolean)
+  const allVisible = tools.filter((t) => !hidden.includes(t.id))
+  // Basic: the everyday tools only (search still finds every tool)
+  const visible = basic && !words.length ? (BASIC_TOOLS.map((id) => allVisible.find((t) => t.id === id)).filter(Boolean) as typeof allVisible) : allVisible
+  const moreN = allVisible.length - visible.length
   const match = (t: Tool) => words.every((w) => `${t.title} ${t.desc} ${t.kw} ${t.cats.join(' ')}`.toLowerCase().includes(w))
 
   // what to show, in order, with group labels
   const sections: { label: string; list: Tool[] }[] = []
   if (words.length) sections.push({ label: '', list: visible.filter(match) })
+  else if (basic) sections.push({ label: '', list: visible })
   else if (cat === 'pinned') sections.push({ label: '', list: pins.map((p) => visible.find((t) => t.id === p)).filter(Boolean) as Tool[] })
   else if (cat !== 'all') sections.push({ label: '', list: visible.filter((t) => t.cats.includes(cat)) })
   else {
@@ -214,17 +219,27 @@ export function ToolCards({ children }: { children: ReactNode }) {
         <Icon name="search" size={15} />
         <input placeholder={tr('Search tools…').replace('{n}', String(visible.length))} value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search tools" />
       </div>
-      <div className="tc-cats">
+      {!basic && <div className="tc-cats">
         <button className={'chip' + (cat === 'all' ? ' on' : '')} onClick={() => setCat('all')}>{tr('All')}</button>
         <button className={'chip' + (cat === 'pinned' ? ' on' : '')} onClick={() => setCat('pinned')} title="Pinned tools">★</button>
         {CATS.map((c) => (
           <button key={c.id} className={'chip' + (cat === c.id ? ' on' : '')} onClick={() => setCat(c.id)} title={tr(c.name)}>{tr(c.short)}</button>
         ))}
-      </div>
+      </div>}
     </div>
   )
   const empty = shownIds.size === 0 && <div className="tc-empty">{words.length ? `No tool matches “${q}”.` : cat === 'pinned' ? 'Tap ☆ on any tool to pin it here.' : 'Nothing here.'}</div>
-  const hiddenNote = hidden.length > 0 && !words.length && cat === 'all' && <div className="hint" style={{ textAlign: 'center' }}>{hidden.length} tool{hidden.length > 1 ? 's' : ''} hidden in ⚙️ Settings</div>
+  const hiddenNote = (
+    <>
+      {basic && !words.length && moreN > 0 && (
+        <button className="more-adv" onClick={() => setSettings({ mode: 'advanced' })}>
+          <b>＋ {moreN} more tools</b>
+          <small>Dub, multicam, chat story, b-roll, brand kit… Switch to Advanced to see them all.</small>
+        </button>
+      )}
+      {hidden.length > 0 && !words.length && cat === 'all' && <div className="hint" style={{ textAlign: 'center' }}>{hidden.length} tool{hidden.length > 1 ? 's' : ''} hidden in ⚙️ Settings</div>}
+    </>
+  )
 
   // classic mode: every tool open, one long list
   if (allOpen) {
@@ -233,7 +248,7 @@ export function ToolCards({ children }: { children: ReactNode }) {
       if (s.label) nodes.push(<div key={'g' + i + s.label} className="tc-group">{s.label}</div>)
       s.list.forEach((t) => nodes.push(card(t)))
     })
-    for (const t of visible) if (!shownIds.has(t.id)) nodes.push(card(t, false))
+    for (const t of allVisible) if (!shownIds.has(t.id)) nodes.push(card(t, false))
     return (
       <>
         {lead}
@@ -246,7 +261,7 @@ export function ToolCards({ children }: { children: ReactNode }) {
   }
 
   // tiles: see every tool at a glance; a tool opens in a big panel
-  const cur = visible.find((t) => t.id === active)
+  const cur = allVisible.find((t) => t.id === active)
   return (
     <>
       {lead}

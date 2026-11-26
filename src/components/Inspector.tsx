@@ -1,4 +1,4 @@
-import { getSettings, setSettings } from '../settings'
+import { getSettings, setSettings, useBasic } from '../settings'
 import { useEffect, useState } from 'react'
 import { Chips, NumField, Section, Slider } from './Fields'
 import {
@@ -130,6 +130,7 @@ const MOTIONS: { id: Motion; name: string }[] = [
 ]
 
 function ClipPanel({ clip: c }: { clip: Clip }) {
+  const basic = useBasic()
   useLocalTime(hasKeys(c))
   const lt = localTime(c)
   const KS = (prop: KfProp, label: string, min: number, max: number, fmt: (v: number) => string, step = 0.01) => (
@@ -426,6 +427,12 @@ function ClipPanel({ clip: c }: { clip: Clip }) {
             <Slider label="Out length" value={c.transOut.dur} min={0.1} max={Math.max(0.2, Math.min(2, c.dur / 2))} onChange={(v) => P({ transOut: { ...c.transOut, dur: v } })} fmt={(v) => `${v.toFixed(1)}s`} />
           </Section>
         </>
+      )}
+      {basic && (
+        <button className="more-adv" onClick={() => setSettings({ mode: 'advanced' })}>
+          <b>＋ More options</b>
+          <small>Colour grading, masks, green screen, keyframes, effects, voice effects… Switch to Advanced to see them.</small>
+        </button>
       )}
       <div style={{ height: 24 }} />
     </div>

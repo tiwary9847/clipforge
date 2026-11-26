@@ -84,7 +84,7 @@ export function Welcome() {
         {installable && touch() && (
           <button className="wl-install" onClick={() => void install()}>📲 {t('Install ClipForge on this phone')} <small>{t('– opens like an app, works offline')}</small></button>
         )}
-        <div className="wl-label">{t('Or start with')} <button className="lnk wl-tour" onClick={startTour}>{t('· New here? Take the 30-second tour')}</button></div>
+        <div className="wl-label">{t('Or start with')} <button className="lnk wl-tour" onClick={startTour}>{t('· New here? Make your first reel in 60 seconds')}</button></div>
         <div className="wl-actions">
           <button onClick={() => openPanel('record')}><span className="wa-ic b"><Icon name="record" size={18} /></span><b>{t('Record')}</b><small>{t('Screen, webcam or both')}</small></button>
           <button onClick={() => openPanel('templates')}><span className="wa-ic c"><Icon name="layout" size={18} /></span><b>{t('Templates')}</b><small>{t('Ready-made layouts')}</small></button>

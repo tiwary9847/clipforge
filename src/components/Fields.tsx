@@ -1,5 +1,5 @@
 import { useT } from '../i18n'
-import { toggleSec, useSettings } from '../settings'
+import { BASIC_SECS, toggleSec, useSettings } from '../settings'
 import { ReactNode, useEffect, useState } from 'react'
 import { checkpoint } from '../store'
 
@@ -13,7 +13,9 @@ export const fmtTime = (t: number) => {
 export function Section({ title, children, right }: { title: string; children: ReactNode; right?: ReactNode }) {
   // click the heading to fold a section away; remembered in this browser
   const closed = useSettings((s) => s.closedSecs.includes(title))
+  const basic = useSettings((s) => s.mode === 'basic')
   const t = useT()
+  if (basic && !BASIC_SECS.has(title)) return null
   return (
     <div className={'sec' + (closed ? ' closed' : '')}>
       <div

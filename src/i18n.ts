@@ -54,6 +54,7 @@ const D: Record<string, [string, string]> = {
   Format: ['Format', 'फ़ॉर्मेट'],
   'Or start with': ['Ya shuru karo', 'या शुरू करें'],
   '· New here? Take the 30-second tour': ['· Naye ho? 30 second ka tour dekho', '· नए हैं? 30 सेकंड का टूर देखें'],
+  '· New here? Make your first reel in 60 seconds': ['· Naye ho? 60 second mein pehla reel banao', '· नए हैं? 60 सेकंड में पहली रील बनाएँ'],
   'Shorts · Reels': ['Shorts · Reels', 'Shorts · Reels'],
   '9:16 vertical': ['9:16 khada', '9:16 खड़ा'],
   '16:9 widescreen': ['16:9 leta hua', '16:9 चौड़ा'],

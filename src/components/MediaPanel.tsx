@@ -1,7 +1,7 @@
 import { probe, requestConvert } from '../convert'
 import { useT } from '../i18n'
 import { useEffect, useRef, useState } from 'react'
-import { getSettings, setSettings } from '../settings'
+import { BASIC_TABS, getSettings, isBasic, setSettings, useBasic } from '../settings'
 import {
   addAsset,
   addAssetClip,
@@ -95,7 +95,14 @@ export function MediaPanel() {
   useEffect(() => {
     const on = (e: Event) => {
       const d = (e as CustomEvent).detail
-      if (d === 'templates' || d === 'memes' || d === 'gifs' || d === 'captions' || d === 'audio' || d === 'tools' || d === 'media') setTab(d)
+      if (d === 'templates' || d === 'memes' || d === 'gifs' || d === 'captions' || d === 'audio' || d === 'tools' || d === 'media') {
+        // asked for a tab that only Advanced shows (e.g. Templates from the start screen): switch, and say so
+        if (isBasic() && !BASIC_TABS.includes(d)) {
+          setSettings({ mode: 'advanced' })
+          setUi({ toast: 'Switched to Advanced to show everything. Switch back to Basic any time at the top of this panel.' })
+        }
+        setTab(d)
+      }
       else if (d === 'texttab') setTab('text')
       else if (d === 'record' || d === 'text') {
         // 'text' = Edit by text, which lives in Tools
@@ -113,27 +120,31 @@ export function MediaPanel() {
     }
   }, [])
   const t = useT()
+  const basic = useBasic()
+  const tabs = basic ? TABS.filter((x) => BASIC_TABS.includes(x.id)) : TABS
+  const cur: Tab = tabs.some((x) => x.id === tab) ? tab : 'media'
   return (
     <div className="left">
       <LeftResize />
-      <div className="tabs">
-        {TABS.map((tb) => (
-          <button key={tb.id} className={'tab' + (tab === tb.id ? ' on' : '')} onClick={() => setTab(tb.id)}>
+      <ModeSwitch />
+      <div className={'tabs' + (basic ? ' basic' : '')}>
+        {tabs.map((tb) => (
+          <button key={tb.id} className={'tab' + (cur === tb.id ? ' on' : '')} onClick={() => setTab(tb.id)}>
             <Icon name={tb.icon} size={19} />
             <small>{t(tb.name)}</small>
           </button>
         ))}
       </div>
       <div className="panel-body">
-        {tab === 'media' && <MediaTab />}
-        {tab === 'memes' && <MemeTab />}
-        {tab === 'gifs' && <GifPanel />}
-        {tab === 'tools' && <ToolsTab />}
-        {tab === 'templates' && <TemplateTab />}
-        {tab === 'text' && <TextTab />}
-        {tab === 'stickers' && <StickerTab />}
-        {tab === 'audio' && <AudioTab />}
-        {tab === 'captions' && <CaptionTab />}
+        {cur === 'media' && <MediaTab />}
+        {cur === 'memes' && <MemeTab />}
+        {cur === 'gifs' && <GifPanel />}
+        {cur === 'tools' && <ToolsTab />}
+        {cur === 'templates' && <TemplateTab />}
+        {cur === 'text' && <TextTab />}
+        {cur === 'stickers' && <StickerTab />}
+        {cur === 'audio' && <AudioTab />}
+        {cur === 'captions' && <CaptionTab />}
       </div>
     </div>
   )
@@ -1071,3 +1082,13 @@ function LeftResize() {
   )
 }
 
+/** Basic ⇄ Advanced, at the top of the side panel (and of the phone's Add sheet). */
+export function ModeSwitch() {
+  const basic = useBasic()
+  return (
+    <div className="mode-sw" role="group" aria-label="How much to show">
+      <button className={basic ? 'on' : ''} onClick={() => setSettings({ mode: 'basic' })} aria-pressed={basic} title="Only the everyday tools">Basic</button>
+      <button className={!basic ? 'on' : ''} onClick={() => setSettings({ mode: 'advanced' })} aria-pressed={!basic} title="Every tool and option">Advanced</button>
+    </div>
+  )
+}
