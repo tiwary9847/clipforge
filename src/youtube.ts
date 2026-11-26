@@ -2,15 +2,20 @@
 // Requirements (Google's, not ours): the page must be served over https (or localhost) from an origin
 // registered on an OAuth "Web" client ID, and the YouTube Data API must be enabled for that project.
 
+import { CONFIG } from './plan'
+
 const SCOPE = 'https://www.googleapis.com/auth/youtube.upload'
 const KEY = 'clipforge-yt-client'
-export const getClientId = () => {
+/** The user's own client ID (advanced, optional) – otherwise the app's built-in one. */
+export const ownClientId = () => {
   try {
     return localStorage.getItem(KEY) || ''
   } catch {
     return ''
   }
 }
+export const builtInClientId = () => CONFIG.googleClientId
+export const getClientId = () => ownClientId() || CONFIG.googleClientId
 export const setClientId = (v: string) => {
   try {
     localStorage.setItem(KEY, v.trim())
@@ -62,7 +67,7 @@ export interface YtMeta {
 }
 export async function uploadToYouTube(blob: Blob, meta: YtMeta, onProgress: (p: number) => void): Promise<string> {
   const clientId = getClientId()
-  if (!clientId) throw new Error('Paste your Google OAuth client ID first.')
+  if (!clientId) throw new Error('YouTube posting isn’t switched on in this app yet – download the video and upload it in the YouTube app.')
   const tok = await token(clientId)
   const tags = (meta.tags ?? []).map((t) => t.replace(/^#/, '')).filter(Boolean).slice(0, 25)
   const status: Record<string, unknown> = { privacyStatus: meta.publishAt ? 'private' : meta.privacy, selfDeclaredMadeForKids: false }

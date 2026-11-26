@@ -354,3 +354,9 @@ Timeline bar: **✓ Select** mode (tap clips to add/remove – works on phones),
 - New visitors start in Basic; anyone who used the app before (any saved `clipforge-*` key) keeps Advanced – decided once and saved.
 - The first-run tour is now **“Make your first reel in 60 seconds”**: 1 add your video (moves on by itself once a video is on the timeline) → 2 one-tap Auto-edit → 3 change anything (double-click text) → 4 export (+ Comment preview tip). The guide no longer blocks the app – each step can be done for real while it is open.
 
+## v34 – Launch fixes
+- **Policy pages from `legal.json`**: `scripts/legal.mjs` runs before every build and publishes `/legal/{terms,privacy,refunds,contact}.html` from `docs/legal-templates/` once name, city, state and email are filled in (no blanks allowed); `LegalLinks` shows Terms · Privacy · Refunds · Contact on the start screen and in the Pro window only then. Privacy now covers AI frames (Comment preview), AI voices, GIF search and YouTube posting (with Google's Limited Use statement); terms cover the ₹49 AI add-on, Autopilot, predictions and third-party services; the refund page has a delivery section.
+- **YouTube posting without setup**: `CONFIG.googleClientId` is used for everyone; the client-ID box only appears when none is built in (a user's own ID still overrides).
+- **Link previews**: Open Graph / X tags + `public/og.jpg` (1200×630); the address comes from `VITE_SITE_URL` in `.env`.
+- Monthly plan label says “no auto-renewal” (it never renews), matching the refund policy.
+

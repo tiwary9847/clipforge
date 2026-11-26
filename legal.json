@@ -1,0 +1,9 @@
+{
+  "_help": "Your public contact details for the policy pages (Razorpay and Google need them). Fill name, city, state and email; phone is optional. Every build then publishes /legal/*.html and shows the links in the app.",
+  "name": "",
+  "city": "",
+  "state": "",
+  "email": "",
+  "phone": "",
+  "updated": ""
+}

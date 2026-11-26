@@ -29,8 +29,8 @@ You received **`clipforge-licence-private.jwk.json`**. It's the key that creates
   (or ask Claude to do it).
 
 ## 2. Policy pages
-Razorpay won't switch on live payments without Terms, Privacy, Refund and Contact pages.
-Fill in every `[…]` in `docs/legal-templates/` (your full name, city, email). Then send the details to Claude, who'll publish them and link them from the Pro screen.
+Razorpay won't switch on live payments without Terms, Privacy, Refund (with delivery) and Contact pages, and Google needs the privacy page for YouTube sign-in.
+Put your **full name, city, state and email** (phone optional) in **`legal.json`** – or just send them to Claude. Every build then publishes `/legal/terms.html`, `privacy.html`, `refunds.html`, `contact.html` and shows **Terms · Privacy · Refunds · Contact** on the start screen and in the Pro window. Until it's filled in, nothing is published. The wording lives in `docs/legal-templates/` (plain-language starting points, not legal advice).
 
 ## 3. Razorpay (UPI / cards on the website)
 1. Sign up at **razorpay.com** → choose *Individual / Sole proprietor*, category *Software / SaaS*.
@@ -74,6 +74,14 @@ The **GIFs** tab searches millions of GIFs and see-through stickers. It needs on
 
 (Tenor's GIF API was shut down by Google on 30 June 2026. GIPHY also works – `GIPHY_KEY` – but its free key allows only 100 searches an hour for the whole app, so use KLIPY.) Until a key is set, the tab lets users add GIFs from their phone, or paste their own free GIPHY key.
 
+## 5c. YouTube posting for everyone (Google sign-in)
+So users can post straight to YouTube without any setup, the app needs one Google sign-in ID of yours:
+1. console.cloud.google.com → create a project “ClipForge” → **APIs & Services → Library** → enable **YouTube Data API v3**.
+2. **OAuth consent screen**: app name ClipForge, your email, home page = the app's address, privacy policy = `…/legal/privacy.html`, terms = `…/legal/terms.html`; add the scope `…/auth/youtube.upload`.
+3. **Credentials → Create credentials → OAuth client ID → Web application** → Authorised JavaScript origins: `https://tiwary9847.github.io` (plus your own domain later). Copy the client ID (`…apps.googleusercontent.com`).
+4. Send it to Claude (or put it in `googleClientId` in `src/plan.ts`). It is not a secret.
+5. Until Google **verifies** the app (needed because of the upload permission; can take a few weeks, they review the privacy page and a short screen recording of the sign-in), only up to 100 test users you add can sign in, and they see an “unverified app” warning. Submit for verification as soon as the policy pages are live.
+
 ## 6. Android app (PWABuilder – no Android Studio needed)
 1. Go to **pwabuilder.com**, enter `https://tiwary9847.github.io/clipforge/` → *Package for stores* → **Android** → *Google Play*.
 2. Package ID: `io.github.tiwary9847.clipforge` · App name: `ClipForge – Video Editor` · Launcher name: `ClipForge`.
@@ -97,6 +105,9 @@ The same app setup is in `android/twa-manifest.json` for GitHub's automatic buil
 5. New personal developer accounts must run a closed test with at least 12 testers for 14 days before going public – friends and family can join.
 
 Inside the Play app, Pro is bought through Google Play (Play's policy). In India Google currently keeps 15% of your first $1M a year; it has started lower fees and web-payment links in the US, UK and EEA, and says more markets will follow. Razorpay on the website takes about 2%.
+
+## 7b. Moving to your own domain (optional)
+Change `VITE_SITE_URL` in **`.env`** (link previews and policy links use it), add the domain to `ALLOWED_ORIGINS` in `server/wrangler.toml` and to the Google sign-in origins (5c), and update `host`/URLs in `android/twa-manifest.json`. On your own domain the `assetlinks.json` file can sit on the same site, so the separate `tiwary9847.github.io` repository isn't needed.
 
 ## 8. Running the shop (seller dashboard)
 Open **https://tiwary9847.github.io/clipforge/admin.html**, type your workers.dev address and your `ADMIN_TOKEN` password. You get:

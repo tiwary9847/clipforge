@@ -5,7 +5,7 @@ import { getPreset, getState, projectDuration } from '../store'
 import { fmtTime } from './Fields'
 import { useT } from '../i18n'
 import { isPro, requirePro } from '../plan'
-import { getClientId, setClientId, uploadSupported, uploadToYouTube } from '../youtube'
+import { builtInClientId, getClientId, setClientId, uploadSupported, uploadToYouTube } from '../youtube'
 
 function canShare(blob: Blob, name: string) {
   try {
@@ -238,7 +238,11 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                     <div className="hint warn">Direct upload only works when ClipForge is opened from a web address (https://…), not from a file on your computer. Download the video and upload it in YouTube Studio, or host this page (e.g. on GitHub Pages) and add that address to your Google OAuth client.</div>
                   ) : (
                     <>
-                      <input className="full" placeholder="Google OAuth client ID (…apps.googleusercontent.com)" value={yt.client} onChange={(e) => { setYt({ ...yt, client: e.target.value }); setClientId(e.target.value) }} />
+                      {!builtInClientId() ? (
+                        <input className="full" placeholder="Google OAuth client ID (…apps.googleusercontent.com)" value={yt.client} onChange={(e) => { setYt({ ...yt, client: e.target.value }); setClientId(e.target.value) }} />
+                      ) : (
+                        <div className="hint">You’ll sign in with Google once – the video goes straight to your channel.</div>
+                      )}
                       <input className="full" placeholder="Title" value={yt.title} onChange={(e) => setYt({ ...yt, title: e.target.value })} />
                       <textarea className="full" rows={2} placeholder={preset.h > preset.w ? 'Description (add #Shorts)' : 'Description'} value={yt.desc} onChange={(e) => setYt({ ...yt, desc: e.target.value })} />
                       <select className="full" value={yt.privacy} onChange={(e) => setYt({ ...yt, privacy: e.target.value as any })}>

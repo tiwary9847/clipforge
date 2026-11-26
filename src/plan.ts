@@ -9,6 +9,7 @@ const PUBLIC_KEY = 'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEsSC8Y37yDHPrYH7ZKx/oYuIm
 export const CONFIG = {
   server: '', // e.g. https://clipforge-pay.<you>.workers.dev – the payment + AI server
   razorpayKey: '', // Razorpay key id (rzp_live_… or rzp_test_…)
+  googleClientId: '', // Google OAuth "Web" client ID (…apps.googleusercontent.com) – YouTube posting for everyone
 }
 export const salesOpen = () => !!(CONFIG.server && (CONFIG.razorpayKey || inPlayApp()))
 
@@ -19,7 +20,7 @@ export interface PlanOffer {
   note: string
 }
 export const OFFERS: PlanOffer[] = [
-  { id: 'month', name: 'Monthly', price: 99, note: 'cancel any time' },
+  { id: 'month', name: 'Monthly', price: 99, note: 'no auto-renewal' },
   { id: 'year', name: 'Yearly', price: 699, note: 'like ₹58 a month' },
   { id: 'life', name: 'Lifetime', price: 1999, note: 'pay once' },
   { id: 'ai100', name: '+100 AI', price: 49, note: 'this month' },

@@ -772,3 +772,7 @@ body:has(.tdrawer.open) .sheet-x { display: none !important; }
 /* the guide never blocks the app: you can do each step for real (only the card takes clicks) */
 .tour{pointer-events:none}
 .tour-card{pointer-events:auto}
+/* policy links (Terms · Privacy · Refunds · Contact) */
+.legal-links{display:block;text-align:center;font-size:11.5px;opacity:.7;margin-top:12px}
+.legal-links a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+.legal-links a:hover{color:var(--accent);opacity:1}

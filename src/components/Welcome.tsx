@@ -1,3 +1,4 @@
+import { LegalLinks } from './LegalLinks'
 import { useRef, useState } from 'react'
 import { Icon } from './Icon'
 import { startTour } from './Tour'
@@ -91,6 +92,7 @@ export function Welcome() {
           <button onClick={() => openPanel('memes')}><span className="wa-ic d"><Icon name="smile" size={18} /></span><b>{t('Memes')}</b><small>{t('With sound, one tap')}</small></button>
           <button onClick={() => openTool('script')}><span className="wa-ic a"><Icon name="type" size={18} /></span><b>{t('Script to video')}</b><small>{t('Type a script – get a video')}</small></button>
         </div>
+        <LegalLinks className="wl-legal" />
       </div>
     </div>
   )

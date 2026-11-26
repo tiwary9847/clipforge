@@ -127,7 +127,7 @@ function RecipeEditor({ r, set }: { r: Recipe; set: (r: Recipe) => void }) {
           </>
         )}
       </div>
-      {r.youtube.on && !canYouTube() && <div className="hint warn">YouTube posting needs your Google OAuth client ID once – Export → “Upload straight to YouTube” explains it. Until then Autopilot makes the files and skips posting.</div>}
+      {r.youtube.on && !canYouTube() && <div className="hint warn">YouTube posting isn’t switched on in this app yet (the app owner adds a Google sign-in ID) – until then Autopilot makes the files and skips posting.</div>}
       {r.youtube.on && r.youtube.when !== 'now' && <div className="hint">Uploads as private and YouTube publishes it at {new Date(publishTime(r.youtube.when)!).toLocaleString('en-IN', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}.</div>}
     </div>
   )

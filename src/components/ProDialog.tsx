@@ -1,3 +1,4 @@
+import { LegalLinks } from './LegalLinks'
 import { ReactNode, useEffect, useState } from 'react'
 import { engine } from '../engine'
 import { AIUsage, CONFIG, OFFERS, PRO_FEATURES, PLAN_NAME, PlanOffer, Receipt, activate, aiUsage, daysLeft, inPlayApp, licence, licenceText, openPro, post, printReceipt, receipts, salesOpen, saveReceipt, signOut, usePro } from '../plan'
@@ -402,6 +403,7 @@ export function ProDialog({ why, onClose }: { why: string; onClose: () => void }
             <div className="modal-actions">
               <button className="btn" disabled={!!busy} onClick={onClose}>Not now</button>
             </div>
+            <LegalLinks />
           </>
         )}
       </div>
