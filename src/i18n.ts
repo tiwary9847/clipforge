@@ -12,6 +12,17 @@ export const LANGS: { id: Lang; name: string }[] = [
 // English → [Hinglish, Hindi]
 const D: Record<string, [string, string]> = {
   // top bar, bottom bar
+  'cuts': ['cuts', 'कट'],
+  'Use template': ['Template use karo', 'टेम्पलेट इस्तेमाल करें'],
+  'photos or videos': ['photos ya videos', 'फ़ोटो या वीडियो'],
+  'videos or photos': ['videos ya photos', 'वीडियो या फ़ोटो'],
+  'built-in beat or your song': ['apni beat ya apna gaana', 'अपनी बीट या अपना गाना'],
+  '🔥 Trending edits': ['🔥 Trending edits', '🔥 ट्रेंडिंग एडिट'],
+  'Pick clips – cut on the beat for you': ['Clips chuno – beat pe cut ho jayengi', 'क्लिप चुनें – बीट पर कट जाएँगी'],
+  '📸 Photos & memories': ['📸 Photos aur yaadein', '📸 फ़ोटो और यादें'],
+  'Works with photos too': ['Photos ke saath bhi chalta hai', 'फ़ोटो के साथ भी चलता है'],
+  '🎉 Occasions': ['🎉 Khaas mauke', '🎉 ख़ास मौके'],
+  'Birthdays, weddings, festivals': ['Birthday, shaadi, tyohaar', 'जन्मदिन, शादी, त्योहार'],
   'Home': ['Home', 'होम'],
   'Create': ['Banao', 'बनाएँ'],
   'Pick videos & photos': ['Videos aur photos chuno', 'वीडियो और फ़ोटो चुनें'],
