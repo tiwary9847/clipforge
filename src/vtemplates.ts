@@ -7,12 +7,13 @@ import { addAsset, baseClip, checkpoint, clipEnd, getAsset, getState, insertSile
 import { engine } from './engine'
 import { SFX_LIST } from './library'
 import { Asset, Clip, DEFAULT_FILTERS, Filters, TextProps, TransType } from './types'
+import { myTemplates } from './mytemplates'
 
 type Status = (m: string, p?: number) => void
 export type BeatStyle = 'pop' | 'trap' | 'soft' | 'dhol'
 export type TplGroup = 'trending' | 'photos' | 'occasions'
 
-interface Slot {
+export interface Slot {
   beats: number
   fx?: Clip['fx']
   trans?: TransType
@@ -24,7 +25,7 @@ interface Slot {
   freezeGrade?: Partial<Filters>
   grade?: Partial<Filters>
 }
-interface TText {
+export interface TText {
   text: string
   beat: number
   beats: number
@@ -40,8 +41,9 @@ interface TText {
   bg?: string
   bgOpacity?: number
   upper?: boolean
+  style?: Partial<TextProps> // full text look (saved from your own edit)
 }
-interface TSticker { emoji: string; beat: number; beats: number; x: number; y: number; size: number; n?: number }
+export interface TSticker { emoji: string; beat: number; beats: number; x: number; y: number; size: number; n?: number }
 export interface VideoTemplate {
   id: string
   name: string
@@ -56,6 +58,8 @@ export interface VideoTemplate {
   stickers?: TSticker[]
   sfx?: { id: string; beat: number }[]
   grade?: Partial<Filters>
+  thumb?: string // picture for templates you saved yourself
+  mine?: boolean
 }
 
 const IMPACT = 'Impact, "Arial Narrow Bold", Haettenschweiler, "Noto Sans Devanagari", sans-serif'
@@ -311,7 +315,7 @@ async function beatTrack(bpm: number, beats: number, style: BeatStyle = 'pop'): 
 
 /** Fills a template's cuts with your clips (best moment of each), cut on the beat of your song or a built-in beat. */
 export async function applyVideoTemplate(id: string, clipAssets: string[], musicId: string | undefined, status: Status, opts: { texts?: string[] } = {}): Promise<string> {
-  const T = VIDEO_TEMPLATES.find((t) => t.id === id)
+  const T = VIDEO_TEMPLATES.find((t) => t.id === id) ?? myTemplates().find((t) => t.id === id)
   if (!T) throw new Error('Unknown template')
   const assets = clipAssets.map((a) => getAsset(a)).filter((a): a is Asset => !!a && (a.kind === 'video' || a.kind === 'image'))
   if (!assets.length) throw new Error('Pick your clips or photos first.')
@@ -403,12 +407,12 @@ export async function applyVideoTemplate(id: string, clipAssets: string[], music
   const total = at(nBeats)
   const track = (i: number) => (['v2', 'v3', 'v4'] as const)[i % 3]
   T.texts.forEach((tx, i) => {
-    const { beat: b, beats, x, y, size, ...rest } = tx
+    const { beat: b, beats, x, y, size, style, ...rest } = tx
     const text = opts.texts?.[i] ?? tx.text
     const st = t0 + at(b)
     made.push(baseClip('text', track(i), {
       label: text, start: st, dur: Math.max(0.4, t0 + at(Math.min(nBeats, b + beats)) - st), x: x ?? 0.5, y,
-      text: { ...TEXT_BASE(), ...Object.fromEntries(Object.entries(rest).filter(([k, v]) => v !== undefined && k !== 'text')), text, size },
+      text: { ...TEXT_BASE(), ...Object.fromEntries(Object.entries(rest).filter(([k, v]) => v !== undefined && k !== 'text')), ...style, text, size },
     } as Partial<Clip>))
   })
   for (const s of T.stickers ?? []) {

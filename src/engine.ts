@@ -647,8 +647,10 @@ class Engine {
         } else this.drawClip(ctx, c, t, W, H, getSrc, boxes)
       }
     }
-    if (!isPro() && project.clips.length) this.drawMark(ctx, W, H)
+    if (!isPro() && !this.noMark && project.clips.length) this.drawMark(ctx, W, H)
   }
+  /** Set during one export after the user shared the app (free "no mark" once a day). */
+  noMark = false
 
   /** Free version: a small “Made with ViralKaro” mark in the bottom-right corner (removed with Pro). */
   private drawMark(ctx: CanvasRenderingContext2D, W: number, H: number) {

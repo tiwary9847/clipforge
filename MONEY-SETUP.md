@@ -97,6 +97,8 @@ The same app setup is in `android/twa-manifest.json` for GitHub's automatic buil
 1. play.google.com/console → developer account ($25 once, identity check).
 2. Create app → upload the `.aab`. Fill in the store listing (Claude can write the description and screenshots), content rating and data safety (“no data collected” except purchase email – see the privacy page).
 3. **In-app products** (Monetize → Products → In-app products), all *Managed products*:
+   - `pro_day` – ₹19 – “ViralKaro Pro – 1 day” (optional – the small passes also work on the website)
+   - `pro_week` – ₹39 – “ViralKaro Pro – 7 days” (optional)
    - `pro_month` – ₹99 – “ViralKaro Pro – 30 days”
    - `pro_year` – ₹699 – “ViralKaro Pro – 12 months”
    - `pro_life` – ₹1,999 – “ViralKaro Pro – Lifetime”
@@ -127,6 +129,6 @@ GitHub Actions on your account is locked because of a billing issue (every autom
 
 ### What's already in the app
 - **Free:** everything except the Pro features, **no ads**, a small “Made with ViralKaro” mark (bottom-right, above the Shorts/Reels buttons).
-- **Pro (₹99 / 30 days, ₹699 / year, ₹1,999 lifetime):** **🚀 Autopilot** (one tap: raw video → edited Shorts/YouTube/Reels files with titles, hashtags and thumbnails; batch many videos; auto-post or schedule on YouTube; saved recipes), no mark, built-in AI without a key (300 requests a month, +100 for ₹49), **Hindi AI voices**, **one-tap upload kit** (Shorts + YouTube + Reels files with titles, description, hashtags and thumbnail each), **7 premium caption styles**, **premium template packs** (wedding, festival, travel, devotional), 4K export, all formats at once, brand kit.
+- **Pro (₹19 / 1 day, ₹39 / 7 days, ₹99 / 30 days, ₹699 / year, ₹1,999 lifetime):** **🚀 Autopilot** (one tap: raw video → edited Shorts/YouTube/Reels files with titles, hashtags and thumbnails; batch many videos; auto-post or schedule on YouTube; saved recipes), no mark, built-in AI without a key (300 requests a month, +100 for ₹49), **Indian-language AI voices** (Hindi, Hinglish, Bengali, Marathi, Tamil, Telugu), **one-tap upload kit** (Shorts + YouTube + Reels files with titles, description, hashtags and thumbnail each), **7 premium caption styles**, **premium template packs** (wedding, festival, travel, devotional), 4K export, all formats at once, brand kit.
 - Licences are signed and checked in the app (works offline, can't be faked); “Get it back” restores Pro on a new phone with email + payment ID; Pro can be copied to another device with the licence code.
 - Until steps 3–4 are done, the Pro screen says “Pro sales open soon” and accepts licence codes.

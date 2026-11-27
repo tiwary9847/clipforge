@@ -236,3 +236,35 @@ export function CoverMaker() {
     </details>
   )
 }
+
+/* ---------- free: share the app → this video without the mark (once a day) ---------- */
+const UKEY = 'clipforge-free-unmark'
+export const unmarkUsedToday = () => localStorage.getItem(UKEY) === new Date().toDateString()
+export const spendUnmark = () => localStorage.setItem(UKEY, new Date().toDateString())
+
+export function ShareUnlock({ unlocked, setUnlocked }: { unlocked: boolean; setUnlocked: (v: boolean) => void }) {
+  const t = useT()
+  if (unmarkUsedToday() && !unlocked) return <div className="hint">{t('Free videos have a small “Made with ViralKaro” mark. You’ve used today’s free unlock – it comes back tomorrow, or get Pro.')}</div>
+  if (unlocked) return <div className="hint pro-ok">✓ {t('Thanks for sharing! This video will be saved without the mark.')}</div>
+  const url = import.meta.env.VITE_SITE_URL as string
+  const share = async () => {
+    const text = 'I edit my reels with ViralKaro – free, works in Hindi & Hinglish, and videos never leave your phone 👉'
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'ViralKaro', text, url })
+      } else {
+        await navigator.clipboard?.writeText(`${text} ${url}`)
+        setUi({ toast: 'Link copied – paste it to a friend or in your group' })
+      }
+      setUnlocked(true)
+    } catch {
+      /* closed the share sheet without sharing */
+    }
+  }
+  return (
+    <button className="unlock" onClick={() => void share()}>
+      <span>🎁</span>
+      <span><b>{t('Remove the mark from this video – free')}</b><small>{t('Share ViralKaro with a friend or group (once a day)')}</small></span>
+    </button>
+  )
+}

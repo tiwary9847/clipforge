@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { engine } from '../engine'
-import { CaptionKit, CoverMaker, Dest, DestPicker, PostButtons, QuickScore, lastDest, slowDevice, statusParts } from './PostKit'
+import { CaptionKit, CoverMaker, Dest, DestPicker, PostButtons, QuickScore, ShareUnlock, lastDest, slowDevice, statusParts, spendUnmark } from './PostKit'
 import { setClipsSilent } from '../store'
 import { recordPost } from '../festivals'
 import { Ctl, buildChapters, exportAudio, exportGif, fastExport, fastExportSupport, sourceFps } from '../fastExport'
@@ -37,6 +37,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
   const [light, setLight] = useState(slowDevice)
   const [parts, setParts] = useState<File[]>([])
   const [caption, setCaption] = useState('')
+  const [unlocked, setUnlocked] = useState(false)
   const t = useT()
   const selRange = (() => {
     const st = getState()
@@ -76,6 +77,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
     const before = getState().project.clips
     const muted = musicOff && what === 'video' && dest !== 'save'
     if (muted) setClipsSilent(before.map((c) => (c.kind === 'audio' ? { ...c, volume: 0 } : c)))
+    if (unlocked && !isPro()) engine.noMark = true
     try {
       ctl.current = { cancelled: false }
       const onP = (p: number, l?: string) => {
@@ -126,6 +128,10 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
       setErr((e as Error).message)
       setPhase('error')
     } finally {
+      if (engine.noMark) {
+        engine.noMark = false
+        spendUnmark()
+      }
       if (muted) setClipsSilent(getState().project.clips.map((c) => (c.kind === 'audio' ? { ...c, volume: before.find((b) => b.id === c.id)?.volume ?? c.volume } : c)))
     }
   }
@@ -154,6 +160,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
           <>
             {what === 'video' && dur > 0 && <DestPicker dest={dest} setDest={setDest} musicOff={musicOff} setMusicOff={setMusicOff} split={split} setSplit={setSplit} light={light} setLight={setLight} />}
             {what === 'video' && dur > 0 && dest !== 'save' && <QuickScore />}
+            {what === 'video' && dur > 0 && !isPro() && <ShareUnlock unlocked={unlocked} setUnlocked={setUnlocked} />}
             <div className="exp-simple">
               {what === 'video' ? (
                 <span>🎬 MP4 · {mode === 'fast' ? t('Fast (recommended)') : t('Safe mode')} · {(fpsPick === 'auto' ? srcFps : fpsPick)} fps{part ? ` · ${rFrom}–${rTo} s` : ''}</span>

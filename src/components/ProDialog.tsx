@@ -187,12 +187,12 @@ function Buy({ plans, current, label, onDone }: { plans: PlanId[]; current?: boo
               {o.id === 'year' && <span className="pro-tag">Best value</span>}
               <b>{o.name}</b>
               <span className="pro-price">₹{o.price.toLocaleString('en-IN')}</span>
-              <small>{o.id === 'month' ? '30 days · no auto-renew' : o.id === 'year' ? '12 months · ' + o.note : o.id === 'ai100' ? 'this month' : o.note}</small>
+              <small>{o.id === 'day' ? '24 hours · ' + o.note : o.id === 'week' ? '7 days · ' + o.note : o.id === 'month' ? '30 days · no auto-renew' : o.id === 'year' ? '12 months · ' + o.note : o.id === 'ai100' ? 'this month' : o.note}</small>
             </button>
           )
         })}
       </div>
-      {current && dl !== null && (pick === 'month' || pick === 'year') && <div className="hint">Your {dl} day{dl === 1 ? '' : 's'} left are kept – the new pass starts when the current one ends.</div>}
+      {current && dl !== null && (pick === 'day' || pick === 'week' || pick === 'month' || pick === 'year') && <div className="hint">Your {dl} day{dl === 1 ? '' : 's'} left are kept – the new pass starts when the current one ends.</div>}
       {!play && <input className="full" type="email" placeholder="Your email (to get Pro back on a new phone)" value={email} onChange={(e) => setEmail(e.target.value)} />}
       {!play && pick !== 'ai100' && (
         <div className="row coupon-row">
@@ -330,7 +330,7 @@ export function ProDialog({ why, onClose }: { why: string; onClose: () => void }
                 {!play && !!CONFIG.server && <button className={'chip' + (tab === 'ai' ? ' on' : '')} onClick={() => setTab(tab === 'ai' ? '' : 'ai')}>➕ 100 more AI requests · ₹49</button>}
               </div>
             )}
-            {open && tab === 'renew' && !!lic.exp && <Buy plans={['month', 'year', 'life']} current label="Renew" onDone={onClose} />}
+            {open && tab === 'renew' && !!lic.exp && <Buy plans={['day', 'week', 'month', 'year', 'life']} current label="Renew" onDone={onClose} />}
             {open && tab === 'ai' && <Buy plans={['ai100']} current label="Add 100 AI requests" onDone={onClose} />}
             {!tab && (
               <>
@@ -363,7 +363,7 @@ export function ProDialog({ why, onClose }: { why: string; onClose: () => void }
             <ul className="pro-feats">{(allFeats ? PRO_FEATURES : PRO_FEATURES.slice(0, 5)).map(([i, f]) => <li key={f}><span>{i}</span>{f}</li>)}</ul>
             {!allFeats && <button className="link" onClick={() => setAllFeats(true)}>▸ See all {PRO_FEATURES.length} Pro features</button>}
             <div className="hint">Everything else stays free – no ads, ever.</div>
-            {open ? <Buy plans={['month', 'year', 'life']} label="Get Pro" onDone={onClose} /> : (
+            {open ? <Buy plans={['day', 'week', 'month', 'year', 'life']} label="Get Pro" onDone={onClose} /> : (
               <>
                 <div className="pro-offers">
                   {OFFERS.filter((o) => o.id !== 'ai100').map((o) => (

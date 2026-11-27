@@ -8,9 +8,10 @@ import { requirePro, usePro } from '../plan'
 import { importFiles } from './MediaPanel'
 import { addToMain } from './BatchTrim'
 import { useT } from '../i18n'
+import { deleteMyTemplate, importTemplate, myTemplates, saveMyTemplate, shareTemplate } from '../mytemplates'
 
 const BASE = import.meta.env.BASE_URL + 'tpl/'
-export type Item = { id: string; name: string; desc: string; kind: 'video' | 'layout'; pro?: string; slots?: number; secs?: number; photos?: boolean }
+export type Item = { id: string; name: string; desc: string; kind: 'video' | 'layout'; pro?: string; slots?: number; secs?: number; photos?: boolean; thumb?: string; mine?: boolean }
 const vt = (g: string): Item[] =>
   VIDEO_TEMPLATES.filter((t) => t.group === g).map((t) => ({
     id: t.id, name: t.name, desc: t.desc, kind: 'video' as const, slots: t.slots.length, photos: t.photos,
@@ -47,8 +48,8 @@ function Preview({ it, big }: { it: Item; big?: boolean }) {
   }, [vid])
   return (
     <div ref={box} className="tf-media">
-      <img src={BASE + it.id + '.webp'} alt="" loading="lazy" width={135} height={240} />
-      {it.kind === 'video' && vid && (
+      <img src={it.thumb ?? BASE + it.id + '.webp'} alt="" loading="lazy" width={135} height={240} />
+      {it.kind === 'video' && !it.mine && vid && (
         <video ref={v} src={BASE + it.id + '.mp4'} muted={!big} loop playsInline autoPlay preload="auto" onError={() => setVid(false)} />
       )}
     </div>
@@ -64,6 +65,15 @@ export function TemplateFeed({ onPick }: { onPick?: () => void }) {
   const [busy, setBusy] = useState('')
   const [open, setOpen] = useState<Item | null>(null)
   const [withSong, setWithSong] = useState(false)
+  const [, bump] = useState(0)
+  useEffect(() => {
+    const f = () => bump((n) => n + 1)
+    window.addEventListener('cf:mytpl', f)
+    return () => window.removeEventListener('cf:mytpl', f)
+  }, [])
+  const mine: Item[] = myTemplates().map((m) => ({ id: m.id, name: m.name, desc: m.desc, kind: 'video', slots: m.slots.length, secs: Math.round((m.slots.reduce((s, x) => s + x.beats, 0) * 60) / m.bpm), thumb: m.thumb, mine: true }))
+  const hasClips = getState().project.clips.some((c) => c.track === 'v1')
+  const imp = useRef<HTMLInputElement>(null)
   const run = async (it: Item, files: File[]) => {
     setBusy(it.id)
     setOpen(null)
@@ -110,6 +120,35 @@ export function TemplateFeed({ onPick }: { onPick?: () => void }) {
         if (f.length && want.current) void run(want.current, f)
         want.current = null
       }} />
+      <div className="tf-mine-bar">
+        {hasClips && <button className="btn sm" onClick={() => { const n = prompt(t('Name your template'), getState().projectName); if (n === null) return; try { saveMyTemplate(n); toast('Saved under ⭐ My templates – fill it with new clips any time, or share it.') } catch (e) { toast((e as Error).message) } }}>⭐ {t('Save my edit as a template')}</button>}
+        <button className="btn sm" onClick={() => imp.current?.click()}>📥 {t('Import a template')}</button>
+        <input ref={imp} type="file" hidden accept=".viralkaro-template,application/json" onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ''; if (!f) return; try { const tt = await importTemplate(f); toast(`“${tt.name}” added to ⭐ My templates`) } catch (er) { toast((er as Error).message) } }} />
+      </div>
+      {mine.length > 0 && (
+        <section className="tf-row">
+          <div className="tf-h"><b>⭐ {t('My templates')}</b><small>{t('From your own edits – share them with friends')}</small></div>
+          <div className="tf-scroll">
+            {mine.map((it) => (
+              <div key={it.id} className="tf-card">
+                <button className="tf-pic" onClick={() => use(it)} aria-label={`Use ${it.name}`} disabled={!!busy}>
+                  <Preview it={it} />
+                  <span className="tf-tag">{it.secs}s · {it.slots} {t('cuts')}</span>
+                  {busy === it.id && <span className="tf-busy">…</span>}
+                </button>
+                <div className="tf-foot">
+                  <span>{it.name}</span>
+                  <button className="tf-use" onClick={() => use(it)} disabled={!!busy}>{t('Use')}</button>
+                </div>
+                <div className="tf-mine-act">
+                  <button onClick={() => { const m = myTemplates().find((x) => x.id === it.id); if (m) void shareTemplate(m) }}>↗ {t('Share')}</button>
+                  <button onClick={() => { if (confirm(`Delete “${it.name}”?`)) deleteMyTemplate(it.id) }}>🗑</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
       {ROWS.map((r) => (
         <section key={r.title} className="tf-row">
           <div className="tf-h"><b>{t(r.title)}</b><small>{t(r.sub)}</small></div>

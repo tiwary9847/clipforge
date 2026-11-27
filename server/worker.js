@@ -20,15 +20,18 @@
 // KV namespace binding: DB.   Vars: ALLOWED_ORIGINS (comma list), AI_MONTHLY (default 300)
 
 export const PLANS = {
+  day: { price: 19, days: 1 }, // small passes – try Pro for a day or a week
+  week: { price: 39, days: 7 },
   month: { price: 99, days: 30 },
   year: { price: 699, days: 366 },
   life: { price: 1999, days: 0 },
   ai100: { price: 49, days: 0, topup: 100 }, // +100 AI requests this month (needs Pro)
 }
-const PASS = (p) => p === 'month' || p === 'year' || p === 'life'
+const PASS = (p) => p === 'day' || p === 'week' || p === 'month' || p === 'year' || p === 'life'
+const TIMED = (p) => !!PLANS[p]?.days
 const TTS_MODELS = ['gemini-3.8-flash-tts', 'gemini-3.1-flash-tts-preview']
 const month = () => new Date().toISOString().slice(0, 7)
-const SKU_PLAN = { pro_month: 'month', pro_year: 'year', pro_life: 'life' }
+const SKU_PLAN = { pro_day: 'day', pro_week: 'week', pro_month: 'month', pro_year: 'year', pro_life: 'life' }
 const GEMINI_MODELS = ['gemini-flash-latest', 'gemini-3.5-flash', 'gemini-3.1-flash-lite']
 
 const enc = new TextEncoder()
@@ -109,10 +112,10 @@ async function quote(env, plan, couponCode, currentToken) {
   if (!P) throw Object.assign(new Error('Unknown plan'), { status: 400 })
   const cur = currentToken ? await readLicence(env, currentToken) : null
   if (plan === 'ai100' && !cur) throw Object.assign(new Error('AI top-ups are for Pro – get Pro first.'), { status: 400 })
-  if ((plan === 'month' || plan === 'year') && cur && !cur.exp) throw Object.assign(new Error('You already have lifetime Pro.'), { status: 400 })
+  if (TIMED(plan) && cur && !cur.exp) throw Object.assign(new Error('You already have lifetime Pro.'), { status: 400 })
   if (plan === 'life' && cur && !cur.exp) throw Object.assign(new Error('You already have lifetime Pro.'), { status: 400 })
   // renewing early adds the new pass after the current one, so no days are lost
-  const from = (plan === 'month' || plan === 'year') && cur?.exp ? Math.max(Date.now(), cur.exp * 1000) : Date.now()
+  const from = TIMED(plan) && cur?.exp ? Math.max(Date.now(), cur.exp * 1000) : Date.now()
   const c = plan === 'ai100' ? null : await getCoupon(env, couponCode)
   const okPlan = c && (!c.plans || !c.plans.length || c.plans.includes(plan))
   const amount = okPlan ? Math.max(1, Math.round((P.price * (100 - Math.min(90, c.off))) / 100)) : P.price

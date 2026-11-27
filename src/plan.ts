@@ -14,12 +14,14 @@ export const CONFIG = {
 export const salesOpen = () => !!(CONFIG.server && (CONFIG.razorpayKey || inPlayApp()))
 
 export interface PlanOffer {
-  id: 'month' | 'year' | 'life' | 'ai100'
+  id: 'day' | 'week' | 'month' | 'year' | 'life' | 'ai100'
   name: string
   price: number // ₹
   note: string
 }
 export const OFFERS: PlanOffer[] = [
+  { id: 'day', name: '1 day', price: 19, note: 'try everything' },
+  { id: 'week', name: '1 week', price: 39, note: 'for a big event' },
   { id: 'month', name: 'Monthly', price: 99, note: 'no auto-renewal' },
   { id: 'year', name: 'Yearly', price: 699, note: 'like ₹58 a month' },
   { id: 'life', name: 'Lifetime', price: 1999, note: 'pay once' },
@@ -128,7 +130,7 @@ export function saveReceipt(r: Receipt) {
   const all = receipts().filter((x) => x.payment_id !== r.payment_id)
   localStorage.setItem(RKEY, JSON.stringify([r, ...all].slice(0, 50)))
 }
-export const PLAN_NAME: Record<string, string> = { month: 'ViralKaro Pro – 30 days', year: 'ViralKaro Pro – 1 year', life: 'ViralKaro Pro – lifetime', ai100: '100 extra AI requests' }
+export const PLAN_NAME: Record<string, string> = { day: 'ViralKaro Pro – 1 day', week: 'ViralKaro Pro – 7 days', month: 'ViralKaro Pro – 30 days', year: 'ViralKaro Pro – 1 year', life: 'ViralKaro Pro – lifetime', ai100: '100 extra AI requests' }
 /** Opens a printable receipt (save as PDF from the print dialog). */
 export function printReceipt(r: Receipt) {
   const w = window.open('', '_blank')

@@ -12,6 +12,14 @@ export const LANGS: { id: Lang; name: string }[] = [
 // English → [Hinglish, Hindi]
 const D: Record<string, [string, string]> = {
   // top bar, bottom bar
+  'Save my edit as a template': ['Meri edit ko template banao', 'मेरी एडिट को टेम्पलेट बनाएँ'],
+  'Import a template': ['Template import karo', 'टेम्पलेट इम्पोर्ट करें'],
+  'My templates': ['Mere templates', 'मेरे टेम्पलेट'],
+  'From your own edits – share them with friends': ['Aapki apni edits se – doston ke saath share karo', 'आपकी अपनी एडिट से – दोस्तों के साथ शेयर करें'],
+  'Name your template': ['Template ka naam', 'टेम्पलेट का नाम'],
+  'Remove the mark from this video – free': ['Is video se mark hatao – free', 'इस वीडियो से मार्क हटाएँ – मुफ़्त'],
+  'Share ViralKaro with a friend or group (once a day)': ['ViralKaro kisi dost ya group ko share karo (din mein ek baar)', 'ViralKaro किसी दोस्त या ग्रुप को शेयर करें (दिन में एक बार)'],
+  'Thanks for sharing! This video will be saved without the mark.': ['Share karne ke liye shukriya! Ye video bina mark ke save hogi.', 'शेयर करने के लिए धन्यवाद! यह वीडियो बिना मार्क के सेव होगा।'],
   'Use with my song': ['Apne gaane ke saath', 'अपने गाने के साथ'],
   'pick your clips + one song together': ['clips aur ek gaana saath mein chuno', 'क्लिप और एक गाना साथ में चुनें'],
   'Your videos never leave your phone – editing happens right here, nothing is uploaded.': ['Aapki videos phone se bahar nahi jaati – editing yahin hoti hai, kuch upload nahi hota.', 'आपके वीडियो फ़ोन से बाहर नहीं जाते – एडिटिंग यहीं होती है, कुछ अपलोड नहीं होता।'],
