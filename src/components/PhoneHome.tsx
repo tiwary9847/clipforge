@@ -6,6 +6,7 @@ import { addToMain } from './BatchTrim'
 import { LegalLinks } from './LegalLinks'
 import { TemplateFeed } from './TemplateFeed'
 import { ProjectList, useProjects } from './Projects'
+import { ComingUp, Streak, TodayIdea } from './Habits'
 import { getPreset, getState, setProject, setUi, useStore } from '../store'
 import { engine } from '../engine'
 import { LANGS, useT } from '../i18n'
@@ -112,6 +113,10 @@ export function PhoneHome({ overlay }: { overlay?: boolean }) {
           </button>
         ))}
       </div>
+
+      <ComingUp onMake={() => showHome(false)} />
+      <TodayIdea onMake={() => showHome(false)} />
+      <Streak />
 
       {projects.length > 0 && (
         <>

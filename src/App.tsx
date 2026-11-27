@@ -9,6 +9,7 @@ import { AutopilotDialog } from './components/AutopilotDialog'
 import { Icon } from './components/Icon'
 import { Tour, startTour } from './components/Tour'
 import { PhoneHome } from './components/PhoneHome'
+import { useOccasionReminder } from './components/Habits'
 import { SettingsDialog } from './components/SettingsDialog'
 import { GuideDialog, openGuide } from './components/GuideDialog'
 import { ConvertDialog } from './components/ConvertDialog'
@@ -140,6 +141,7 @@ export default function App() {
   const [compatOpen, setCompatOpen] = useState(true)
   const [sheet, setSheet] = useState<null | 'add' | 'edit'>(null)
   const [home, setHome] = useState(false)
+  useOccasionReminder()
   const nClips = useStore((s) => s.project.clips.length)
   useEffect(() => {
     const on = (e: Event) => { const v = !!(e as CustomEvent).detail; setHome(v); if (v) setSheet(null) }

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { engine } from '../engine'
 import { CaptionKit, CoverMaker, Dest, DestPicker, PostButtons, QuickScore, lastDest, slowDevice, statusParts } from './PostKit'
 import { setClipsSilent } from '../store'
+import { recordPost } from '../festivals'
 import { Ctl, buildChapters, exportAudio, exportGif, fastExport, fastExportSupport, sourceFps } from '../fastExport'
 import { getPreset, getState, projectDuration } from '../store'
 import { fmtTime } from './Fields'
@@ -103,6 +104,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
         setParts(files)
         setResult({ url: URL.createObjectURL(files[0]), ext: last.ext, size: files.reduce((s, f) => s + f.size, 0), codec: last.codec, blob: files[0] })
         setPhase('done')
+        recordPost()
         return
       }
       const out =
@@ -119,6 +121,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
       }
       setResult({ url: URL.createObjectURL(out.blob), ext: out.ext, size: out.blob.size, codec: out.codec, blob: out.blob })
       setPhase('done')
+      if (what === 'video') recordPost()
     } catch (e) {
       setErr((e as Error).message)
       setPhase('error')

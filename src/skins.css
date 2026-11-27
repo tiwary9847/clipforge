@@ -975,3 +975,32 @@ body:has(.tdrawer.open) .sheet-x { display: none !important; }
 .cover-ctl { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
 .cover-ctl label { display: flex; flex-direction: column; gap: 3px; }
 .parts { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ---------- coming up, daily idea, streak ---------- */
+.cu { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.cu-h { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 15px; }
+.cu-h .link { font-size: 13px; min-height: 36px; }
+.cu-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+.cu-card { flex: none; width: 138px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel2); color: var(--text); text-align: left; }
+.cu-card.soon { border-color: transparent; background: linear-gradient(var(--panel2), var(--panel2)) padding-box, var(--grad) border-box; border: 2px solid transparent; }
+.cu-em { font-size: 26px; line-height: 1.1; }
+.cu-card b { font-size: 13.5px; line-height: 1.2; }
+.cu-card small { font-size: 12px; color: var(--muted); }
+.cu-card i { font-style: normal; font-size: 12px; font-weight: 700; color: var(--accent-fill, var(--accent)); margin-top: 4px; }
+.idea { display: grid; grid-template-columns: 40px 1fr auto; gap: 10px; align-items: center; width: 100%; padding: 10px 12px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel2); color: var(--text); text-align: left; }
+.idea-ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: rgba(250, 204, 21, 0.16); font-size: 20px; }
+.idea small { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
+.idea b { display: block; font-size: 14.5px; }
+.idea em { display: block; font-style: normal; font-size: 12px; color: var(--muted); line-height: 1.3; }
+.idea > i { font-style: normal; font-size: 12.5px; font-weight: 700; color: var(--accent-fill, var(--accent)); white-space: nowrap; }
+.streak { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel2); }
+.streak-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.streak-h b { font-size: 14.5px; }
+.streak-h small { font-size: 12px; color: var(--muted); }
+.streak-dots { display: grid; grid-template-columns: repeat(30, 1fr); gap: 3px; }
+.streak-dots i { height: 8px; border-radius: 3px; background: var(--line); }
+.streak-dots i.on { background: var(--grad); }
+.streak-dots i.today { outline: 1.5px solid var(--accent-fill, var(--accent)); outline-offset: 1px; }
+.md-add { display: grid; gap: 8px; margin: 8px 0; }
+.md-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+.wl-habits { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 640px; text-align: left; }

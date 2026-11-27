@@ -310,7 +310,7 @@ async function beatTrack(bpm: number, beats: number, style: BeatStyle = 'pop'): 
 }
 
 /** Fills a template's cuts with your clips (best moment of each), cut on the beat of your song or a built-in beat. */
-export async function applyVideoTemplate(id: string, clipAssets: string[], musicId: string | undefined, status: Status): Promise<string> {
+export async function applyVideoTemplate(id: string, clipAssets: string[], musicId: string | undefined, status: Status, opts: { texts?: string[] } = {}): Promise<string> {
   const T = VIDEO_TEMPLATES.find((t) => t.id === id)
   if (!T) throw new Error('Unknown template')
   const assets = clipAssets.map((a) => getAsset(a)).filter((a): a is Asset => !!a && (a.kind === 'video' || a.kind === 'image'))
@@ -403,11 +403,12 @@ export async function applyVideoTemplate(id: string, clipAssets: string[], music
   const total = at(nBeats)
   const track = (i: number) => (['v2', 'v3', 'v4'] as const)[i % 3]
   T.texts.forEach((tx, i) => {
-    const { text, beat: b, beats, x, y, size, ...rest } = tx
+    const { beat: b, beats, x, y, size, ...rest } = tx
+    const text = opts.texts?.[i] ?? tx.text
     const st = t0 + at(b)
     made.push(baseClip('text', track(i), {
       label: text, start: st, dur: Math.max(0.4, t0 + at(Math.min(nBeats, b + beats)) - st), x: x ?? 0.5, y,
-      text: { ...TEXT_BASE(), ...Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== undefined)), text, size },
+      text: { ...TEXT_BASE(), ...Object.fromEntries(Object.entries(rest).filter(([k, v]) => v !== undefined && k !== 'text')), text, size },
     } as Partial<Clip>))
   })
   for (const s of T.stickers ?? []) {

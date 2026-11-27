@@ -47,7 +47,7 @@ export const getCurrentId = () => currentId
 
 export async function listProjects(): Promise<ProjectInfo[]> {
   try {
-    const l = ((await tx<ProjectInfo[]>('kv', 'readonly', (st) => st.get('projects'))) ?? []).filter((p) => p.clips > 0 || p.id === currentId)
+    const l = ((await tx<ProjectInfo[]>('kv', 'readonly', (st) => st.get('projects'))) ?? []).filter((p) => p.clips > 0)
     return l.sort((a, b) => b.savedAt - a.savedAt)
   } catch {
     return []
@@ -98,7 +98,7 @@ async function save() {
       await tx('kv', 'readwrite', (st) => st.put(rec, 'proj:' + currentId))
       await tx('kv', 'readwrite', (st) => st.put(currentId, 'currentId'))
       const dur = s.project.clips.reduce((m, c) => Math.max(m, c.start + c.dur), 0)
-      const thumb = Date.now() - lastThumb > 20000 || !lastThumb ? snapshot() : undefined
+      const thumb = s.project.clips.length && (Date.now() - lastThumb > 20000 || !lastThumb) ? snapshot() : undefined
       if (thumb) lastThumb = Date.now()
       const id = currentId
       await putIndex((l) => {
