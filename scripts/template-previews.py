@@ -7,10 +7,13 @@ Sample footage: put your own license-free clips (e.g. from pexels.com) in docs/t
 holi, cake, flowers, dull, pastel – pick which templates use them; anything else is used everywhere).
 With no footage there, the script draws animated sample scenes (gradients, light, emoji – no real people).
 
+Real footage from Pexels: set PEXELS_KEY (free key from pexels.com/api) and the script downloads
+vertical sample clips for each scene and lists the creators in public/tpl/credits.json.
+
 Needs the built app served at http://localhost:8765 and Playwright + Chrome.
 Run:  python3 scripts/template-previews.py [template ids…]
 """
-import base64, pathlib, sys
+import base64, json, os, pathlib, ssl, sys, urllib.parse, urllib.request
 from playwright.sync_api import sync_playwright
 
 root = pathlib.Path(__file__).resolve().parent.parent
@@ -82,7 +85,50 @@ RECORD = """async ([a, b, em, motion, fall, secs]) => {
   return btoa(bin)
 }"""
 
+# what to search on Pexels for each scene (several, so templates don't repeat the same clip)
+QUERIES = {
+  'city': ['dancing city night', 'neon street night walk', 'friends night city'], 'party': ['friends party dancing', 'party confetti', 'celebration friends cheering'],
+  'street': ['street fashion walk', 'skateboard street', 'urban walking slow motion'], 'beach': ['beach waves walking', 'surfing', 'beach sunset friends'],
+  'mountains': ['mountain travel drone', 'hiking mountains', 'airplane window clouds'], 'nature': ['flowers wind', 'forest sunlight', 'waterfall'],
+  'food': ['street food cooking', 'food closeup pouring', 'coffee pouring'], 'gym': ['gym workout', 'boxing training', 'running athlete'],
+  'diya': ['diwali diya', 'candles festival lights', 'fireworks night'], 'holi': ['holi colors', 'color powder throw', 'colorful smoke'],
+  'cake': ['birthday cake candles', 'birthday party balloons', 'blowing candles'], 'flowers': ['wedding couple', 'wedding decoration flowers', 'bride'],
+  'dull': ['tired person bed', 'rainy window', 'bored at work'], 'pastel': ['getting ready mirror', 'makeup', 'happy woman smiling'],
+}
+KEY = os.environ.get('PEXELS_KEY', '').strip()
+CTX = ssl.create_default_context(cafile=os.path.expanduser('~/.ccr/ca-bundle.crt')) if os.path.exists(os.path.expanduser('~/.ccr/ca-bundle.crt')) else None
+credits = {}
+used = {}
+def pexels(scene):
+    """Next unused vertical clip for this scene, downloaded once."""
+    n = used.get(scene, 0); used[scene] = n + 1
+    q = QUERIES[scene][n % len(QUERIES[scene])]
+    pick = n // len(QUERIES[scene])
+    f = tmp / 'pexels' / f'{scene}-{n}.mp4'
+    meta = f.with_suffix('.json')
+    if f.exists() and meta.exists():
+        credits[f.name] = json.loads(meta.read_text()); return str(f)
+    cache = tmp / 'pexels' / ('q-' + q.replace(' ', '_') + '.json')
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    if cache.exists(): res = json.loads(cache.read_text())
+    else:  # one search per query (Pexels allows 200 an hour)
+        url = 'https://api.pexels.com/videos/search?' + urllib.parse.urlencode({'query': q, 'orientation': 'portrait', 'size': 'medium', 'per_page': 20})
+        res = json.load(urllib.request.urlopen(urllib.request.Request(url, headers={'Authorization': KEY}), context=CTX, timeout=30))
+        cache.write_text(json.dumps(res))
+    vids = [v for v in res.get('videos', []) if v['height'] > v['width'] and 4 <= v['duration'] <= 40]
+    if not vids: raise SystemExit(f'No Pexels clip for "{q}"')
+    v = vids[pick % len(vids)]
+    files = sorted([x for x in v['video_files'] if x.get('width') and x['height'] > x['width'] and x['width'] >= 500], key=lambda x: x['width'])
+    src = (files or v['video_files'])[0]['link']
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_bytes(urllib.request.urlopen(urllib.request.Request(src, headers={'User-Agent': 'ViralKaro-previews'}), context=CTX, timeout=120).read())
+    info = {'by': v['user']['name'], 'url': v['url'], 'query': q}
+    meta.write_text(json.dumps(info)); credits[f.name] = info
+    print('  pexels', scene, q, '→', v['user']['name'], f.stat().st_size // 1024, 'KB')
+    return str(f)
+
 def footage(pg, scene):
+    if KEY: return pexels(scene)
     mine = sorted([p for p in own.glob('*') if p.suffix.lower() in ('.mp4', '.webm', '.mov', '.jpg', '.jpeg', '.png')]) if own.exists() else []
     if mine:
         pick = [p for p in mine if p.name.lower().startswith(scene)] or mine
@@ -154,4 +200,6 @@ with sync_playwright() as p:
         poster(pg, tid, t)
         print('layout', tid)
     b.close()
+if credits:
+    (out / 'credits.json').write_text(json.dumps(sorted({(c['by'], c['url']) for c in credits.values()}), indent=0))
 print('done ->', out)
