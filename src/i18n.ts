@@ -12,6 +12,13 @@ export const LANGS: { id: Lang; name: string }[] = [
 // English → [Hinglish, Hindi]
 const D: Record<string, [string, string]> = {
   // top bar, bottom bar
+  'My projects': ['Mere projects', 'मेरे प्रोजेक्ट'],
+  'Projects': ['Projects', 'प्रोजेक्ट'],
+  'Open now': ['Abhi khula hai', 'अभी खुला है'],
+  'Rename': ['Naam badlo', 'नाम बदलें'],
+  'Duplicate': ['Copy banao', 'कॉपी बनाएँ'],
+  'Delete': ['Delete karo', 'हटाएँ'],
+  'Everything is saved on this device as you work. Open any project to keep editing.': ['Sab kuch isi device pe save hota hai. Koi bhi project kholo aur editing jaari rakho.', 'सब कुछ इसी डिवाइस पर सेव होता है। कोई भी प्रोजेक्ट खोलें और एडिटिंग जारी रखें।'],
   'cuts': ['cuts', 'कट'],
   'Use template': ['Template use karo', 'टेम्पलेट इस्तेमाल करें'],
   'photos or videos': ['photos ya videos', 'फ़ोटो या वीडियो'],

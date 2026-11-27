@@ -1,5 +1,6 @@
 import { LegalLinks } from './LegalLinks'
 import { PhoneHome, usePhone } from './PhoneHome'
+import { ProjectList, useProjects } from './Projects'
 import { useRef, useState } from 'react'
 import { Icon } from './Icon'
 import { startTour } from './Tour'
@@ -36,6 +37,7 @@ export function Welcome() {
   const [over, setOver] = useState(false)
   const file = useRef<HTMLInputElement>(null)
   const phone = usePhone()
+  const projects = useProjects()
   const take = async (files: FileList | File[]) => {
     const before = new Set(getState().assets.map((a) => a.id))
     setBusy(Array.from(files).length)
@@ -95,6 +97,12 @@ export function Welcome() {
           <button onClick={() => openPanel('memes')}><span className="wa-ic d"><Icon name="smile" size={18} /></span><b>{t('Memes')}</b><small>{t('With sound, one tap')}</small></button>
           <button onClick={() => openTool('script')}><span className="wa-ic a"><Icon name="type" size={18} /></span><b>{t('Script to video')}</b><small>{t('Type a script – get a video')}</small></button>
         </div>
+        {projects.length > 0 && (
+          <>
+            <div className="wl-label">📁 {t('My projects')}</div>
+            <ProjectList row />
+          </>
+        )}
         <LegalLinks className="wl-legal" />
       </div>
     </div>

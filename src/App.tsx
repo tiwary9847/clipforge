@@ -40,7 +40,8 @@ import {
 import { cutToAngle } from './multicam'
 import { enrichAsset } from './processing'
 import { PRESETS } from './types'
-import { restoreProject, startAutosave } from './db'
+import { newProject, restoreProject, startAutosave } from './db'
+import { ProjectsDialog } from './components/Projects'
 
 export default function App() {
   const [exporting, setExporting] = useState(false)
@@ -95,7 +96,7 @@ export default function App() {
     }
   }, [])
   const [dropping, setDropping] = useState(false)
-  const [confirmNew, setConfirmNew] = useState(false)
+  const [projOpen, setProjOpen] = useState(false)
   const [ask, setAsk] = useState<string | null>(null)
   const [proWhy, setProWhy] = useState<string | null>(null)
   const pro = usePro()
@@ -264,7 +265,7 @@ export default function App() {
         <button className="btn sm ae-btn" onClick={() => setAutoOpen(true)} title="Upload clips, set the order – we edit it for you"><Icon name="sparkles" size={15} /> {t('Auto-edit')}</button>
         <button className="btn sm ap-btn hide-phone" onClick={() => setPilot(true)} title="Pro: one tap from raw video to finished files – or many videos at once">🚀 Autopilot{!pro && <span className="pro-mini">PRO</span>}</button>
           <button className={'btn pro-btn' + (pro ? ' is-pro' : '')} onClick={() => openPro()} title={pro ? 'You have ViralKaro Pro' : 'ViralKaro Pro – no mark, 4K, built-in AI'}>{pro ? '★ Pro' : 'Go Pro'}</button>
-        <button className="btn sm hide-phone" onClick={() => setConfirmNew(true)} title="Start a new project"><Icon name="plus" size={15} /> {t('New')}</button>
+        <button className="btn sm hide-phone" onClick={() => setProjOpen(true)} title="My projects – open, start new, duplicate"><Icon name="folder" size={15} /> {t('Projects')}</button>
         <select
           className={'preset-sel' + (empty ? ' hide-empty' : '')}
           value={presetId}
@@ -302,7 +303,8 @@ export default function App() {
                 <button onClick={() => openGuide()}><Icon name="book" size={17} /> {t('Guide')}</button>
                 <button onClick={startTour}><Icon name="help" size={17} /> {t('Quick tour')}</button>
                 <hr />
-                <button onClick={() => setConfirmNew(true)}><Icon name="plus" size={17} /> {t('New project')}</button>
+                <button onClick={() => setProjOpen(true)}>📁 {t('My projects')}</button>
+                <button onClick={() => void newProject().then(() => setUi({ toast: 'New project started – your other projects are in My projects' }))}><Icon name="plus" size={17} /> {t('New project')}</button>
               </div>
             </>
           )}
@@ -335,28 +337,7 @@ export default function App() {
       {autoOpen && <AutoEditDialog onClose={() => setAutoOpen(false)} />}
       {pilot && <AutopilotDialog onClose={() => setPilot(false)} />}
       <Tour />
-      {confirmNew && (
-        <div className="modal-bg" onPointerDown={(e) => e.target === e.currentTarget && setConfirmNew(false)}>
-          <div className="modal">
-            <h3>Start a new project?</h3>
-            <div className="hint">This clears the timeline and the media bin. Your current project can’t be recovered afterwards.</div>
-            <div className="modal-actions">
-              <button className="btn" onClick={() => setConfirmNew(false)}>Cancel</button>
-              <button
-                className="btn primary"
-                onClick={() => {
-                  engine.pause()
-                  engine.seek(0)
-                  resetProject()
-                  setConfirmNew(false)
-                }}
-              >
-                New project
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {projOpen && <ProjectsDialog onClose={() => setProjOpen(false)} />}
       {toast && <div className="toast" onClick={() => setUi({ toast: '' })} title="Click to close">{toast}</div>}
       {dropping && <div className="drop-overlay">Drop videos, images or audio to import</div>}
     </div>

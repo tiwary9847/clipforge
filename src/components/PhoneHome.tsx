@@ -5,6 +5,7 @@ import { openPanel, openTool } from './Welcome'
 import { addToMain } from './BatchTrim'
 import { LegalLinks } from './LegalLinks'
 import { TemplateFeed } from './TemplateFeed'
+import { ProjectList, useProjects } from './Projects'
 import { getPreset, getState, setProject, setUi, useStore } from '../store'
 import { engine } from '../engine'
 import { LANGS, useT } from '../i18n'
@@ -61,6 +62,7 @@ export function PhoneHome({ overlay }: { overlay?: boolean }) {
   const installable = useCanInstall()
   const file = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
+  const projects = useProjects()
   const go = (f: () => void) => { showHome(false); f() }
   return (
     <div className={'ph' + (overlay ? ' ph-over' : '')}>
@@ -110,6 +112,13 @@ export function PhoneHome({ overlay }: { overlay?: boolean }) {
           </button>
         ))}
       </div>
+
+      {projects.length > 0 && (
+        <>
+          <div className="ph-h">📁 {t('My projects')}</div>
+          <ProjectList row onOpen={() => showHome(false)} />
+        </>
+      )}
 
       <div className="ph-h">{t('Format')}</div>
       <div className="ph-fmts">
