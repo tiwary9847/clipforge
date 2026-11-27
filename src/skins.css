@@ -1004,3 +1004,6 @@ body:has(.tdrawer.open) .sheet-x { display: none !important; }
 .md-add { display: grid; gap: 8px; margin: 8px 0; }
 .md-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
 .wl-habits { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 640px; text-align: left; }
+.ph-private { font-size: 12px; color: var(--muted); text-align: center; margin-top: -4px; }
+.tv-song { min-height: 46px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; background: rgba(255, 255, 255, 0.12); color: #fff; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 14px; margin-top: 6px; }
+.tv-song small { font-size: 11px; opacity: 0.85; font-weight: 400; }

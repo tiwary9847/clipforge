@@ -12,6 +12,9 @@ export const LANGS: { id: Lang; name: string }[] = [
 // English → [Hinglish, Hindi]
 const D: Record<string, [string, string]> = {
   // top bar, bottom bar
+  'Use with my song': ['Apne gaane ke saath', 'अपने गाने के साथ'],
+  'pick your clips + one song together': ['clips aur ek gaana saath mein chuno', 'क्लिप और एक गाना साथ में चुनें'],
+  'Your videos never leave your phone – editing happens right here, nothing is uploaded.': ['Aapki videos phone se bahar nahi jaati – editing yahin hoti hai, kuch upload nahi hota.', 'आपके वीडियो फ़ोन से बाहर नहीं जाते – एडिटिंग यहीं होती है, कुछ अपलोड नहीं होता।'],
   'Coming up': ['Aane wale din', 'आने वाले दिन'],
   'Add a birthday': ['Birthday jodo', 'जन्मदिन जोड़ें'],
   'Make wish video': ['Wish video banao', 'शुभकामना वीडियो बनाएँ'],

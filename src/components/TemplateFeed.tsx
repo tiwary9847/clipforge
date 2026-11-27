@@ -63,6 +63,7 @@ export function TemplateFeed({ onPick }: { onPick?: () => void }) {
   const want = useRef<Item | null>(null)
   const [busy, setBusy] = useState('')
   const [open, setOpen] = useState<Item | null>(null)
+  const [withSong, setWithSong] = useState(false)
   const run = async (it: Item, files: File[]) => {
     setBusy(it.id)
     setOpen(null)
@@ -70,11 +71,14 @@ export function TemplateFeed({ onPick }: { onPick?: () => void }) {
       if (it.kind === 'video') {
         const before = new Set(getState().assets.map((a) => a.id))
         await importFiles(files, toast)
-        const ids = getState().assets.filter((a) => !before.has(a.id) && (a.kind === 'video' || a.kind === 'image')).map((a) => a.id)
+        const fresh = getState().assets.filter((a) => !before.has(a.id))
+        const ids = fresh.filter((a) => a.kind === 'video' || a.kind === 'image').map((a) => a.id)
+        const song = fresh.find((a) => a.kind === 'audio')
         if (!ids.length) throw new Error('Pick videos or photos for this template.')
         onPick?.()
         const start = getState().project.clips.filter((c) => c.track === 'v1').reduce((m, c) => Math.max(m, c.start + c.dur), 0)
-        toast(await applyVideoTemplate(it.id, ids, undefined, (m) => toast(m)))
+        const msg = await applyVideoTemplate(it.id, ids, song?.id, (m) => toast(m))
+        toast(withSong && !song ? 'No song was picked, so the built-in beat is used. ' + msg : msg)
         // play the result straight away, like a preview
         engine.seek(start)
         setTimeout(() => engine.play(), 400)
@@ -89,7 +93,9 @@ export function TemplateFeed({ onPick }: { onPick?: () => void }) {
     }
     setBusy('')
   }
-  const use = (it: Item) => {
+  const use = (it: Item, song = false) => {
+    setWithSong(song)
+    if (file.current) file.current.accept = song ? 'video/*,image/*,audio/*' : 'video/*,image/*'
     if (it.pro && !requirePro(`The ${it.pro} template pack is part of ViralKaro Pro.`)) return
     // text layouts go over the video you already have; everything else asks for clips
     if (it.kind === 'layout' && hasVisual()) return void run(it, [])
@@ -102,6 +108,7 @@ export function TemplateFeed({ onPick }: { onPick?: () => void }) {
         const f = Array.from(e.target.files ?? [])
         e.target.value = ''
         if (f.length && want.current) void run(want.current, f)
+        want.current = null
       }} />
       {ROWS.map((r) => (
         <section key={r.title} className="tf-row">
@@ -130,7 +137,7 @@ export function TemplateFeed({ onPick }: { onPick?: () => void }) {
 }
 
 /** Full-screen template preview, like CapCut: the video plays big; swipe or use the arrows for the next one. */
-function Viewer({ it, onClose, onUse, onMove }: { it: Item; onClose: () => void; onUse: (it: Item) => void; onMove: (it: Item) => void }) {
+function Viewer({ it, onClose, onUse, onMove }: { it: Item; onClose: () => void; onUse: (it: Item, song?: boolean) => void; onMove: (it: Item) => void }) {
   const t = useT()
   const list = ALL.filter((x) => x.kind === 'video')
   const i = list.findIndex((x) => x.id === it.id)
@@ -163,6 +170,7 @@ function Viewer({ it, onClose, onUse, onMove }: { it: Item; onClose: () => void;
         <small>{it.desc}</small>
         <small className="tv-meta">{it.secs}s · {it.slots} {t('cuts')} · {t(it.photos ? 'photos or videos' : 'videos or photos')} · {t('built-in beat or your song')}</small>
         <button className="btn primary tv-use" onClick={() => onUse(it)}>{t('Use template')}</button>
+        <button className="btn tv-song" onClick={() => onUse(it, true)}>🎵 {t('Use with my song')} <small>{t('pick your clips + one song together')}</small></button>
       </div>
     </div>,
     document.body,

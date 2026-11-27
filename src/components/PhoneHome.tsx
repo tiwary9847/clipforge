@@ -94,6 +94,7 @@ export function PhoneHome({ overlay }: { overlay?: boolean }) {
           <Icon name="type" size={20} /><b>{t('Script to video')}</b>
         </button>
       </div>
+      <div className="ph-private">🔒 {t('Your videos never leave your phone – editing happens right here, nothing is uploaded.')}</div>
       <input ref={file} type="file" hidden multiple accept="video/*,image/*,audio/*" onChange={async (e) => {
         const f = Array.from(e.target.files ?? [])
         e.target.value = ''

@@ -545,13 +545,14 @@ function ask<T>(msg: Record<string, unknown>, want: string, status?: Status, tra
 /* ---------- AI voices ---------- */
 
 export const VOICES: { id: string; name: string; commercial: boolean; pro?: boolean; hindi?: boolean }[] = [
-  // Pro: natural Hindi / Hinglish voices from Gemini TTS, through the ViralKaro server
-  { id: 'cloud:Kore', name: '⭐ Hindi · Kavya (female, warm)', commercial: true, pro: true, hindi: true },
-  { id: 'cloud:Aoede', name: '⭐ Hindi · Meera (female, bright)', commercial: true, pro: true, hindi: true },
-  { id: 'cloud:Leda', name: '⭐ Hindi · Anaya (female, young)', commercial: true, pro: true, hindi: true },
-  { id: 'cloud:Charon', name: '⭐ Hindi · Arjun (male, deep)', commercial: true, pro: true, hindi: true },
-  { id: 'cloud:Puck', name: '⭐ Hindi · Rohan (male, lively)', commercial: true, pro: true, hindi: true },
-  { id: 'cloud:Orus', name: '⭐ Hindi · Vikram (male, news)', commercial: true, pro: true, hindi: true },
+  // Pro: natural Indian voices from Gemini TTS, through the ViralKaro server – they speak Hindi, Hinglish,
+  // Bengali, Marathi, Tamil, Telugu and English (the language of the text you type)
+  { id: 'cloud:Kore', name: '⭐ Indian · Kavya (female, warm)', commercial: true, pro: true, hindi: true },
+  { id: 'cloud:Aoede', name: '⭐ Indian · Meera (female, bright)', commercial: true, pro: true, hindi: true },
+  { id: 'cloud:Leda', name: '⭐ Indian · Anaya (female, young)', commercial: true, pro: true, hindi: true },
+  { id: 'cloud:Charon', name: '⭐ Indian · Arjun (male, deep)', commercial: true, pro: true, hindi: true },
+  { id: 'cloud:Puck', name: '⭐ Indian · Rohan (male, lively)', commercial: true, pro: true, hindi: true },
+  { id: 'cloud:Orus', name: '⭐ Indian · Vikram (male, news)', commercial: true, pro: true, hindi: true },
   { id: 'kokoro:af_heart', name: 'English · Heart (female, US)', commercial: true },
   { id: 'kokoro:af_bella', name: 'English · Bella (female, US)', commercial: true },
   { id: 'kokoro:am_michael', name: 'English · Michael (male, US)', commercial: true },

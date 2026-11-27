@@ -693,10 +693,10 @@ function AiVoice() {
   const pro = usePro()
   return (
     <>
-      <div className="hint">{v.pro ? 'Type in Hindi (देवनागरी), Hinglish or English – the Pro voices read all three naturally. Made on the ViralKaro server; uses 5 of your monthly AI requests.' : 'Type a script and get a voice-over at the playhead. Runs on your device; the voice downloads once (~80 MB) and is cached.'}</div>
+      <div className="hint">{v.pro ? 'Type in Hindi (देवनागरी), Hinglish, বাংলা, मराठी, தமிழ், తెలుగు or English – the Pro voices speak the language you type. Made on the ViralKaro server; uses 5 of your monthly AI requests.' : 'Type a script and get a voice-over at the playhead. Runs on your device; the voice downloads once (~80 MB) and is cached.'}</div>
       <textarea className="full" rows={3} placeholder={v.hindi ? 'नमस्ते दोस्तों, आज हम… / Namaste dosto, aaj hum…' : 'Hey guys, welcome back…'} value={text} onChange={(e) => setText(e.target.value)} />
-      <select className="full" value={voice} onChange={(e) => { const nv = VOICES.find((x) => x.id === e.target.value)!; if (nv.pro && !requirePro('Hindi AI voices are part of ViralKaro Pro.')) return; setVoice(nv.id) }}>
-        <optgroup label={pro ? 'Hindi & Hinglish (Pro)' : 'Hindi & Hinglish – Pro'}>{VOICES.filter((x) => x.pro).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</optgroup>
+      <select className="full" value={voice} onChange={(e) => { const nv = VOICES.find((x) => x.id === e.target.value)!; if (nv.pro && !requirePro('Indian-language AI voices are part of ViralKaro Pro.')) return; setVoice(nv.id) }}>
+        <optgroup label={pro ? 'Indian languages (Pro)' : 'Indian languages – Pro'}>{VOICES.filter((x) => x.pro).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</optgroup>
         <optgroup label="English (free, on your device)">{VOICES.filter((x) => !x.pro).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</optgroup>
       </select>
       {!v.commercial && <div className="hint">⚠ This voice’s licence (CC BY-NC) doesn’t allow monetised videos. Type Hindi in देवनागरी for best results.</div>}

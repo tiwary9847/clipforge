@@ -45,7 +45,7 @@ export const TOOL_META: [string, string, Cat[], string, string][] = [
   ['Multicam', 'multicam', ['create'], 'Switch between camera angles', 'angles camera sync'],
   ['Speakers', 'speakers', ['ai'], 'Who talks when – a caption colour per person', 'podcast people interview'],
   ['Dub into English', 'dub', ['ai', 'audio'], 'Translate Hindi and re-voice it in English', 'translate dubbing'],
-  ['AI voice', 'tts', ['ai', 'audio'], 'Text-to-speech voice-over – Hindi voices with Pro', 'tts narration voiceover hindi awaaz bolo'],
+  ['AI voice', 'tts', ['ai', 'audio'], 'Text-to-speech voice-over – Hindi, Bengali, Marathi, Tamil, Telugu voices with Pro', 'tts narration voiceover hindi bengali marathi tamil telugu awaaz bolo'],
   ['Loudness', 'loud', ['fix', 'audio'], 'Right volume for YouTube and Instagram', 'volume lufs normalise'],
   ['Hook lines', 'hooklines', ['ai', 'publish'], 'AI writes your opening text', 'hook intro opening'],
   ['Hook finder', 'hookfinder', ['ai'], 'Copy your best moment to the start', 'hook intro teaser'],
