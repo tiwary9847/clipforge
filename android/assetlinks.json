@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "io.github.tiwary9847.viralkaro",
+    "sha256_cert_fingerprints": ["19:91:35:D1:C5:FB:69:8F:4B:3B:E7:A6:E6:F5:68:8A:DD:DE:EF:EB:66:CE:A8:5C:90:03:31:D9:FB:7B:1C:F5"]
+  }
+}]

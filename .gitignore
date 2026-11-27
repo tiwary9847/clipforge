@@ -7,3 +7,19 @@ dist-single
 # never commit licence keys
 *.jwk.json
 secrets/
+# Android build (keep the signing key out of git – it lives in /home/claude/secrets)
+*.keystore
+*.jks
+*.apk
+*.aab
+*.idsig
+android/app/
+android/gradle/
+android/.gradle/
+android/build/
+android/gradlew*
+android/*.gradle
+android/gradle.properties
+android/local.properties
+android/store_icon.png
+android/manifest-checksum.txt
