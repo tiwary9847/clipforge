@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { engine } from '../engine'
+import { CaptionKit, CoverMaker, Dest, DestPicker, PostButtons, QuickScore, lastDest, slowDevice, statusParts } from './PostKit'
+import { setClipsSilent } from '../store'
 import { Ctl, buildChapters, exportAudio, exportGif, fastExport, fastExportSupport, sourceFps } from '../fastExport'
 import { getPreset, getState, projectDuration } from '../store'
 import { fmtTime } from './Fields'
@@ -28,6 +30,12 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
   const [what, setWhat] = useState<'video' | 'gif' | 'audio'>('video')
   const [part, setPart] = useState(false)
   const [more, setMore] = useState(false)
+  const [dest, setDest] = useState<Dest>(lastDest)
+  const [musicOff, setMusicOff] = useState(false)
+  const [split, setSplit] = useState(true)
+  const [light, setLight] = useState(slowDevice)
+  const [parts, setParts] = useState<File[]>([])
+  const [caption, setCaption] = useState('')
   const t = useT()
   const selRange = (() => {
     const st = getState()
@@ -62,6 +70,11 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
     setPhase('running')
     setErr('')
     setProg(0)
+    setParts([])
+    // "music off": silence the song tracks while saving (voices, clip sound and effects stay), then put them back
+    const before = getState().project.clips
+    const muted = musicOff && what === 'video' && dest !== 'save'
+    if (muted) setClipsSilent(before.map((c) => (c.kind === 'audio' ? { ...c, volume: 0 } : c)))
     try {
       ctl.current = { cancelled: false }
       const onP = (p: number, l?: string) => {
@@ -70,13 +83,35 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
         if (l) setLabel(l)
       }
       const range = part ? { from: Math.max(0, Math.min(rFrom, rTo)), to: Math.max(rFrom, rTo) } : {}
+      const size = light ? { maxSide: 1280, bitrate: 3_500_000 } : {}
+      const fps = fpsPick === 'auto' ? srcFps : fpsPick
+      // WhatsApp Status: several parts of up to 60 s
+      const pieces = what === 'video' && dest === 'status' && split && !part && dur > 60.5 && (mode === 'fast') ? statusParts(dur) : null
+      if (pieces) {
+        const files: File[] = []
+        let last: Awaited<ReturnType<typeof fastExport>> = null
+        for (let i = 0; i < pieces.length; i++) {
+          const [from, to] = pieces[i]
+          last = await fastExport((p, l) => onP((i + p) / pieces.length, `Part ${i + 1} of ${pieces.length} – ${l}`), ctl.current, { from, to, fps, ...size })
+          if (!last) break
+          files.push(new File([last.blob], `${baseName}-status-${i + 1}of${pieces.length}.${last.ext}`, { type: last.blob.type }))
+        }
+        if (!last || files.length < pieces.length) {
+          setPhase('idle')
+          return
+        }
+        setParts(files)
+        setResult({ url: URL.createObjectURL(files[0]), ext: last.ext, size: files.reduce((s, f) => s + f.size, 0), codec: last.codec, blob: files[0] })
+        setPhase('done')
+        return
+      }
       const out =
         what === 'gif'
           ? await exportGif(onP, ctl.current, range)
           : what === 'audio'
             ? await exportAudio(onP, ctl.current, range)
             : mode === 'fast' || part
-              ? await fastExport(onP, ctl.current, { ...range, fps: fpsPick === 'auto' ? srcFps : fpsPick })
+              ? await fastExport(onP, ctl.current, { ...range, fps, ...size })
               : await engine.exportVideo((p) => onP(p, 'Recording in real time…'))
       if (!out) {
         setPhase('idle')
@@ -87,6 +122,8 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
     } catch (e) {
       setErr((e as Error).message)
       setPhase('error')
+    } finally {
+      if (muted) setClipsSilent(getState().project.clips.map((c) => (c.kind === 'audio' ? { ...c, volume: before.find((b) => b.id === c.id)?.volume ?? c.volume } : c)))
     }
   }
 
@@ -97,7 +134,8 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
     } else onClose()
   }
 
-  const name = `${getState().projectName.replace(/[^\w\- ]+/g, '').trim() || 'viralkaro'}-${preset.id}.${result?.ext ?? 'mp4'}`
+  const baseName = getState().projectName.replace(/[^\w\- ]+/g, '').trim() || 'viralkaro'
+  const name = `${baseName}-${preset.id}.${result?.ext ?? 'mp4'}`
 
   return (
     <div className="modal-bg" onPointerDown={(e) => e.target === e.currentTarget && phase !== 'running' && onClose()}>
@@ -105,12 +143,14 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
         <h3>{t('Export video')}</h3>
         <div className="kv">
           <span>{t('Format')}</span><b>{preset.label}</b>
-          <span>{t('Resolution')}</span><b>{Math.min(preset.w, preset.h) >= 2000 ? '4K' : `${Math.min(preset.w, preset.h)}p`} · {mode === 'fast' || part ? (fpsPick === 'auto' ? srcFps : fpsPick) : 30} fps</b>
+          <span>{t('Resolution')}</span><b>{light && what === 'video' && Math.min(preset.w, preset.h) > 720 ? '720p' : Math.min(preset.w, preset.h) >= 2000 ? '4K' : `${Math.min(preset.w, preset.h)}p`} · {mode === 'fast' || part ? (fpsPick === 'auto' ? srcFps : fpsPick) : 30} fps</b>
           <span>{t('Length')}</span><b>{fmtTime(dur)}</b>
         </div>
 
         {phase === 'idle' && (
           <>
+            {what === 'video' && dur > 0 && <DestPicker dest={dest} setDest={setDest} musicOff={musicOff} setMusicOff={setMusicOff} split={split} setSplit={setSplit} light={light} setLight={setLight} />}
+            {what === 'video' && dur > 0 && dest !== 'save' && <QuickScore />}
             <div className="exp-simple">
               {what === 'video' ? (
                 <span>🎬 MP4 · {mode === 'fast' ? t('Fast (recommended)') : t('Safe mode')} · {(fpsPick === 'auto' ? srcFps : fpsPick)} fps{part ? ` · ${rFrom}–${rTo} s` : ''}</span>
@@ -221,6 +261,18 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                   ? ' – ready for YouTube, Instagram and Facebook.'
                   : ' – ready for YouTube and Facebook. This browser couldn’t make Instagram’s sound format; if Instagram refuses it, save the video again in Chrome on Android, Windows or Mac.'}
             </div>
+            {result.ext === 'mp4' || result.ext === 'webm' ? (
+              <>
+                <CaptionKit dest={dest} onCaption={setCaption} />
+                <PostButtons files={parts.length ? parts : [new File([result.blob], name, { type: result.blob.type })]} dest={dest} caption={caption} />
+                {dest !== 'status' && dest !== 'save' && <CoverMaker />}
+              </>
+            ) : null}
+            {parts.length > 1 && (
+              <div className="parts">
+                {parts.map((f, i) => <a key={f.name} className="btn sm" href={URL.createObjectURL(f)} download={f.name}>⬇ Part {i + 1}</a>)}
+              </div>
+            )}
             <div className="modal-actions">
               <button className="btn" onClick={onClose}>{t('Close')}</button>
               {canShare(result.blob, name) && (
