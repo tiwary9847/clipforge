@@ -1014,3 +1014,5 @@ body:has(.tdrawer.open) .sheet-x { display: none !important; }
 .tf-mine-bar { display: flex; flex-wrap: wrap; gap: 6px; }
 .tf-mine-act { display: flex; gap: 4px; }
 .tf-mine-act button { flex: 1; border: 1px solid var(--line); background: none; color: var(--text); border-radius: 8px; font-size: 12px; min-height: 30px; }
+/* contrast: the small "Make it →" labels use the main text colour */
+.cu-card i, .idea > i { color: var(--text); text-decoration: underline; text-decoration-color: var(--accent-fill, var(--accent)); text-decoration-thickness: 2px; text-underline-offset: 3px; }
